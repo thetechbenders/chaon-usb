@@ -73,7 +73,6 @@ chaon_parse_result_t chaon_parse(const char *source, chaon_program_t *out,
         if (error) error->code = CHAON_PARSE_BOUNDS;
         return CHAON_PARSE_BOUNDS;
     }
-    chaon_program_t p = {0};
     chaon_parse_result_t result = CHAON_PARSE_OK;
     size_t line_num = 0;
     const char *cur = source;
@@ -88,16 +87,16 @@ chaon_parse_result_t chaon_parse(const char *source, chaon_program_t *out,
         line[len] = '\0';
         char *s = trim(line);
         if (*s && *s != '#') {
-            if (p.count >= CHAON_MAX_STEPS) { result = CHAON_PARSE_BOUNDS; break; }
-            result = parse_line(s, &p.steps[p.count]);
+            if (out->count >= CHAON_MAX_STEPS) { result = CHAON_PARSE_BOUNDS; break; }
+            result = parse_line(s, &out->steps[out->count]);
             if (result != CHAON_PARSE_OK) break;
-            ++p.count;
+            ++out->count;
         }
         if (!*end) break;
         cur = end + 1;
     }
-    if (result == CHAON_PARSE_OK && !p.count) result = CHAON_PARSE_EMPTY;
+    if (result == CHAON_PARSE_OK && !out->count) result = CHAON_PARSE_EMPTY;
     if (error) { error->code = result; error->line = result == CHAON_PARSE_OK ? 0 : line_num; }
-    if (result == CHAON_PARSE_OK) *out = p;
+    if (result != CHAON_PARSE_OK) memset(out, 0, sizeof(*out));
     return result;
 }

@@ -28,6 +28,8 @@
 enum { BUTTON_POLL_MS = 20, BUTTON_DEBOUNCE_MS = 40, ARM_TTL_MS = 30000 };
 static const char *TAG = "chaon";
 static const char demo_source[] = "DELAY 500\nTYPE \"ChaoN USB HID smoke test\"\n";
+/* Avoid allocating ~3 KB program objects on FreeRTOS app_main stack. */
+static chaon_program_t demo;
 
 static const uint8_t hid_report_descriptor[] = {
     TUD_HID_REPORT_DESC_KEYBOARD()
@@ -136,7 +138,6 @@ static void init_gpio(void)
 
 void app_main(void)
 {
-    chaon_program_t demo = {0};
     chaon_parse_error_t error = {0};
     if (chaon_parse(demo_source, &demo, &error) != CHAON_PARSE_OK) {
         ESP_LOGE(TAG, "embedded demo parse error at line %u", (unsigned)error.line);
