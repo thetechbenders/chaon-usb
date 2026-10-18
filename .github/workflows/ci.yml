@@ -17,7 +17,7 @@ jobs:
     name: Native C parser/VM tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Host unit tests (-Werror)
         run: make test
       - name: UBSan build and run
@@ -29,7 +29,7 @@ jobs:
     name: ESP-IDF v5.5.3 / original T-Dongle-S3
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build ESP32-S3
         uses: espressif/esp-idf-ci-action@v1
         with:
@@ -37,7 +37,7 @@ jobs:
           target: esp32s3
           path: .
       - name: Upload flashable firmware inputs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: chaon-esp32s3-candidate
           if-no-files-found: error
