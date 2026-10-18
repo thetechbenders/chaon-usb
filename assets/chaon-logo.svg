@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
+<title id="title">ChaoN, the Chaotic Neutral USB</title>
+<desc id="desc">Neon-lime faceted twenty-sided die with triangular center face, white ChaoN wordmark and gray subtitle on charcoal.</desc>
+<rect width="1200" height="320" rx="18" fill="#11131B"/>
+<g stroke="#B4F66B" stroke-width="4" stroke-linejoin="round" fill="none" transform="translate(36 18)">
+  <path d="M130 4 L246 68 L262 200 L130 278 L0 200 L14 68 Z" stroke-width="7"/>
+  <!-- Icosahedron-style triangulated projection; central face is a triangle -->
+  <path d="M130 4 L90 83 L174 83 Z"/>
+  <path d="M14 68 L90 83 L0 200 Z"/>
+  <path d="M130 4 L14 68 L90 83 Z"/>
+  <path d="M130 4 L174 83 L246 68 Z"/>
+  <path d="M246 68 L174 83 L262 200 Z"/>
+  <path d="M90 83 L174 83 L130 198 Z" fill="#1D2830" stroke-width="6"/>
+  <path d="M0 200 L90 83 L130 198 Z"/>
+  <path d="M262 200 L174 83 L130 198 Z"/>
+  <path d="M0 200 L130 198 L130 278 Z"/>
+  <path d="M262 200 L130 198 L130 278 Z"/>
+  <text x="130" y="151" font-family="Arial, sans-serif" font-size="45" font-weight="800" fill="#B4F66B" stroke="none" text-anchor="middle">20</text>
+</g>
+<g font-family="Arial, Helvetica, sans-serif">
+  <text x="338" y="153" font-size="136" letter-spacing="-6" font-weight="800" fill="#F4F6F8">Chao<tspan fill="#B4F66B">N</tspan></text>
+  <text x="346" y="201" font-size="27" letter-spacing="6" fill="#F2F4F7">CHAOTIC NEUTRAL USB</text>
+  <line x1="345" y1="220" x2="1156" y2="220" stroke="#B4F66B" stroke-width="3"/>
+  <text x="346" y="261" font-size="20" letter-spacing="3" fill="#9AA6B2">TECHBENDERS  ·  ESP32-S3</text>
+</g>
+</svg>
+
