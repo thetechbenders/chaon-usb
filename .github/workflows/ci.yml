@@ -1,0 +1,52 @@
+name: ChaoN CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chaon-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-c:
+    name: Native C parser/VM tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Host unit tests (-Werror)
+        run: make test
+      - name: UBSan build and run
+        run: |
+          make clean
+          make test CFLAGS="-std=c11 -O1 -g -Wall -Wextra -Wpedantic -Werror -fsanitize=undefined -fno-omit-frame-pointer"
+
+  esp32s3:
+    name: ESP-IDF v5.5.3 / original T-Dongle-S3
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build ESP32-S3
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.5.3
+          target: esp32s3
+          path: .
+      - name: Upload flashable firmware inputs
+        uses: actions/upload-artifact@v7
+        with:
+          name: chaon-esp32s3-candidate
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            build/chaon.bin
+            build/chaon.elf
+            build/bootloader/bootloader.bin
+            build/partition_table/partition-table.bin
+            build/flash_args
+            build/flasher_args.json
+            dependencies.lock

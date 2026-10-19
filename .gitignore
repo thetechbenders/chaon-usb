@@ -1,0 +1,21 @@
+# ESP-IDF generated files and managed dependencies
+build/
+sdkconfig
+sdkconfig.old
+managed_components/
+dependencies.lock
+*.pyc
+__pycache__/
+# Host test outputs
+tests/chaon_tests
+*.gcda
+*.gcno
+*.profraw
+# Local tooling
+.vscode/
+.idea/
+.DS_Store
+*.log
+.env
+.env.*
+
