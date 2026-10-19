@@ -262,6 +262,21 @@ Normal USB identity remained `303A:4004` / `CHN-S3-DEV`, bus description
 `ChaoN USB HID`, driver `HidUsb`, with a healthy HID Keyboard Device child.
 COM4 disappears in HID mode as expected.
 
+### Supplemental mid-stream cancellation observation — 2026-10-19
+
+After the recorded cancellation trial that emitted zero characters, Dan supplied
+a **separate manual mid-typing cancellation observation**. The focused editor
+contained the exact partial output `ChaoN USB HI`. Dan confirmed this text was
+produced while deliberately stopping the script **after typing had begun**.
+This demonstrates that cancellation can interrupt an actively transmitting
+script, not merely stop it before the first character. The rest of the fixed
+demo string was not observed in that output.
+
+This is operator-provided text evidence, not a raw USB HID report capture or
+latency measurement. The earlier zero-character trial is retained above as a
+distinct first cancellation test. No firmware change, new CI run, or reflash
+is implied by this supplemental observation.
+
 ### Closeout and limits
 
 No confirmed in-scope defect, firmware correction, or repeat flash was needed.
