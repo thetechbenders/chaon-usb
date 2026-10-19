@@ -6,7 +6,7 @@
 
 **The Chaotic Neutral HID.** Experimental, screen-equipped USB HID instrument written in C for the **original LILYGO T-Dongle-S3** (ESP32-S3).
 
-> **Baseline vs. new candidate:** Firmware `323c180` passed first physical USB HID bring-up on an original T-Dongle-S3, with two matching full factory flash backups. The new LCD/LED firmware built at `4d8d9e0` passed CI but **has not been flashed or physically validated**. See [first bring-up evidence](docs/bringup.md) and [new LCD/LED acceptance plan](docs/status-ui.md). microSD scripting is not implemented.
+> **Initial LCD/LED hardware validation completed:** Firmware `4d8d9e0` passed ESP-IDF v5.5.3 CI, verified flashing, and the agreed LCD/LED/HID smoke tests on Dan's original T-Dongle-S3 and Windows host. The factory backup and verified `323c180` rollback package are preserved. See [bring-up evidence and limits](docs/bringup.md) and [LCD/LED results](docs/status-ui.md). microSD scripting is not implemented; both PRs remain draft/unmerged.
 
 ## What exists in this branch
 
