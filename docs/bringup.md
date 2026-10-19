@@ -158,3 +158,136 @@ The flashed code and successful CI remain at head `323c180` (PR merge build
 firmware and do not warrant a new firmware build. PR #1 remains draft and
 unmerged; no release, tag, or publication was performed.
 
+
+## Second physical session — LCD and LED validation, 2026-10-19
+
+The first-session record above is historical evidence for baseline `323c180`.
+This session tested the new LCD/LED image on the same original board and
+Windows host. Dan explicitly authorized flashing after recovery/preflight gates.
+
+### Provenance and recovery safeguards
+
+- PR #6: `feat/status-led-lcd`, based on `feat/esp-idf-foundation`; both PR #6
+  and foundation PR #1 remain draft/open/unmerged.
+- Firmware source: `4d8d9e046d917baa9814d74cc24c8b346d55046d`.
+  Native C tests (including visual tests/UBSan) and ESP-IDF v5.5.3 ESP32-S3
+  build passed in run `39336336585`; no compiler warnings were found.
+- CI merge build `7d502cf7d9927c188f6cf6bcecdb175e74bb83d8` has the same
+  source tree as the firmware commit. The embedded app version is `7d502cf`.
+- At preflight the branch head was `02db39223f81cd026f1ad2b8ceb213c1f88bb694`.
+  Only README, roadmap and status-ui documentation differed from the validated
+  firmware; no local rebuild or substituted image was used.
+- Artifact `12227240519`, `chaon-esp32s3-candidate`, was downloaded with
+  authenticated GitHub CLI. ZIP SHA-256:
+  `124bcbc2e35b0ba415c2b16cea056e8c2fa2047563e41999c07bd54bb4eeb97e`.
+- The original factory backup at
+  `C:\Users\Daniel\Documents\ChaoN-USB-Recovery\2026-10-19-first-bringup\factory-ccba973a4ecc-16MB.bin`
+  was rechecked without modification: 16,777,216 bytes, SHA-256
+  `19af13fad3becb094ac4422782b0f3c2a7a25851bcfaa0a69bb155b2ad542175`.
+- Preserved baseline `candidate-323c180.zip` in that directory also passed
+  its original ZIP digest check
+  (`18a32badd9e41840a0157f618946987aae25b69b6cfbb0a0562c871b2349bcd9`),
+  retaining a verified rollback package. Factory contents were not uploaded.
+- Rediscovered ROM port **COM4**, parent
+  `USB\VID_303A&PID_1001\CC:BA:97:3A:4E:CC`, after BOOT-held insertion.
+  The first insertion remained HID; a careful retry entered ROM, before any
+  serial operation or flash write. esptool v5.4.0 confirmed ESP32-S3 QFN56
+  revision v0.2, MAC `cc:ba:97:3a:4e:cc`, flash `ef/4018`, 16 MB quad.
+  Secure Boot and flash encryption remained disabled; security flags were zero.
+  COM25 and CH340 COM10 were not opened.
+
+### Images, flash and separate verification
+
+The app was 261,184 bytes (`0x3fc40`), ESP32-S3 / ESP-IDF v5.5.3,
+with valid image checksum/hash. The verified artifact manifest specified
+DIO, 80 MHz, 16 MB and only these images:
+
+| Offset | File | SHA-256 |
+| --- | --- | --- |
+| `0x0` | `bootloader/bootloader.bin` | `48620ccd49db38d3a574feaf94b116796052237030f8336d2dd650e5402aa513` |
+| `0x8000` | `partition_table/partition-table.bin` | `7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820` |
+| `0x10000` | `chaon.bin` | `302bc54c076562571fa07b937537568ce67c39902de492ae988e124558eec9be` |
+
+Commands ran with esptool v5.4.0 from the extracted artifact's `build`
+directory, inside
+`C:\Users\Daniel\Documents\ChaoN-USB-Recovery\2026-10-19-lcd-led-bringup\candidate-4d8d9e0`:
+
+```powershell
+esptool --chip esp32s3 --port COM4 --baud 460800 --before no-reset --after no-reset write-flash --no-progress --flash-mode dio --flash-freq 80m --flash-size 16MB 0x0 bootloader/bootloader.bin 0x10000 chaon.bin 0x8000 partition_table/partition-table.bin
+esptool --chip esp32s3 --port COM4 --baud 460800 --before no-reset --after no-reset verify-flash --flash-mode dio --flash-freq 80m --flash-size 16MB 0x0 bootloader/bootloader.bin 0x10000 chaon.bin 0x8000 partition_table/partition-table.bin
+```
+
+Both commands exited zero. All three images passed write-time and separate
+digest verification. Manifest flash-header settings were applied to the
+bootloader in memory, with identical verification settings. Only image-covering
+sectors were erased: `0x0–0x5fff`, `0x8000–0x8fff`,
+`0x10000–0x4ffff`. No full-chip erase, unrelated writes, or eFuse writes.
+
+### Operator-confirmed physical results
+
+| Test | Actual evidence | Result |
+| --- | --- | --- |
+| A: normal boot | Windows ChaoN HID interface and keyboard child status OK; display "looks perfect", green LED; editor stayed empty | Pass |
+| B: arm / expire | ARMED and flashing light; requested yellow/near-30-second/expiry recheck affirmed; specifically observed 20S decrement to 19S; returns green/READY without typing | Pass by operator report |
+| C: execute | Exact `ChaoN USB HID smoke test`, no sticking; cyan/RUNNING then green/READY separately confirmed | Pass |
+| D: cancel | Actual output prefix empty (zero characters); solid red/CANCELLED, return green; no sticking; overall requested hold/release-without-rearm sequence affirmed | Pass by operator report |
+| E: armed disconnect | Reconnected to READY / BOOT TO ARM, steady green, empty editor | Pass |
+| E: ROM recovery | BOOT-held insertion restored COM4 / original serial; direct read-only ROM command below succeeded with same chip identity | Pass |
+| E: return to normal | Dan confirmed READY / BOOT TO ARM, steady green and no automatic typing after BOOT-released reconnect | Pass by operator report |
+
+The initial ambiguous countdown description "205" was clarified by Dan as
+`20S` changing to `19S`. The renderer uses two numeric digits plus an `S`
+seconds suffix; no timer defect was established.
+
+Test A's requested upright orientation, colors, readability and absence of
+clipping were accepted by Dan's "looks perfect" report. This validates the
+candidate MADCTL `0xA8`, inversion ON, x+1/y+26 address offsets, RGB565 output,
+and active-low GPIO38 backlight configuration on this board qualitatively.
+No photograph, calibrated color measurement, electrical trace, or first-frame
+backlight timing capture was taken. Nominal yellow 250 ms on/off and red
+2-second timing were not instrumented.
+
+The cancellation test held BOOT until return to READY before releasing it.
+No output characters were emitted in that trial; release did not produce a
+reported accidental arm. Manual lowercase checks found no sticking. This is
+host/operator evidence, not a capture of every HID release report.
+
+ROM recovery used no stub and no reflash:
+
+```powershell
+esptool --chip esp32s3 --port COM4 --before no-reset --after no-reset --no-stub get-security-info
+```
+
+Normal USB identity remained `303A:4004` / `CHN-S3-DEV`, bus description
+`ChaoN USB HID`, driver `HidUsb`, with a healthy HID Keyboard Device child.
+COM4 disappears in HID mode as expected.
+
+### Supplemental mid-stream cancellation observation — 2026-10-19
+
+After the recorded cancellation trial that emitted zero characters, Dan supplied
+a **separate manual mid-typing cancellation observation**. The focused editor
+contained the exact partial output `ChaoN USB HI`. Dan confirmed this text was
+produced while deliberately stopping the script **after typing had begun**.
+This demonstrates that cancellation can interrupt an actively transmitting
+script, not merely stop it before the first character. The rest of the fixed
+demo string was not observed in that output.
+
+This is operator-provided text evidence, not a raw USB HID report capture or
+latency measurement. The earlier zero-character trial is retained above as a
+distinct first cancellation test. No firmware change, new CI run, or reflash
+is implied by this supplemental observation.
+
+### Closeout and limits
+
+No confirmed in-scope defect, firmware correction, or repeat flash was needed.
+The firmware/last successful code CI remains `4d8d9e0` / run `39336336585`;
+subsequent hardware-result documentation is metadata only and skips CI.
+The first-session factory backup and baseline package remain preserved.
+Local session logs and image digests are in
+`C:\Users\Daniel\Documents\ChaoN-USB-Recovery\2026-10-19-lcd-led-bringup`.
+
+Only this original board and Windows host were tested. FAULT blinking and
+LCD-failure fallback were not fault-injected; other OS hosts, USB suspend,
+current draw, endurance, and instrumented timing remain unvalidated.
+microSD scripting remains unimplemented. Both PRs remain draft/unmerged.
+No merge, tag, release, publication, extra feature, or unrelated cleanup.

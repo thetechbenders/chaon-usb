@@ -2,7 +2,7 @@ name: ChaoN CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feat/esp-idf-foundation]
   workflow_dispatch:
 
 permissions:

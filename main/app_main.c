@@ -1,8 +1,8 @@
 /*
  * ChaoN original T-Dongle-S3 USB HID bring-up candidate.
  * Inert on insertion: press/release BOOT once to arm, again to type
- * a harmless, fixed string. No screen or SD support in this slice.
- * Hardware verification is still pending.
+ * a harmless, fixed string. LCD/APA102 state indications are advisory;
+ * no display operation is allowed to bypass physical HID arming.
  */
 #include <stdbool.h>
 #include <stdint.h>
@@ -19,13 +19,15 @@
 
 #include "chaon_script.h"
 #include "chaon_vm.h"
+#include "chaon_status.h"
+#include "chaon_lcd.h"
+#include "chaon_control.h"
 
 #define BUTTON_PIN GPIO_NUM_0
 #define APA102_DATA GPIO_NUM_40
 #define APA102_CLOCK GPIO_NUM_39
 #define USB_DESCRIPTOR_LEN (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN)
 
-enum { BUTTON_POLL_MS = 20, BUTTON_DEBOUNCE_MS = 40, ARM_TTL_MS = 30000 };
 static const char *TAG = "chaon";
 static const char demo_source[] = "DELAY 500\nTYPE \"ChaoN USB HID smoke test\"\n";
 /* Avoid allocating ~3 KB program objects on FreeRTOS app_main stack. */
@@ -133,7 +135,39 @@ static void init_gpio(void)
     };
     ESP_ERROR_CHECK(gpio_config(&button_cfg));
     ESP_ERROR_CHECK(gpio_config(&led_cfg));
-    led_set(0, 0, 12);
+    led_set(24, 33, 12); /* dim ChaoN green until USB mounts */
+}
+
+static void paint_status(chaon_status_t status, int64_t now_ms,
+                         int64_t armed_at_ms, bool *lcd_ok)
+{
+    static bool sent_led = false;
+    static chaon_rgb_t previous = {0, 0, 0};
+    static int last_status = -1;
+    static uint32_t last_seconds = UINT32_MAX;
+
+    const chaon_rgb_t rgb = chaon_status_led(status, (uint32_t)now_ms);
+    if (!sent_led || rgb.red != previous.red ||
+        rgb.green != previous.green || rgb.blue != previous.blue) {
+        led_set(rgb.red, rgb.green, rgb.blue);
+        previous = rgb;
+        sent_led = true;
+    }
+
+    uint32_t seconds_left = 0;
+    if (status == CHAON_STATUS_ARMED) {
+        const int64_t remaining = CHAON_CONTROL_ARM_TTL_MS - (now_ms - armed_at_ms);
+        if (remaining > 0) seconds_left = (uint32_t)((remaining + 999) / 1000);
+    }
+    if (*lcd_ok && (last_status != (int)status ||
+                    last_seconds != seconds_left)) {
+        if (!chaon_lcd_show(status, seconds_left)) {
+            ESP_LOGE(TAG, "LCD_WRITE_FAIL; HID remains usable");
+            *lcd_ok = false;
+        }
+    }
+    last_status = (int)status;
+    last_seconds = seconds_left;
 }
 
 void app_main(void)
@@ -154,62 +188,42 @@ void app_main(void)
     ESP_ERROR_CHECK(tinyusb_driver_install(&usb));
     ESP_LOGI(TAG, "USB HID configured; no typing until physical confirmation");
 
-    bool armed = false;
-    bool stable_pressed = false;
-    bool candidate_pressed = false;
-    bool saw_press = false;
-    int debounce_ms = 0;
-    int64_t armed_at_ms = 0;
+    bool lcd_ok = chaon_lcd_open(); /* advisory peripheral only */
+    if (!lcd_ok) ESP_LOGW(TAG, "LCD unavailable; HID stays operational");
+
+    /* The portable controller owns the physical arm/execute state machine.
+     * Hardware I/O, LEDs, LCD and VM execution remain in this shell.
+     */
+    chaon_control_t control = {0};
 
     for (;;) {
         const bool connected = tud_mounted();
         const bool pressed = gpio_get_level(BUTTON_PIN) == 0;
         const int64_t now_ms = esp_timer_get_time() / 1000;
 
-        if (!connected || (armed && now_ms - armed_at_ms >= ARM_TTL_MS)) {
-            if (armed) ESP_LOGI(TAG, "disarmed: disconnected or expired");
-            armed = false;
-            led_set(0, 0, 12);
+        const chaon_control_event_t event =
+            chaon_control_step(&control, connected, pressed, now_ms);
+        if (event == CHAON_CONTROL_EXPIRE) {
+            ESP_LOGI(TAG, "armed window expired");
+        } else if (event == CHAON_CONTROL_ARM) {
+            ESP_LOGI(TAG, "armed for 30 seconds");
+        } else if (event == CHAON_CONTROL_EXECUTE) {
+            paint_status(control.state, now_ms, control.armed_at_ms, &lcd_ok);
+            const chaon_transport_t io = {
+                .report = send_hid_report,
+                .sleep_ms = sleep_ms,
+                .cancelled = is_cancelled,
+                .context = NULL,
+            };
+            const chaon_run_result_t result = chaon_run(&demo, &io);
+            const int64_t completed_ms = esp_timer_get_time() / 1000;
+            ESP_LOGI(TAG, "script result=%d", (int)result);
+            chaon_control_complete(&control, result, tud_mounted(),
+                                   gpio_get_level(BUTTON_PIN) == 0,
+                                   completed_ms);
         }
-        if (pressed != candidate_pressed) {
-            candidate_pressed = pressed;
-            debounce_ms = 0;
-        } else if (debounce_ms < BUTTON_DEBOUNCE_MS) {
-            debounce_ms += BUTTON_POLL_MS;
-        }
-        if (debounce_ms >= BUTTON_DEBOUNCE_MS &&
-            stable_pressed != candidate_pressed) {
-            stable_pressed = candidate_pressed;
-            if (stable_pressed) {
-                saw_press = true;
-            } else if (saw_press) {
-                saw_press = false;
-                if (tud_mounted()) {
-                    if (!armed) {
-                        armed = true;
-                        armed_at_ms = now_ms;
-                        led_set(16, 10, 0);
-                        ESP_LOGI(TAG, "armed for 30 seconds");
-                    } else {
-                        armed = false;
-                        led_set(0, 16, 0);
-                        const chaon_transport_t io = {
-                            .report = send_hid_report,
-                            .sleep_ms = sleep_ms,
-                            .cancelled = is_cancelled,
-                            .context = NULL,
-                        };
-                        const chaon_run_result_t result = chaon_run(&demo, &io);
-                        ESP_LOGI(TAG, "script result=%d", (int)result);
-                        if (result != CHAON_RUN_OK) {
-                            led_set(18, 0, 0);
-                            vTaskDelay(pdMS_TO_TICKS(500));
-                        }
-                        led_set(0, 0, 12);
-                    }
-                }
-            }
-        }
-        vTaskDelay(pdMS_TO_TICKS(BUTTON_POLL_MS));
+        paint_status(control.state, esp_timer_get_time() / 1000,
+                     control.armed_at_ms, &lcd_ok);
+        vTaskDelay(pdMS_TO_TICKS(CHAON_CONTROL_POLL_MS));
     }
 }

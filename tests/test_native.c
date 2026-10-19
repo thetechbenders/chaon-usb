@@ -13,6 +13,7 @@ typedef struct {
     uint8_t last_usage, last_mod;
     uint32_t slept_ms;
     bool cancel_now;
+    bool cancel_after_first_press;
 } mock_t;
 
 static bool send_report(uint8_t modifier, uint8_t usage, void *context)
@@ -22,6 +23,7 @@ static bool send_report(uint8_t modifier, uint8_t usage, void *context)
     if (m->reports == m->fail_on_report) return false;
     if (usage) ++m->presses;
     else ++m->releases;
+    if (usage && m->cancel_after_first_press) m->cancel_now = true;
     m->last_usage = usage;
     m->last_mod = modifier;
     return true;
@@ -102,6 +104,18 @@ static void test_vm(void)
     io = io_for(&m);
     assert(chaon_run(&p, &io) == CHAON_RUN_CANCELLED);
     assert(m.last_usage == 0);
+
+    /* Cancel after a real key-down; final release succeeds. */
+    m = (mock_t){.cancel_after_first_press = true};
+    io = io_for(&m);
+    assert(chaon_run(&p, &io) == CHAON_RUN_CANCELLED);
+    assert(m.presses == 1 && m.last_usage == 0 && m.last_mod == 0);
+
+    /* A failed all-keys release cannot be a successful cancellation. */
+    m = (mock_t){.cancel_after_first_press = true, .fail_on_report = 2};
+    io = io_for(&m);
+    assert(chaon_run(&p, &io) == CHAON_RUN_IO_ERROR);
+    assert(m.presses == 1 && m.last_usage != 0);
     assert(chaon_run(NULL, &io) == CHAON_RUN_INVALID);
 }
 int main(void)

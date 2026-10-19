@@ -6,20 +6,20 @@
 - [x] Collect vendor-confirmed original-board pin/memory facts
 - [x] Prototype bounded parser, US HID mapper, execution callback layer, HID USB application
 - [x] Prepare brand SVG and engineering docs
-- [ ] Host and ESP-IDF builds green on exact PR head
+- [x] Host and ESP-IDF builds green on original firmware head `323c180`
 - [ ] Review prototype HID timing, button state transitions, and report-release contract
 
 ## Phase 1: physical proof
 
-- [ ] Receive board, check hardware and USB-A routing
-- [ ] USB enum: HID keyboard, no unsolicited typing
-- [ ] Verify two-step arming, 30-second expiry, cancellation and key release
-- [ ] Validate ESP-IDF USB logs, cold boot, ROM download and recovery
-- [ ] Verify APA102 electrical/color behavior and flash/PSRAM reports
+- [x] Receive original board, verify ROM identity, flash size and USB HID routing
+- [x] Windows USB enumeration: keyboard, no unsolicited typing
+- [x] First Windows smoke test: arm, expire, execute fixed text and cancel (operator-verified)
+- [x] Windows ROM download and recovery validated; USB suspend and other OSes pending
+- [ ] Verify new APA102 color/blink behavior on hardware (original board has no PSRAM per vendor)
 
 ## Phase 2: display and script storage
 
-- [ ] Independent 160×80 ST7735 driver and UI
+- [ ] Physically verify native 160×80 ST7735 status-display candidate (implemented and CI green in stacked PR #6)
 - [ ] SDMMC mount/read-only, card absence and hot-removal handling
 - [ ] UI: selected script, preview, armed/run/fault state; accidental keypress mitigation
 - [ ] Script directory rules, bounded reading, versioned format and negative tests

@@ -6,7 +6,7 @@
 
 **The Chaotic Neutral HID.** Experimental, screen-equipped USB HID instrument written in C for the **original LILYGO T-Dongle-S3** (ESP32-S3).
 
-> **First physical bring-up candidate.** The validated ESP-IDF v5.5.3 CI artifact has been flashed to Dan's original T-Dongle-S3 after two matching full factory backups. Windows HID enumeration, inert insertion, BOOT arming/expiry and the exact harmless text test have passed on that host. See the [bring-up evidence](docs/bringup.md) for completed gates and remaining limits; LCD and microSD are unimplemented.
+> **Initial LCD/LED hardware validation completed:** Firmware `4d8d9e0` passed ESP-IDF v5.5.3 CI, verified flashing, and the agreed LCD/LED/HID smoke tests on Dan's original T-Dongle-S3 and Windows host. The factory backup and verified `323c180` rollback package are preserved. See [bring-up evidence and limits](docs/bringup.md) and [LCD/LED results](docs/status-ui.md). microSD scripting is not implemented; both PRs remain draft/unmerged.
 
 ## What exists in this branch
 
@@ -14,7 +14,7 @@
 - An inert-on-plug-in USB HID demo. Two deliberate, separate **press-and-release** actions on the BOOT button (GPIO0) arm then execute a fixed harmless text-only test. Arming expires after 30 seconds; USB unplug/restart disarms.
 - A small product-owned, bounded C script parser and executor for `TYPE`, `DELAY`, `ENTER` and `TAB`. No DuckyScript-compatibility claim, scripting from SD, network execution, or host command execution.
 - A US keyboard-layout HID usage mapper; no arbitrary keyboard-layout claims.
-- APA102 indicator output, host-only parser/execution tests, initial GitHub CI, diagrams and bring-up documents.
+- State-driven APA102 colors (ChaoN green READY, yellow flashing ARMED, red CANCELLED), native ST7735 160×80 status-display candidate, portable renderer tests, GitHub CI and hardware validation documentation.
 
 **The demo writes into whichever window currently has keyboard focus. Use only on a computer you own or are explicitly authorized to test.** Plugging the device in will not intentionally type anything until physical confirmation. The button is also the boot-strap/download pin, so never hold it during power-on when you want normal boot.
 
@@ -49,6 +49,7 @@ CI runs host tests and an ESP32-S3 build on PRs and manual dispatch. The branch 
 - [Board bring-up and recovery](docs/bringup.md)
 - [Milestones and acceptance](docs/roadmap.md)
 - [Branding / asset source](docs/branding.md)
+- [LCD / LED state colors and physical test plan](docs/status-ui.md)
 
 ## License
 
