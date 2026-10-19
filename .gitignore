@@ -8,6 +8,8 @@ dependencies.lock
 __pycache__/
 # Host test outputs
 tests/chaon_tests
+tests/chaon_visual_tests
+tests/chaon_control_tests
 *.gcda
 *.gcno
 *.profraw

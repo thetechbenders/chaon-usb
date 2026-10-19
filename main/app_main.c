@@ -21,13 +21,13 @@
 #include "chaon_vm.h"
 #include "chaon_status.h"
 #include "chaon_lcd.h"
+#include "chaon_control.h"
 
 #define BUTTON_PIN GPIO_NUM_0
 #define APA102_DATA GPIO_NUM_40
 #define APA102_CLOCK GPIO_NUM_39
 #define USB_DESCRIPTOR_LEN (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN)
 
-enum { BUTTON_POLL_MS = 20, BUTTON_DEBOUNCE_MS = 40, ARM_TTL_MS = 30000 };
 static const char *TAG = "chaon";
 static const char demo_source[] = "DELAY 500\nTYPE \"ChaoN USB HID smoke test\"\n";
 /* Avoid allocating ~3 KB program objects on FreeRTOS app_main stack. */
@@ -156,7 +156,7 @@ static void paint_status(chaon_status_t status, int64_t now_ms,
 
     uint32_t seconds_left = 0;
     if (status == CHAON_STATUS_ARMED) {
-        const int64_t remaining = ARM_TTL_MS - (now_ms - armed_at_ms);
+        const int64_t remaining = CHAON_CONTROL_ARM_TTL_MS - (now_ms - armed_at_ms);
         if (remaining > 0) seconds_left = (uint32_t)((remaining + 999) / 1000);
     }
     if (*lcd_ok && (last_status != (int)status ||
@@ -191,99 +191,39 @@ void app_main(void)
     bool lcd_ok = chaon_lcd_open(); /* advisory peripheral only */
     if (!lcd_ok) ESP_LOGW(TAG, "LCD unavailable; HID stays operational");
 
-    chaon_status_t state = CHAON_STATUS_WAIT_USB;
-    bool stable_pressed = false;
-    bool candidate_pressed = false;
-    bool saw_press = false;
-    bool suppress_release = false;
-    int debounce_ms = 0;
-    int64_t armed_at_ms = 0;
-    int64_t cancelled_until_ms = 0;
+    /* The portable controller owns the physical arm/execute state machine.
+     * Hardware I/O, LEDs, LCD and VM execution remain in this shell.
+     */
+    chaon_control_t control = {0};
 
     for (;;) {
         const bool connected = tud_mounted();
         const bool pressed = gpio_get_level(BUTTON_PIN) == 0;
         const int64_t now_ms = esp_timer_get_time() / 1000;
 
-        if (!connected) {
-            state = CHAON_STATUS_WAIT_USB;
-            saw_press = false;
-            suppress_release = pressed;
-        } else if (state == CHAON_STATUS_WAIT_USB) {
-            state = CHAON_STATUS_READY;
-            saw_press = false;
-            suppress_release = pressed; /* held on reconnect is not a gesture */
-        }
-        if (state == CHAON_STATUS_ARMED &&
-            now_ms - armed_at_ms >= ARM_TTL_MS) {
-            state = CHAON_STATUS_READY;
-            saw_press = false;
+        const chaon_control_event_t event =
+            chaon_control_step(&control, connected, pressed, now_ms);
+        if (event == CHAON_CONTROL_EXPIRE) {
             ESP_LOGI(TAG, "armed window expired");
+        } else if (event == CHAON_CONTROL_ARM) {
+            ESP_LOGI(TAG, "armed for 30 seconds");
+        } else if (event == CHAON_CONTROL_EXECUTE) {
+            paint_status(control.state, now_ms, control.armed_at_ms, &lcd_ok);
+            const chaon_transport_t io = {
+                .report = send_hid_report,
+                .sleep_ms = sleep_ms,
+                .cancelled = is_cancelled,
+                .context = NULL,
+            };
+            const chaon_run_result_t result = chaon_run(&demo, &io);
+            const int64_t completed_ms = esp_timer_get_time() / 1000;
+            ESP_LOGI(TAG, "script result=%d", (int)result);
+            chaon_control_complete(&control, result, tud_mounted(),
+                                   gpio_get_level(BUTTON_PIN) == 0,
+                                   completed_ms);
         }
-        if (state == CHAON_STATUS_CANCELLED &&
-            now_ms >= cancelled_until_ms) {
-            state = CHAON_STATUS_READY;
-        }
-
-        /* Debounced BOOT press/release. The button is GPIO0, a ROM strap pin. */
-        if (pressed != candidate_pressed) {
-            candidate_pressed = pressed;
-            debounce_ms = 0;
-        } else if (debounce_ms < BUTTON_DEBOUNCE_MS) {
-            debounce_ms += BUTTON_POLL_MS;
-        }
-        if (debounce_ms >= BUTTON_DEBOUNCE_MS &&
-            stable_pressed != candidate_pressed) {
-            stable_pressed = candidate_pressed;
-            if (stable_pressed) {
-                saw_press = connected && !suppress_release &&
-                            (state == CHAON_STATUS_READY ||
-                             state == CHAON_STATUS_ARMED);
-            } else {
-                if (suppress_release) {
-                    suppress_release = false;
-                } else if (saw_press && connected) {
-                    if (state == CHAON_STATUS_READY) {
-                        state = CHAON_STATUS_ARMED;
-                        armed_at_ms = now_ms;
-                        ESP_LOGI(TAG, "armed for 30 seconds");
-                    } else if (state == CHAON_STATUS_ARMED) {
-                        state = CHAON_STATUS_RUNNING;
-                        paint_status(state, now_ms, armed_at_ms, &lcd_ok);
-                        const chaon_transport_t io = {
-                            .report = send_hid_report,
-                            .sleep_ms = sleep_ms,
-                            .cancelled = is_cancelled,
-                            .context = NULL,
-                        };
-                        const chaon_run_result_t result = chaon_run(&demo, &io);
-                        const int64_t completed_ms = esp_timer_get_time() / 1000;
-                        ESP_LOGI(TAG, "script result=%d", (int)result);
-                        if (!tud_mounted()) {
-                            state = CHAON_STATUS_WAIT_USB;
-                        } else if (result == CHAON_RUN_CANCELLED) {
-                            state = CHAON_STATUS_CANCELLED;
-                            cancelled_until_ms = completed_ms + 2000;
-                        } else if (result != CHAON_RUN_OK) {
-                            state = CHAON_STATUS_FAULT;
-                        } else {
-                            state = CHAON_STATUS_READY;
-                        }
-
-                        /* Consume cancellation/press that occurred during VM
-                         * execution. Never interpret its release as a new arm.
-                         */
-                        stable_pressed = gpio_get_level(BUTTON_PIN) == 0;
-                        candidate_pressed = stable_pressed;
-                        suppress_release = stable_pressed;
-                        debounce_ms = 0;
-                    }
-                }
-                saw_press = false;
-            }
-        }
-        paint_status(state, esp_timer_get_time() / 1000,
-                     armed_at_ms, &lcd_ok);
-        vTaskDelay(pdMS_TO_TICKS(BUTTON_POLL_MS));
+        paint_status(control.state, esp_timer_get_time() / 1000,
+                     control.armed_at_ms, &lcd_ok);
+        vTaskDelay(pdMS_TO_TICKS(CHAON_CONTROL_POLL_MS));
     }
 }

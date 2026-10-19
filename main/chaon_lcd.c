@@ -97,7 +97,11 @@ bool chaon_lcd_open(void)
 {
     lcd_initialized = false;
     backlight_enabled = false;
-    gpio_set_level(LCD_BL, 1); /* active low; avoid uninitialized flash */
+    /* Preload the inactive level into the GPIO output latch BEFORE enabling
+     * output, reducing the risk of a backlight-on glitch at pin activation.
+     * ESP-IDF gpio_set_level() writes this latch even while configured input.
+     */
+    gpio_set_level(LCD_BL, 1);
     const gpio_config_t pins = {
         .pin_bit_mask = BIT64(LCD_DC) | BIT64(LCD_RST) | BIT64(LCD_BL),
         .mode = GPIO_MODE_OUTPUT,
