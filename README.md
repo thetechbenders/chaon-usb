@@ -6,7 +6,7 @@
 
 **The Chaotic Neutral HID.** Experimental, screen-equipped USB HID instrument written in C for the **original LILYGO T-Dongle-S3** (ESP32-S3).
 
-> **Pre-hardware foundation.** The firmware is a first implementation candidate; it has not been built on or tested with Dan's board. Do not interpret host tests or CI as proof of physical behavior.
+> **First physical bring-up candidate.** The validated ESP-IDF v5.5.3 CI artifact has been flashed to Dan's original T-Dongle-S3 after two matching full factory backups. Windows HID enumeration, inert insertion, BOOT arming/expiry and the exact harmless text test have passed on that host. See the [bring-up evidence](docs/bringup.md) for completed gates and remaining limits; LCD and microSD are unimplemented.
 
 ## What exists in this branch
 
