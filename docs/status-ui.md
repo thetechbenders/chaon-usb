@@ -1,6 +1,6 @@
 # LED and LCD state indication (candidate, physical verification pending)
 
-Target: **original** LILYGO T-Dongle-S3, not S3 Plus or C5. The previous known-good firmware at \`323c180\` remains the first physical bring-up baseline.
+Target: **original** LILYGO T-Dongle-S3, not S3 Plus or C5. The previously flashed firmware `323c180` remains the physically verified HID baseline. The new native LCD/LED code passed exact-head CI at `4d8d9e0`, but is not yet physically tested.
 
 ## Operator-visible contract
 
@@ -28,7 +28,7 @@ Vendor's original-board LCD example is the source for wiring and orientation **c
 - 25,600-byte aligned static RGB565 framebuffer (no PSRAM); redraw on status/countdown changes rather than every tick
 - No Arduino, PlatformIO, copied product firmware, Wi-Fi, or SD card management
 
-The SPI initialization sequence and display orientation are preliminary. Prove visible output and readback-inaccessible failure handling with the actual board before declaring this compatible. LCD failure is logged as \`LCD_INIT_FAIL\`/\`LCD_WRITE_FAIL\` and **does not disable HID or bypass the physical arm**.
+The SPI initialization sequence and display orientation are preliminary. Prove visible output and readback-inaccessible failure handling with the actual board before declaring this compatible. LCD failure is logged as `LCD_INIT_FAIL`/`LCD_WRITE_FAIL` and **does not disable HID or bypass the physical arm**.
 
 ## Physical acceptance tests after explicit flash approval
 
