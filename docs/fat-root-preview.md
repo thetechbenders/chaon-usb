@@ -111,8 +111,8 @@ a known-good firmware rollback package was separately verified.
 
 Local source-evidence locations (not checked into Git):
 
-- `C:\Users\danie\Documents\ChaoN-USB-Recovery\2026-10-20-092125-fat-preview\hardware-validation-report.md`
-- `C:\Users\danie\Documents\ChaoN-USB-Recovery\2026-10-20-092125-fat-preview\documentation-update-proposal.md`
+- `ChaoN-USB-Recovery/2026-10-20-092125-fat-preview\hardware-validation-report.md`
+- `ChaoN-USB-Recovery/2026-10-20-092125-fat-preview\documentation-update-proposal.md`
 
 See [the fifth physical session](bringup.md#fifth-physical-session--phase-2a-fat32-root-preview-2026-10-20)
 for the chronological validation history.

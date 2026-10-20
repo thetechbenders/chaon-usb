@@ -594,7 +594,7 @@ even if a **documentation-only** follow-up commit advances the branch.
 No further firmware flash was performed in the closeout.
 
 Evidence retained by the operator at
-`C:\Users\danie\Documents\ChaoN-USB-Recovery\2026-10-20-092125-fat-preview`:
+`ChaoN-USB-Recovery/2026-10-20-092125-fat-preview`:
 `hardware-validation-report.md`, `documentation-update-proposal.md`,
 flash/verify/ROM logs, known-good rollback and artifact hashes.
 
