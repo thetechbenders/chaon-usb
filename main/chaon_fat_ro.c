@@ -137,6 +137,13 @@ chaon_fat_result_t chaon_fat_list_root(chaon_fat_read_t io, void *ctx,
     const chaon_fat_type_t type = clusters < 4085 ? CHAON_FAT12 :
                                   clusters < 65525 ? CHAON_FAT16 :
                                   CHAON_FAT32;
+    /* Reject impossible FAT table geometry before interpreting a cluster
+     * chain. Use 64-bit arithmetic for attacker-controlled BPB values. */
+    const uint64_t fat_bytes = (uint64_t)fat_sectors * 512U;
+    const uint64_t fat_entries = type == CHAON_FAT12 ?
+        (fat_bytes * 2U) / 3U :
+        type == CHAON_FAT16 ? fat_bytes / 2U : fat_bytes / 4U;
+    if (fat_entries < clusters + 2U) return CHAON_FAT_INVALID;
     if (type == CHAON_FAT32) {
         if (root_entries || fat16) return CHAON_FAT_INVALID;
     } else if (!root_entries || !fat16) {

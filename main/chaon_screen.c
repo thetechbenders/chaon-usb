@@ -161,7 +161,8 @@ bool chaon_screen_render_catalog(const chaon_fat_catalog_t *cat,
     label[5] = (char)('0' + cat->count); /* count 1..8 */
     size_t offset = 7;
     const char *name = cat->entries[index].name;
-    while (*name && offset < sizeof label - 1) label[offset++] = *name++;
+    for (size_t i = 0; i < 12 && name[i] && offset < sizeof label - 1; ++i)
+        label[offset++] = name[i];
     label[offset] = '\0';
     print_text(frame, 10, CHAON_SCREEN_SD_Y, label, 1, 0xB7AD);
     return true;

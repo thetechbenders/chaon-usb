@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* Root-directory metadata preview ONLY. Never opens/executess file contents.
+/* Root-directory metadata preview ONLY. Never opens or executes file contents.
  * Callback is read-only by construction, with no write API or VFS mount.
  * Fixed allocations and I/O ceilings suit the original no-PSRAM S3.
  */
