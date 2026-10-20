@@ -98,7 +98,7 @@ static uint16_t accent(chaon_status_t status)
 }
 
 bool chaon_screen_render(chaon_status_t status, uint32_t seconds_remaining,
-                         uint8_t *frame, size_t length)
+                         chaon_sd_diag_t sd, uint8_t *frame, size_t length)
 {
     if (!frame || length < CHAON_SCREEN_BYTES) return false;
     /* Fill the entire frame, no stale text from previous state. */
@@ -122,5 +122,30 @@ bool chaon_screen_render(chaon_status_t status, uint32_t seconds_remaining,
     }
     rect(frame, 9, 52, 143, 1, 0x3166);
     print_text(frame, 10, 62, chaon_status_hint(status), 1, 0xBDF7);
+    return chaon_screen_render_sd(sd, frame, length);
+}
+
+bool chaon_screen_render_sd(chaon_sd_diag_t sd, uint8_t *frame, size_t length)
+{
+    if (!frame || length < CHAON_SCREEN_BYTES) return false;
+    rect(frame, 0, CHAON_SCREEN_SD_Y, CHAON_SCREEN_WIDTH,
+         CHAON_SCREEN_SD_HEIGHT, 0x1082);
+    rect(frame, 0, CHAON_SCREEN_SD_Y, 3, CHAON_SCREEN_SD_HEIGHT, 0xB7AD);
+    const uint16_t color = sd == CHAON_SD_READ_OK ? 0xB7AD :
+                           sd == CHAON_SD_INIT ? 0xFE20 : 0xF800;
+    print_text(frame, 10, CHAON_SCREEN_SD_Y, chaon_sd_diag_label(sd), 1, color);
     return true;
+}
+
+chaon_screen_update_t chaon_screen_update(const chaon_screen_key_t *previous,
+                                         const chaon_screen_key_t *current)
+{
+    if (!current) return CHAON_SCREEN_NO_UPDATE;
+    if (!previous || previous->status != current->status ||
+        (current->status == CHAON_STATUS_ARMED &&
+         previous->seconds != current->seconds)) {
+        return CHAON_SCREEN_FULL_UPDATE;
+    }
+    return previous->sd != current->sd ? CHAON_SCREEN_SD_UPDATE :
+                                       CHAON_SCREEN_NO_UPDATE;
 }

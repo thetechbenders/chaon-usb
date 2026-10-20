@@ -23,6 +23,7 @@
 #include "chaon_lcd.h"
 #include "chaon_control.h"
 #include "chaon_sd_probe.h"
+#include "chaon_screen.h"
 
 #define BUTTON_PIN GPIO_NUM_0
 #define APA102_DATA GPIO_NUM_40
@@ -144,8 +145,8 @@ static void paint_status(chaon_status_t status, int64_t now_ms,
 {
     static bool sent_led = false;
     static chaon_rgb_t previous = {0, 0, 0};
-    static int last_status = -1;
-    static uint32_t last_seconds = UINT32_MAX;
+    static bool have_frame = false;
+    static chaon_screen_key_t previous_frame;
 
     const chaon_rgb_t rgb = chaon_status_led(status, (uint32_t)now_ms);
     if (!sent_led || rgb.red != previous.red ||
@@ -160,15 +161,23 @@ static void paint_status(chaon_status_t status, int64_t now_ms,
         const int64_t remaining = CHAON_CONTROL_ARM_TTL_MS - (now_ms - armed_at_ms);
         if (remaining > 0) seconds_left = (uint32_t)((remaining + 999) / 1000);
     }
-    if (*lcd_ok && (last_status != (int)status ||
-                    last_seconds != seconds_left)) {
-        if (!chaon_lcd_show(status, seconds_left)) {
+    const chaon_screen_key_t frame = {
+        .status = status, .seconds = seconds_left,
+        .sd = chaon_sd_probe_snapshot(),
+    };
+    const chaon_screen_update_t update =
+        chaon_screen_update(have_frame ? &previous_frame : NULL, &frame);
+    if (*lcd_ok && update != CHAON_SCREEN_NO_UPDATE) {
+        const bool success = update == CHAON_SCREEN_FULL_UPDATE ?
+            chaon_lcd_show(status, seconds_left, frame.sd) :
+            chaon_lcd_show_sd(frame.sd);
+        if (!success) {
             ESP_LOGE(TAG, "LCD_WRITE_FAIL; HID remains usable");
             *lcd_ok = false;
         }
     }
-    last_status = (int)status;
-    last_seconds = seconds_left;
+    previous_frame = frame;
+    have_frame = true;
 }
 
 void app_main(void)
