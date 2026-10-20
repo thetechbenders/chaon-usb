@@ -44,6 +44,20 @@ int main(void)
     assert(!chaon_screen_render_catalog(&cat, 1, framebuffer,
                                         CHAON_SCREEN_BYTES));
     assert(!chaon_screen_render_catalog(&cat, 0, framebuffer, 12));
+    /* Common FAT short aliases must render the tilde, not a blank. */
+    cat.more = false;
+    strcpy(cat.entries[0].name, "FILE~1.TXT");
+    assert(chaon_screen_render_catalog(&cat, 0, framebuffer,
+                                       CHAON_SCREEN_BYTES));
+    memcpy(previous_strip,
+           framebuffer + CHAON_SCREEN_SD_Y * CHAON_SCREEN_WIDTH * 2,
+           sizeof previous_strip);
+    strcpy(cat.entries[0].name, "FILE 1.TXT");
+    assert(chaon_screen_render_catalog(&cat, 0, framebuffer,
+                                       CHAON_SCREEN_BYTES));
+    assert(memcmp(previous_strip,
+                  framebuffer + CHAON_SCREEN_SD_Y * CHAON_SCREEN_WIDTH * 2,
+                  sizeof previous_strip) != 0);
     assert(!chaon_screen_render_catalog(NULL, 0, framebuffer,
                                         CHAON_SCREEN_BYTES));
     assert(!memcmp(untouched, framebuffer, CHAON_SCREEN_SD_Y * 160U * 2U));

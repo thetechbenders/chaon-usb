@@ -44,6 +44,7 @@ static const uint8_t dash[5] = {0x08,0x08,0x08,0x08,0x08};
 static const uint8_t dot[5] = {0,0x60,0x60,0,0};
 static const uint8_t plus[5] = {0x08,0x08,0x3e,0x08,0x08};
 static const uint8_t underscore[5] = {0x40,0x40,0x40,0x40,0x40};
+static const uint8_t tilde[5] = {0x08,0x04,0x08,0x10,0x08};
 static const uint8_t blank[5] = {0,0,0,0,0};
 
 static const uint8_t *glyph(char ch)
@@ -55,6 +56,7 @@ static const uint8_t *glyph(char ch)
     if (ch == '.') return dot;
     if (ch == '+') return plus;
     if (ch == '_') return underscore;
+    if (ch == '~') return tilde;
     return blank;
 }
 
