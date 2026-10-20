@@ -60,6 +60,11 @@ static void mbr_partition(void)
     assert(scan()==CHAON_FAT_OK);
     assert(list.count==1 && strcmp(list.entries[0].name,"TEST.BIN")==0);
     assert(reads<=4);
+    /* An untrusted partition record must never trigger out-of-media I/O. */
+    w32(mbr+454,UINT32_MAX);
+    assert(scan()==CHAON_FAT_INVALID);
+    w32(mbr+454,1);w32(mbr+458,UINT32_MAX);
+    assert(scan()==CHAON_FAT_INVALID);
 }
 static void bounded_and_invalid(void)
 {
