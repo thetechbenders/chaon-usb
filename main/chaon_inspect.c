@@ -6,22 +6,24 @@
  * temporary parsed program off the 4 KiB FreeRTOS task stack.
  * Its contents are never published; clear immediately after validation. */
 static chaon_program_t scratch;
+static char bounded_copy[CHAON_MAX_SOURCE];
 
 chaon_inspection_t chaon_inspect_bytes(const uint8_t *source, size_t length)
 {
     chaon_inspection_t result = { .state = CHAON_INSPECT_BAD_SOURCE };
     if (!source || length == 0 || length >= CHAON_MAX_SOURCE)
         return result;
-    if (source[length] != 0) return result;
     for (size_t i=0;i<length;++i) {
         const uint8_t b = source[i];
         if (b == 0 || b > 126 ||
             (b < 32 && b != '\n' && b != '\r' && b != '\t'))
             return result;
     }
+    memcpy(bounded_copy, source, length);
+    bounded_copy[length] = '\0';
     chaon_parse_error_t err = {0};
     const chaon_parse_result_t parsed =
-        chaon_parse((const char *)source, &scratch, &err);
+        chaon_parse(bounded_copy, &scratch, &err);
     if (parsed == CHAON_PARSE_OK) {
         result.state = CHAON_INSPECT_VALID;
         result.step_count = (uint8_t)scratch.count;
@@ -38,5 +40,6 @@ chaon_inspection_t chaon_inspect_bytes(const uint8_t *source, size_t length)
                                        UINT16_MAX : err.line);
     }
     memset(&scratch, 0, sizeof scratch);
+    memset(bounded_copy, 0, sizeof bounded_copy);
     return result;
 }
