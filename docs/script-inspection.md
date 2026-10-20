@@ -1,8 +1,9 @@
 # Phase 2C: bounded read-only script inspection (portable backend)
 
-**Development scope: NOT hardware validated, NOT flashed, NOT merged.**
-This is the first implementation slice, not the complete on-device
-inspection workflow.
+**Development candidate: connected to the optional SD task and browser LCD,
+NOT hardware validated, NOT flashed, NOT merged.** The existing HID demo
+remains the only executable path. A successful build alone is not hardware
+validation.
 
 ## Implemented in the draft backend
 
@@ -34,32 +35,53 @@ metadata. Only FAT32 is supported for **file content reading** in this
 initial backend even though Phase 2A enumerates FAT12/16/32 roots.
 No physical FAT12/FAT16 support is implied.
 
-## Explicitly not implemented
+## On-device inspection path and trust boundary
 
-The backend is **not yet called by the firmware SD task**. There is no
-on-device selected-file read request, no mailbox/result snapshot exposed
-to the LCD, and no new UI inspection view. The Phase 2B browser still
-only toggles a visual PICK indicator.
+1. Enter the existing Phase 2B browser with a long BOOT hold/release. Short
+   taps browse through the bounded root entries.
+2. Hold ~1.2 s and release to mark the current root entry PICKED. Only
+   this selection requests a **read-only** inspection from the SD task.
+   Holding again clears PICK; a tap moves to the next name and clears
+   any old request; a ~3.5 s hold exits the browser.
+3. The main/UI task submits just an index and bounded raw root identity.
+   A one-slot lock-guarded mailbox accepts it only when the current
+   catalogue identity still matches. The SD task exclusively executes
+   sector reads and parser checks. Its static 2048-byte source scratch
+   is zeroed afterward; no source text, decoded program or callback is
+   shared with the UI or controller.
+4. The LCD renders `CHECKING`, `OK <count> <first-op>`,
+   `SYNTAX LINE <n>`, or a bounded error category (`NOT CHN`,
+   `TOO LARGE`, `STALE FILE`, `SD READ ERROR`, etc.).
+   The screen does not show raw script payloads and never authorizes HID.
+5. Superseding selection, browser exit, USB loss and a lost/reinitialized
+   card invalidate the mailbox generation. The SD task discards late
+   results from earlier generations. An SD read I/O error causes the
+   SD observation task to fail closed and reinitialize.
 
-No script sourced from SD can be parsed by the running firmware or
-reach the HID executor because the path is not connected. The existing
-embedded fixed HID smoke test and BOOT physical safety controls remain
-unchanged.
+The 20 ms button controller and its fixed HID demo remain unchanged. Even
+a *valid* file has **no executable authority**. Parsed instructions live
+only briefly in private static inspector scratch; `app_main`'s existing
+`chaon_run(&demo, &io)` continues to use the original embedded fixed demo,
+never an SD program.
 
-Completing the on-device Phase 2C workflow will require a separately
-reviewed SD-task-only request path, stale-media handling, UI diagnostics
-without source bytes, and physical smoke tests. SD-derived scripts must
-remain permanently disconnected from the HID executor until a distinct,
-authorized Phase 2D threat-model and approval.
+The Phase 2C implementation intentionally does **not** display complete
+script lines or provide script execution, launch, trust grants, USB output
+from card data, a write API, or a privileged host-control path. These
+would require separate authorization, design and safety review.
 
 ## Testing and disposition
 
-Host tests should cover valid 1- and 2-sector scripts, exact length,
+Host tests cover valid one-to-four-sector scripts, exact length,
 FAT32 cluster traversal, invalid/missing FAT links, stale entry metadata,
 oversized and unsupported files, injected read failures, malformed ASCII,
 source limit, parse rejection and no read callback writes.
 
+Additional host tests exercise mailbox replacement, cancellation, stale
+result suppression, identity mismatches, pending/complete snapshots,
+and the summary-only LCD framebuffer bounds. The FreeRTOS task and GPIO/SD
+timing still require original-board physical smoke tests.
+
 ESP-IDF v5.5.3 ESP32-S3 builds are required for the real target. No
-new firmware should be flashed, merged or released merely because this
-portable backend compiles. The original board continues running the
-physically tested Phase 2B binary.
+new firmware should be flashed, merged or released solely because
+CI passes. The original board continues running the physically tested
+Phase 2B firmware until Dan separately authorizes a new flash.

@@ -23,7 +23,7 @@
 - [x] Read-only SDMMC sector probe, cold empty-slot/restoration and FAT32 root 8.3 preview (Phase 2A, merged PRs #9/#11/#12)
 - [x] Powered SD hot-removal is NOT APPLICABLE: card slot inaccessible while dongle is plugged into USB
 - [x] Phase 2B: one-button root filename browsing and display-only PICK marker; CI and applicable original-board/Windows/FAT32 smoke tests passed 2026-10-20 (PR #13). Still no SD file reads or execution. See [browser controls](browser-controls.md).
-- [ ] Phase 2C: portable, bounded read-only FAT32 .CHN script-inspection backend in a draft PR; SD-task request/UI wiring and hardware validation are **not implemented**. See [inspection design](script-inspection.md).
+- [ ] Phase 2C: bounded read-only FAT32 .CHN inspection backend and summary-only SD-task/LCD path implemented in draft PR #14; native/target CI and original-board hardware validation remain gates. No SD execution. See [inspection design](script-inspection.md).
 - [ ] Phase 2D: separately threat-modeled/authorized execution of validated selected scripts
 - [ ] Script directory rules, bounded reading, versioned format and negative tests
 - [ ] Tests for parser fuzz targets and edge cases
