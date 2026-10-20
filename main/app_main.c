@@ -140,15 +140,19 @@ static void init_gpio(void)
     led_set(24, 33, 12); /* dim ChaoN green until USB mounts */
 }
 
-static void paint_status(chaon_status_t status, int64_t now_ms,
-                         int64_t armed_at_ms, bool *lcd_ok)
+static void paint_status(const chaon_control_t *control, int64_t now_ms,
+                         bool *lcd_ok)
 {
+    const chaon_status_t status = control->state;
     static bool sent_led = false;
     static chaon_rgb_t previous = {0, 0, 0};
     static bool have_frame = false;
     static chaon_screen_key_t previous_frame;
     static bool showed_catalog;
     static uint8_t last_catalog_index;
+    static bool showed_browser;
+    static uint8_t last_browser_index;
+    static bool last_browser_picked;
 
     const chaon_rgb_t rgb = chaon_status_led(status, (uint32_t)now_ms);
     if (!sent_led || rgb.red != previous.red ||
@@ -160,9 +164,38 @@ static void paint_status(chaon_status_t status, int64_t now_ms,
 
     uint32_t seconds_left = 0;
     if (status == CHAON_STATUS_ARMED) {
-        const int64_t remaining = CHAON_CONTROL_ARM_TTL_MS - (now_ms - armed_at_ms);
+        const int64_t remaining = CHAON_CONTROL_ARM_TTL_MS -
+                                  (now_ms - control->armed_at_ms);
         if (remaining > 0) seconds_left = (uint32_t)((remaining + 999) / 1000);
     }
+    if (control->browser_active) {
+        /* Browser never affects HID control; only the main task owns LCD.
+         * The controller checks media availability each poll and closes
+         * safely if its bounded catalogue becomes unavailable. */
+        if (*lcd_ok) {
+            chaon_fat_catalog_t cat;
+            if (chaon_sd_probe_catalog_snapshot(&cat) &&
+                control->browser_index < cat.count &&
+                cat.count == control->browser_count) {
+                if (!showed_browser ||
+                    last_browser_index != control->browser_index ||
+                    last_browser_picked != control->browser_selected) {
+                    if (!chaon_lcd_show_browser(&cat, control->browser_index,
+                                               control->browser_selected)) {
+                        ESP_LOGE(TAG, "LCD_BROWSER_FAIL; HID still gated");
+                        *lcd_ok = false;
+                    }
+                }
+            }
+        }
+        last_browser_index = control->browser_index;
+        last_browser_picked = control->browser_selected;
+        showed_browser = true;
+        have_frame = false; /* redraw normal READY fully on browser exit */
+        showed_catalog = false;
+        return;
+    }
+    showed_browser = false;
     const chaon_screen_key_t frame = {
         .status = status, .seconds = seconds_left,
         .sd = chaon_sd_probe_snapshot(),
@@ -235,14 +268,26 @@ void app_main(void)
         const bool pressed = gpio_get_level(BUTTON_PIN) == 0;
         const int64_t now_ms = esp_timer_get_time() / 1000;
 
+        chaon_fat_catalog_t current_catalog;
+        const bool catalog_valid =
+            chaon_sd_probe_catalog_snapshot(&current_catalog);
         const chaon_control_event_t event =
-            chaon_control_step(&control, connected, pressed, now_ms);
-        if (event == CHAON_CONTROL_EXPIRE) {
+            chaon_control_step_browser(&control, connected, pressed, now_ms,
+                catalog_valid, catalog_valid ? current_catalog.count : 0);
+        if (event == CHAON_CONTROL_DISARM) {
+            ESP_LOGI(TAG, "long hold disarmed; no HID execution");
+        } else if (event == CHAON_CONTROL_BROWSER_ENTER) {
+            ESP_LOGI(TAG, "read-only browser entered");
+        } else if (event == CHAON_CONTROL_BROWSER_SELECT) {
+            ESP_LOGI(TAG, "browser pick marker changed (NO execution)");
+        } else if (event == CHAON_CONTROL_BROWSER_CLOSE) {
+            ESP_LOGI(TAG, "read-only browser exited");
+        } else if (event == CHAON_CONTROL_EXPIRE) {
             ESP_LOGI(TAG, "armed window expired");
         } else if (event == CHAON_CONTROL_ARM) {
             ESP_LOGI(TAG, "armed for 30 seconds");
         } else if (event == CHAON_CONTROL_EXECUTE) {
-            paint_status(control.state, now_ms, control.armed_at_ms, &lcd_ok);
+            paint_status(&control, now_ms, &lcd_ok);
             const chaon_transport_t io = {
                 .report = send_hid_report,
                 .sleep_ms = sleep_ms,
@@ -256,8 +301,7 @@ void app_main(void)
                                    gpio_get_level(BUTTON_PIN) == 0,
                                    completed_ms);
         }
-        paint_status(control.state, esp_timer_get_time() / 1000,
-                     control.armed_at_ms, &lcd_ok);
+        paint_status(&control, esp_timer_get_time() / 1000, &lcd_ok);
         vTaskDelay(pdMS_TO_TICKS(CHAON_CONTROL_POLL_MS));
     }
 }

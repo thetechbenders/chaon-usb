@@ -199,3 +199,12 @@ bool chaon_lcd_show_catalog(const chaon_fat_catalog_t *cat, uint8_t index)
                                       sizeof framebuffer)) return false;
     return flush_band(CHAON_SCREEN_SD_Y, CHAON_SCREEN_SD_HEIGHT);
 }
+
+bool chaon_lcd_show_browser(const chaon_fat_catalog_t *cat,
+                            uint8_t index, bool picked)
+{
+    if (!lcd_initialized || !backlight_enabled) return false;
+    if (!chaon_screen_render_browser(cat, index, picked, framebuffer,
+                                     sizeof framebuffer)) return false;
+    return flush_band(0, CHAON_SCREEN_HEIGHT);
+}
