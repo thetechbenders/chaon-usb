@@ -147,6 +147,8 @@ static void paint_status(chaon_status_t status, int64_t now_ms,
     static chaon_rgb_t previous = {0, 0, 0};
     static bool have_frame = false;
     static chaon_screen_key_t previous_frame;
+    static bool showed_catalog;
+    static uint8_t last_catalog_index;
 
     const chaon_rgb_t rgb = chaon_status_led(status, (uint32_t)now_ms);
     if (!sent_led || rgb.red != previous.red ||
@@ -175,6 +177,25 @@ static void paint_status(chaon_status_t status, int64_t now_ms,
             ESP_LOGE(TAG, "LCD_WRITE_FAIL; HID remains usable");
             *lcd_ok = false;
         }
+    }
+    if (*lcd_ok) {
+        chaon_fat_catalog_t cat;
+        const bool browsing = status == CHAON_STATUS_READY &&
+                              frame.sd == CHAON_SD_CATALOG_OK &&
+                              chaon_sd_probe_catalog_snapshot(&cat);
+        if (browsing) {
+            const uint8_t index = cat.count ?
+                (uint8_t)(((uint64_t)now_ms / 3000U) % cat.count) : 0;
+            if (!showed_catalog || index != last_catalog_index ||
+                update != CHAON_SCREEN_NO_UPDATE) {
+                if (!chaon_lcd_show_catalog(&cat, index)) {
+                    ESP_LOGE(TAG, "LCD_CATALOG_FAIL; HID remains usable");
+                    *lcd_ok = false;
+                }
+            }
+            last_catalog_index = index;
+        }
+        showed_catalog = browsing;
     }
     previous_frame = frame;
     have_frame = true;

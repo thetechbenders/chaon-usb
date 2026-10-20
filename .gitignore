@@ -24,3 +24,7 @@ tests/chaon_control_tests
 
 tests/chaon_sd_sector_tests
 tests/chaon_sd_diag_tests
+
+tests/chaon_fat_ro_tests
+
+tests/chaon_fat_ui_tests

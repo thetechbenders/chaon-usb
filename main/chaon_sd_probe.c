@@ -6,6 +6,7 @@
  */
 #include "chaon_sd_probe.h"
 #include "chaon_sd_sector.h"
+#include "chaon_fat_ro.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -29,11 +30,14 @@ static const char *TAG = "chaon_sd";
  * Main UI is the sole display owner. No volatile-only cross-core sharing. */
 static portMUX_TYPE diagnostic_lock = portMUX_INITIALIZER_UNLOCKED;
 static chaon_sd_diag_t diagnostic = CHAON_SD_INIT;
+static chaon_fat_catalog_t catalogue;
+static bool catalogue_valid;
 
 static void publish(chaon_sd_diag_t next)
 {
     portENTER_CRITICAL(&diagnostic_lock);
     diagnostic = next;
+    catalogue_valid = false;
     portEXIT_CRITICAL(&diagnostic_lock);
 }
 
@@ -43,6 +47,31 @@ chaon_sd_diag_t chaon_sd_probe_snapshot(void)
     const chaon_sd_diag_t copy = diagnostic;
     portEXIT_CRITICAL(&diagnostic_lock);
     return copy;
+}
+
+static void publish_catalog(const chaon_fat_catalog_t *found)
+{
+    portENTER_CRITICAL(&diagnostic_lock);
+    catalogue = *found;
+    catalogue_valid = true;
+    diagnostic = CHAON_SD_CATALOG_OK;
+    portEXIT_CRITICAL(&diagnostic_lock);
+}
+
+bool chaon_sd_probe_catalog_snapshot(chaon_fat_catalog_t *result)
+{
+    if (!result) return false;
+    portENTER_CRITICAL(&diagnostic_lock);
+    const bool valid = catalogue_valid &&
+                       diagnostic == CHAON_SD_CATALOG_OK;
+    if (valid) *result = catalogue;
+    portEXIT_CRITICAL(&diagnostic_lock);
+    return valid;
+}
+
+static bool read_sector_only(void *ctx, uint32_t lba, uint8_t dest[512])
+{
+    return sdmmc_read_sectors((sdmmc_card_t *)ctx, dest, lba, 1) == ESP_OK;
 }
 
 /* Card and DMA sector buffer are static to avoid large task-stack objects
@@ -94,9 +123,32 @@ static void probe_task(void *ctx)
                 const chaon_sd_sector_kind_t kind =
                     chaon_sd_sector_classify(sector_zero,
                                              sizeof sector_zero);
-                ESP_LOGI(TAG, "SD_PRESENT sector0_hint=%s (NOT mounted)",
+                ESP_LOGI(TAG, "SD_PRESENT sector0_hint=%s (READ-ONLY)",
                          kind == CHAON_SD_SECTOR_FAT_BOOT ? "FAT_VBR" :
                          kind == CHAON_SD_SECTOR_MBR ? "MBR" : "UNKNOWN");
+
+                /* A second read-only scan lists ONLY bounded root metadata.
+                 * No FAT/VFS mount, no SD writes, no card-sourced HID path.
+                 * Never show names without BPB and LBA validation. */
+                chaon_fat_catalog_t found = {0};
+                chaon_fat_result_t result = CHAON_FAT_INVALID;
+                if (card.csd.capacity > 0 &&
+                    card.csd.capacity <= UINT32_MAX) {
+                    result = chaon_fat_list_root(read_sector_only, &card,
+                        (uint32_t)card.csd.capacity, sector_zero, &found);
+                }
+                if (result == CHAON_FAT_OK ||
+                    result == CHAON_FAT_LIMIT) {
+                    publish_catalog(&found);
+                    ESP_LOGI(TAG, "FAT_ROOT type=%u count=%u more=%u%s",
+                        (unsigned)found.type, (unsigned)found.count,
+                        (unsigned)found.more,
+                        result == CHAON_FAT_LIMIT ? " scan-limit" : "");
+                } else {
+                    publish(result == CHAON_FAT_UNSUPPORTED ?
+                        CHAON_SD_FS_UNSUPPORTED : CHAON_SD_FS_ERROR);
+                    ESP_LOGW(TAG, "FAT_ROOT_UNAVAILABLE error=%d", (int)result);
+                }
                 /* No card-detect GPIO is known: poll card status and
                  * reinitialize only after SDMMC reports an error. */
                 do {

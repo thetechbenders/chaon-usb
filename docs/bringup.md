@@ -531,3 +531,74 @@ observations are retained outside Git in
 Factory contents are excluded. Documentation follow-up does not change tested
 firmware f22f18e or warrant a new build. PR #9 stays draft/unmerged; no
 filesystem browsing, SD execution, USB changes, tag or release.
+
+## Fifth physical session — Phase 2A FAT32 root preview, 2026-10-20
+
+This follows the fourth session's SDMMC sector-zero proof. The previous
+session's observations remain attached to firmware `f22f18e`; this new
+session validates the **separately reviewed** root-preview candidate
+`3c297b0b8038523c911a1f1cce7703dab8af6b06`. No earlier records have
+been reinterpreted as direct FAT directory evidence.
+
+### Artifact, board and media provenance
+
+- [CI run 39427011419](https://github.com/thetechbenders/chaon-usb/actions/runs/39427011419):
+  native C tests, UBSan and ESP-IDF v5.5.3 ESP32-S3 **PASS**; source review
+  completed with previously identified parser/UI defects corrected.
+- Candidate CI ZIP artifact **12265813676**; SHA-256
+  `14be735a14fd47b2a28dcd50c2ee1f055bda2b800dafdd8e14eaea6bab6161c9`.
+  The CI PR-merge commit has the same Git tree as source head `3c297b0`.
+- Dan authorized flashing. The original T-Dongle-S3 was rediscovered at
+  **COM3**, MAC `CC:BA:97:3A:4E:CC`, ESP32-S3 v0.2, 16 MB flash, security
+  flags unchanged. Manifest-specific bootloader, partition and app writes
+  completed, and a separate verify operation matched all three images.
+- The previously verified rollback artifact was downloaded and checked;
+  the **factory full-flash backup was on another computer** and was not
+  rehashed in this session. No factory backup was overwritten.
+- The disposable card was identified by Windows as **125,829,120 bytes
+  (120 MiB)**, MBR/FAT32. Windows reported a 121,571,328-byte FAT32 volume.
+  Dan approved adding harmless short-name test entries, with no formatting
+  or overwrite; the preexisting `OLD.BIN` hash was unchanged after preparation.
+
+### Applicable hardware results
+
+| Check | Result | Observed basis |
+| --- | --- | --- |
+| READY/HID on insertion | **PASS** | Green READY, healthy Windows HID, no unsolicited typing, readable LCD |
+| Root preview | **PASS** | `SYSTEM~1`, `OLD.BIN`, `TOOLS`, `HELLO.TXT`, `TEST.BIN`, `FILE~1.TXT`, `A_B.TXT`, `A-B.TXT` in approximately 3-second rotation; `8+` visibly excluded ninth `EXTRA.TXT` |
+| BOOT arming/expiry/typing/cancel | **PASS** | No typing on timeout; exact one-shot `ChaoN USB HID smoke test`; active cancellation and key release without resumed text or accidental rearm |
+| Empty slot / cold restored card | **PASS** | Powered-off card removal gave `SD ERR C`; normal BOOT/HID remained; unpowered restore returned expected FAT32 preview |
+| ROM recovery / normal re-entry | **PASS** | BOOT-held ROM enumeration, read-only no-stub identity/security check, then green READY and healthy HID with card installed |
+| Static read-only boundary | **PASS (inspection only)** | No card writes, mounts, formatting, file contents or SD-sourced HID execution; fixed directory scan bounds and lock-guarded status snapshots |
+| Powered hot-swap | **NOT APPLICABLE** | Card physically inaccessible while dongle is connected to USB |
+
+The results above are separated from the earlier SD probe session.
+Runtime observations were reported by the operator; CI provenance,
+flash/ROM information and file-system geometry were recorded by the
+operator's tools. No oscilloscope traces or instrumented resource
+measurements were obtained. Raw files remain local, not attached here.
+
+**Not tested:** byte-for-byte whole-card immutability (raw-media hash
+attempt denied by Windows permissions); post-test per-file comparison;
+physical FAT12/FAT16, unsupported/invalid/empty filesystem media,
+other OS hosts, calibrated power/current/timing, watchdog fault injection,
+stack/heap watermark or endurance. The parser's root-only/8-entry/64-sector
+and no-execution boundaries are source-inspected but do not imply general
+filesystem robustness.
+
+### Session disposition
+
+All applicable **agreed board/Windows/FAT32 smoke tests passed**.
+No production readiness claim. The tested source remains `3c297b0`
+even if a **documentation-only** follow-up commit advances the branch.
+No further firmware flash was performed in the closeout.
+
+Evidence retained by the operator at
+`ChaoN-USB-Recovery/2026-10-20-092125-fat-preview`:
+`hardware-validation-report.md`, `documentation-update-proposal.md`,
+flash/verify/ROM logs, known-good rollback and artifact hashes.
+
+This section summarizes the canonical ChaoN HQ note v27 and the operator's
+closeout; the local Markdown reports/logs were **not available to the
+repository-editing session for direct inspection**. No merge, tag or release
+is inferred from the successful hardware run.

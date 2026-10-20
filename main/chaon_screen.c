@@ -41,6 +41,10 @@ static const uint8_t digits[10][5] = {
 };
 static const uint8_t colon[5] = {0,0x36,0x36,0,0};
 static const uint8_t dash[5] = {0x08,0x08,0x08,0x08,0x08};
+static const uint8_t dot[5] = {0,0x60,0x60,0,0};
+static const uint8_t plus[5] = {0x08,0x08,0x3e,0x08,0x08};
+static const uint8_t underscore[5] = {0x40,0x40,0x40,0x40,0x40};
+static const uint8_t tilde[5] = {0x08,0x04,0x08,0x10,0x08};
 static const uint8_t blank[5] = {0,0,0,0,0};
 
 static const uint8_t *glyph(char ch)
@@ -49,6 +53,10 @@ static const uint8_t *glyph(char ch)
     if (ch >= '0' && ch <= '9') return digits[ch - '0'];
     if (ch == ':') return colon;
     if (ch == '-') return dash;
+    if (ch == '.') return dot;
+    if (ch == '+') return plus;
+    if (ch == '_') return underscore;
+    if (ch == '~') return tilde;
     return blank;
 }
 
@@ -131,9 +139,38 @@ bool chaon_screen_render_sd(chaon_sd_diag_t sd, uint8_t *frame, size_t length)
     rect(frame, 0, CHAON_SCREEN_SD_Y, CHAON_SCREEN_WIDTH,
          CHAON_SCREEN_SD_HEIGHT, 0x1082);
     rect(frame, 0, CHAON_SCREEN_SD_Y, 3, CHAON_SCREEN_SD_HEIGHT, 0xB7AD);
-    const uint16_t color = sd == CHAON_SD_READ_OK ? 0xB7AD :
+    const uint16_t color = (sd == CHAON_SD_READ_OK || sd == CHAON_SD_CATALOG_OK) ? 0xB7AD :
                            sd == CHAON_SD_INIT ? 0xFE20 : 0xF800;
     print_text(frame, 10, CHAON_SCREEN_SD_Y, chaon_sd_diag_label(sd), 1, color);
+    return true;
+}
+
+bool chaon_screen_render_catalog(const chaon_fat_catalog_t *cat,
+                                 uint8_t index, uint8_t *frame, size_t length)
+{
+    if (!cat || !frame || length < CHAON_SCREEN_BYTES ||
+        cat->count > CHAON_FAT_MAX_FILES ||
+        (cat->count && index >= cat->count))
+        return false;
+    rect(frame, 0, CHAON_SCREEN_SD_Y, CHAON_SCREEN_WIDTH,
+         CHAON_SCREEN_SD_HEIGHT, 0x1082);
+    rect(frame, 0, CHAON_SCREEN_SD_Y, 3, CHAON_SCREEN_SD_HEIGHT, 0xB7AD);
+    if (cat->count == 0) {
+        print_text(frame, 10, CHAON_SCREEN_SD_Y,
+                   cat->more ? "SD PARTIAL" : "SD EMPTY", 1, 0xB7AD);
+        return true;
+    }
+    /* Fixed maximum: "SD 8:8+ FILENAME.EXT" (20 chars) fits 160 px. */
+    char label[28] = "SD 0:0  ";
+    label[3] = (char)('1' + index);
+    label[5] = (char)('0' + cat->count); /* count 1..8 */
+    label[6] = cat->more ? '+' : ' ';
+    size_t offset = 8;
+    const char *name = cat->entries[index].name;
+    for (size_t i = 0; i < 12 && name[i] && offset < sizeof label - 1; ++i)
+        label[offset++] = name[i];
+    label[offset] = '\0';
+    print_text(frame, 10, CHAON_SCREEN_SD_Y, label, 1, 0xB7AD);
     return true;
 }
 

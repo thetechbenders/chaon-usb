@@ -1,9 +1,9 @@
-# Phase 2A: read-only microSD probe and LCD diagnostics (draft)
+# Phase 2A: read-only microSD probe and LCD diagnostics
 
 **Flashed and validated for the applicable inserted-card and cold-change smoke-test scope.**
 Dan has no UART adapter. The advisory LCD footer provided diagnostic visibility
 for the disposable, operator-reported 128 MB card without changing USB HID.
-PR #9 stays draft/unmerged. Powered hot-swap is **NOT APPLICABLE** to this
+The SD probe was introduced in PR #9. Powered hot-swap is **NOT APPLICABLE** to this
 physical setup because the card is inaccessible while plugged into USB. It is
 not a blocker for validating ordinary installed-card use.
 
@@ -126,8 +126,10 @@ including UBSan. ESP-IDF v5.5.3 ESP32-S3 CI is required on the exact candidate.
 These tests do not establish actual panel readability, task scheduling,
 SDMMC/SDSC compatibility, hot removal, pullups or physical input latency.
 
-Future filesystem design and bounded directory browsing require separate
-scope/review; generic FatFs mounting is not proof of read-only media.
+A bounded, root-only FAT filename preview was subsequently implemented in
+PR #12; full file management, subdirectory browsing and SD script execution
+remain separate future scope. Generic FatFs mounting is not proof of
+read-only media.
 No SD-sourced script execution, USB CDC, HID descriptor change, release or tag.
 
 ## Observed hardware results — 2026-10-19
@@ -161,4 +163,16 @@ See [the fourth physical session](bringup.md#fourth-physical-session--phase-2a-l
 for package/image hashes, tool evidence and A–F dispositions. All applicable
 inserted-card, empty-slot, cold restoration, HID and ROM-recovery hardware smoke
 tests passed. This does not prove filesystem browsing, hot-swap, endurance or
-production readiness. Keep PR #9 draft/unmerged and stop before filesystem work.
+production readiness. This section is the historical probe-only validation;
+see the subsequently reviewed FAT root preview in PR #12.
+
+## Follow-on FAT root preview (separate hardware-tested feature)
+
+The probe evidence above pertains to `f22f18e`. A separate candidate
+(`3c297b0`, PR #12) added bounded, read-only FAT root **metadata**
+inspection without changing USB HID. It passed the applicable original-board/
+Windows FAT32 smoke tests on 2026-10-20. See
+[FAT root-preview contract and validation](fat-root-preview.md) and the
+[fifth physical session](bringup.md#fifth-physical-session--phase-2a-fat32-root-preview-2026-10-20).
+This does not retroactively make the original SD sector-zero probe a
+filesystem browser. No SD-file execution is implemented.

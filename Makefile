@@ -12,14 +12,20 @@ SD_SECTOR_BIN := tests/chaon_sd_sector_tests
 
 SD_DIAG_SRCS := main/chaon_sd_diag.c main/chaon_status.c main/chaon_screen.c tests/test_sd_diag.c
 SD_DIAG_BIN := tests/chaon_sd_diag_tests
+FAT_ROOT_SRCS := main/chaon_fat_ro.c tests/test_fat_ro.c
+FAT_ROOT_BIN := tests/chaon_fat_ro_tests
+FAT_UI_SRCS := main/chaon_screen.c main/chaon_status.c main/chaon_sd_diag.c tests/test_fat_ui.c
+FAT_UI_BIN := tests/chaon_fat_ui_tests
 
 .PHONY: test clean
-test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN)
+test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN)
 	./$(NATIVE_BIN)
 	./$(VISUAL_BIN)
 	./$(CONTROL_BIN)
 	./$(SD_SECTOR_BIN)
 	./$(SD_DIAG_BIN)
+	./$(FAT_ROOT_BIN)
+	./$(FAT_UI_BIN)
 
 $(NATIVE_BIN): $(NATIVE_SRCS) main/chaon_script.h main/chaon_hid.h main/chaon_vm.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(NATIVE_SRCS) -o $(NATIVE_BIN)
@@ -36,5 +42,13 @@ $(SD_SECTOR_BIN): $(SD_SECTOR_SRCS) main/chaon_sd_sector.h
 $(SD_DIAG_BIN): $(SD_DIAG_SRCS) main/chaon_sd_diag.h main/chaon_screen.h main/chaon_status.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(SD_DIAG_SRCS) -o $(SD_DIAG_BIN)
 
+
+$(FAT_ROOT_BIN): $(FAT_ROOT_SRCS) main/chaon_fat_ro.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(FAT_ROOT_SRCS) -o $(FAT_ROOT_BIN)
+
+
+$(FAT_UI_BIN): $(FAT_UI_SRCS) main/chaon_screen.h main/chaon_fat_ro.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(FAT_UI_SRCS) -o $(FAT_UI_BIN)
+
 clean:
-	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN)
+	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN)
