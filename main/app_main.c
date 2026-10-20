@@ -22,6 +22,7 @@
 #include "chaon_status.h"
 #include "chaon_lcd.h"
 #include "chaon_control.h"
+#include "chaon_sd_probe.h"
 
 #define BUTTON_PIN GPIO_NUM_0
 #define APA102_DATA GPIO_NUM_40
@@ -190,6 +191,9 @@ void app_main(void)
 
     bool lcd_ok = chaon_lcd_open(); /* advisory peripheral only */
     if (!lcd_ok) ESP_LOGW(TAG, "LCD unavailable; HID stays operational");
+
+    /* Advisory SD-only task. SD never supplies executable HID input. */
+    chaon_sd_probe_start();
 
     /* The portable controller owns the physical arm/execute state machine.
      * Hardware I/O, LEDs, LCD and VM execution remain in this shell.

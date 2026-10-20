@@ -7,12 +7,15 @@ NATIVE_BIN := tests/chaon_tests
 VISUAL_BIN := tests/chaon_visual_tests
 CONTROL_SRCS := main/chaon_control.c tests/test_control.c
 CONTROL_BIN := tests/chaon_control_tests
+SD_SECTOR_SRCS := main/chaon_sd_sector.c tests/test_sd_sector.c
+SD_SECTOR_BIN := tests/chaon_sd_sector_tests
 
 .PHONY: test clean
-test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN)
+test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN)
 	./$(NATIVE_BIN)
 	./$(VISUAL_BIN)
 	./$(CONTROL_BIN)
+	./$(SD_SECTOR_BIN)
 
 $(NATIVE_BIN): $(NATIVE_SRCS) main/chaon_script.h main/chaon_hid.h main/chaon_vm.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(NATIVE_SRCS) -o $(NATIVE_BIN)
@@ -23,5 +26,8 @@ $(VISUAL_BIN): $(VISUAL_SRCS) main/chaon_status.h main/chaon_screen.h
 $(CONTROL_BIN): $(CONTROL_SRCS) main/chaon_control.h main/chaon_status.h main/chaon_vm.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(CONTROL_SRCS) -o $(CONTROL_BIN)
 
+$(SD_SECTOR_BIN): $(SD_SECTOR_SRCS) main/chaon_sd_sector.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(SD_SECTOR_SRCS) -o $(SD_SECTOR_BIN)
+
 clean:
-	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN)
+	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN)

@@ -21,3 +21,5 @@ tests/chaon_control_tests
 .env
 .env.*
 
+
+tests/chaon_sd_sector_tests
