@@ -174,6 +174,47 @@ bool chaon_screen_render_catalog(const chaon_fat_catalog_t *cat,
     return true;
 }
 
+bool chaon_screen_render_browser(const chaon_fat_catalog_t *cat,
+                                 uint8_t index, bool picked,
+                                 uint8_t *frame, size_t length)
+{
+    if (!cat || !frame || length < CHAON_SCREEN_BYTES ||
+        cat->count == 0 || cat->count > CHAON_FAT_MAX_FILES ||
+        index >= cat->count)
+        return false;
+    for (size_t i = 0; i < CHAON_SCREEN_BYTES; i += 2) {
+        frame[i] = 0x10;
+        frame[i + 1] = 0x82;
+    }
+    const uint16_t green = 0xB7AD;
+    rect(frame, 0, 0, 3, CHAON_SCREEN_HEIGHT, green);
+    print_text(frame, 9, 6, "CHAON", 1, green);
+    print_text(frame, 86, 6, picked ? "PICKED" : "BROWSE", 1, picked ? 0xFFE0 : green);
+    rect(frame, 9, 19, 143, 1, 0x3166);
+    char item_label[16] = "FILE 0:0 ";
+    const chaon_fat_entry_t *entry = &cat->entries[index];
+    if (entry->is_directory) {
+        item_label[0] = 'D'; item_label[1] = 'I'; item_label[2] = 'R';
+        item_label[3] = ' ';
+    }
+    item_label[5] = (char)('1' + index);
+    item_label[7] = (char)('0' + cat->count);
+    if (cat->more) item_label[8] = '+';
+    print_text(frame, 9, 27, item_label, 1, 0xBDF7);
+    /* FAT supplies 8.3 sanitized names, but never depend on a caller's NUL. */
+    char filename[13] = {0};
+    for (size_t i = 0; i < sizeof filename - 1; ++i) {
+        if (!entry->name[i]) break;
+        filename[i] = entry->name[i];
+    }
+    print_text(frame, 9, 41, filename, 2, green);
+    rect(frame, 9, 57, 143, 1, 0x3166);
+    print_text(frame, 9, 62, picked ? "HOLD BACK 3S EXIT" :
+                "TAP NEXT HOLD PICK", 1, 0xBDF7);
+    print_text(frame, 9, CHAON_SCREEN_SD_Y, "3S EXIT", 1, 0xB7AD);
+    return true;
+}
+
 chaon_screen_update_t chaon_screen_update(const chaon_screen_key_t *previous,
                                          const chaon_screen_key_t *current)
 {

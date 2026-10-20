@@ -6,7 +6,7 @@
 
 **The Chaotic Neutral HID.** Experimental, screen-equipped USB HID instrument written in C for the **original LILYGO T-Dongle-S3** (ESP32-S3).
 
-> **Development status (2026-10-20):** The inert, physically BOOT-gated HID controller passed hardware regression on the original T-Dongle-S3/Windows host. The read-only SD probe (`f22f18e`, PR #9) and FAT32 root-directory preview (`3c297b0`, PR #12) subsequently passed their applicable physical smoke tests and ESP32-S3 CI. The FAT root preview is a **hardware-tested development feature, not a production firmware release**. Its observed directory preview is limited to eight DOS 8.3 root entries and does **not** load, open or execute scripts from SD. See [bring-up evidence](docs/bringup.md), [SD probe diagnostics](docs/sd-storage.md), and [FAT preview validation](docs/fat-root-preview.md). No production firmware has been released.
+> **Development status (2026-10-20):** The inert, physically BOOT-gated HID controller passed hardware regression on the original T-Dongle-S3/Windows host. The read-only SD probe (`f22f18e`, PR #9) and FAT32 root-directory preview (`3c297b0`, PR #12) subsequently passed their applicable physical smoke tests and ESP32-S3 CI. The FAT root preview and subsequent single-button browser (PR #13, tested source `bb715cf8`) passed their applicable original-board/Windows/FAT32 smoke tests. Both remain **development features, not production release qualification**. Browsing is limited to eight DOS 8.3 root entries with a display-only PICK marker; it does **not** load, open, parse or execute scripts from SD. See [bring-up evidence](docs/bringup.md), [SD probe diagnostics](docs/sd-storage.md), [FAT preview validation](docs/fat-root-preview.md), and [browser controls](docs/browser-controls.md). No production firmware has been released.
 
 ## Current implementation
 
@@ -15,7 +15,7 @@
 - A small product-owned, bounded C script parser and executor for `TYPE`, `DELAY`, `ENTER` and `TAB`. No DuckyScript-compatibility claim, scripting from SD, network execution, or host command execution.
 - A US keyboard-layout HID usage mapper; no arbitrary keyboard-layout claims.
 - State-driven APA102 colors (ChaoN green READY, yellow flashing ARMED, red CANCELLED), native ST7735 160×80 status display, portable renderer tests, GitHub CI and hardware validation documentation.
-- **Hardware smoke-tested storage features (PRs #9/#12):** read-only SDMMC sector observation and a bounded, passive FAT12/16/32 root-directory metadata preview; physical directory test coverage so far is FAT32 only. This is not an SD file manager or a card-script interpreter.
+- **Hardware smoke-tested storage features (PRs #9/#12/#13):** read-only SDMMC sector observation, bounded FAT12/16/32 root-directory metadata listing, and BOOT-operated, display-only navigation/PICK selection. Physical filesystem coverage is FAT32 only; this is neither a full file manager nor an SD-script interpreter.
 
 **The demo writes into whichever window currently has keyboard focus. Use only on a computer you own or are explicitly authorized to test.** Plugging the device in will not intentionally type anything until physical confirmation. The button is also the boot-strap/download pin, so never hold it during power-on when you want normal boot.
 
@@ -39,7 +39,7 @@ Run portable host tests without ESP-IDF:
 
     make test
 
-CI runs host tests and an ESP32-S3 build on configured PR targets and manual dispatch. The BOOT controller and FAT32 root preview have passed the documented hardware smoke tests on the original board and Windows host; this is **not** production qualification.
+CI runs host tests and an ESP32-S3 build on configured PR targets and manual dispatch. The BOOT controller, FAT32 root preview and display-only browser have passed the documented hardware smoke tests on the original board and Windows host; this is **not** production qualification.
 
 ## Documentation
 
@@ -53,6 +53,7 @@ CI runs host tests and an ESP32-S3 build on configured PR targets and manual dis
 - [LCD / LED state colors and physical test plan](docs/status-ui.md)
 - [Read-only SD probe and LCD diagnostics](docs/sd-storage.md)
 - [Bounded FAT root preview and 2026-10-20 hardware results](docs/fat-root-preview.md)
+- [Single-button browser contract and Phase 2B validation](docs/browser-controls.md)
 
 ## License
 

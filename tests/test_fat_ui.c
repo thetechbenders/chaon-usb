@@ -63,6 +63,40 @@ int main(void)
     assert(!memcmp(untouched, framebuffer, CHAON_SCREEN_SD_Y * 160U * 2U));
     assert(framebuffer[CHAON_SCREEN_BYTES] == 0xA5);
     assert(framebuffer[CHAON_SCREEN_BYTES+1] == 0x5A);
-    puts("ChaoN root catalogue display bounds tests: PASS");
+
+    /* Full-screen read-only browser renderer: no out-of-bounds or
+     * accidental writes when supplied invalid catalogue metadata. */
+    cat.count = 2;
+    cat.more = true;
+    cat.entries[0].is_directory = false;
+    cat.entries[1].is_directory = true;
+    strcpy(cat.entries[0].name, "FILE~1.TXT");
+    strcpy(cat.entries[1].name, "TOOLS");
+    assert(chaon_screen_render_browser(&cat, 0, false, framebuffer,
+                                       CHAON_SCREEN_BYTES));
+    memcpy(untouched, framebuffer, CHAON_SCREEN_BYTES);
+    assert(chaon_screen_render_browser(&cat, 0, true, framebuffer,
+                                       CHAON_SCREEN_BYTES));
+    assert(memcmp(untouched, framebuffer, CHAON_SCREEN_BYTES) != 0);
+    assert(chaon_screen_render_browser(&cat, 1, false, framebuffer,
+                                       CHAON_SCREEN_BYTES));
+    assert(memcmp(untouched, framebuffer, CHAON_SCREEN_BYTES) != 0);
+    memcpy(untouched, framebuffer, CHAON_SCREEN_BYTES);
+    assert(!chaon_screen_render_browser(&cat, 2, false, framebuffer,
+                                        CHAON_SCREEN_BYTES));
+    assert(!chaon_screen_render_browser(&cat, 0, false, framebuffer,
+                                        CHAON_SCREEN_BYTES - 1));
+    assert(!chaon_screen_render_browser(NULL, 0, false, framebuffer,
+                                        CHAON_SCREEN_BYTES));
+    cat.count = 0;
+    assert(!chaon_screen_render_browser(&cat, 0, false, framebuffer,
+                                        CHAON_SCREEN_BYTES));
+    cat.count = CHAON_FAT_MAX_FILES + 1;
+    assert(!chaon_screen_render_browser(&cat, 0, false, framebuffer,
+                                        CHAON_SCREEN_BYTES));
+    assert(!memcmp(untouched, framebuffer, CHAON_SCREEN_BYTES));
+    assert(framebuffer[CHAON_SCREEN_BYTES] == 0xA5);
+    assert(framebuffer[CHAON_SCREEN_BYTES+1] == 0x5A);
+    puts("ChaoN root catalogue/browser display bounds tests: PASS");
     return 0;
 }

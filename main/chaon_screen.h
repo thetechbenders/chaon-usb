@@ -24,6 +24,11 @@ bool chaon_screen_render_sd(chaon_sd_diag_t sd, uint8_t *buffer, size_t size);
  * bottom strip. No controls, selection, file reads or HID coupling. */
 bool chaon_screen_render_catalog(const chaon_fat_catalog_t *catalog,
     uint8_t index, uint8_t *buffer, size_t size);
+/* Render read-only browser in entire frame, never HID commands.
+ * PICK is a visual mark only; invalid inputs do not touch the framebuffer.
+ */
+bool chaon_screen_render_browser(const chaon_fat_catalog_t *catalog,
+    uint8_t index, bool picked, uint8_t *buffer, size_t size);
 
 typedef struct {
     chaon_status_t status;

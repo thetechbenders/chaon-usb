@@ -15,13 +15,16 @@
 - [x] Windows USB enumeration: keyboard, no unsolicited typing
 - [x] First Windows smoke test: arm, expire, execute fixed text and cancel (operator-verified)
 - [x] Windows ROM download and recovery validated; USB suspend and other OSes pending
-- [ ] Verify new APA102 color/blink behavior on hardware (original board has no PSRAM per vendor)
+- [x] APA102 state indication and normal BOOT control regression on original board / Windows (2026-10-19); electrical timing and endurance remain untested
 
 ## Phase 2: display and script storage
 
-- [ ] Physically verify native 160×80 ST7735 status-display candidate (implemented and CI green in stacked PR #6)
-- [ ] SDMMC mount/read-only, card absence and hot-removal handling
-- [ ] UI: selected script, preview, armed/run/fault state; accidental keypress mitigation
+- [x] Physically verify native 160×80 ST7735 status display on original board
+- [x] Read-only SDMMC sector probe, cold empty-slot/restoration and FAT32 root 8.3 preview (Phase 2A, merged PRs #9/#11/#12)
+- [x] Powered SD hot-removal is NOT APPLICABLE: card slot inaccessible while dongle is plugged into USB
+- [x] Phase 2B: one-button root filename browsing and display-only PICK marker; CI and applicable original-board/Windows/FAT32 smoke tests passed 2026-10-20 (PR #13). Still no SD file reads or execution. See [browser controls](browser-controls.md).
+- [ ] Phase 2C: bounded read-only script inspection, independent of HID
+- [ ] Phase 2D: separately threat-modeled/authorized execution of validated selected scripts
 - [ ] Script directory rules, bounded reading, versioned format and negative tests
 - [ ] Tests for parser fuzz targets and edge cases
 

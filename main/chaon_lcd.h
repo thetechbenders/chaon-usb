@@ -16,4 +16,7 @@ bool chaon_lcd_show(chaon_status_t status, uint32_t remaining_s,
 bool chaon_lcd_show_sd(chaon_sd_diag_t sd);
 /* Main UI task only: passive read-only root entry preview. */
 bool chaon_lcd_show_catalog(const chaon_fat_catalog_t *cat, uint8_t index);
+/* Main-loop-only full-screen browser; no file reads or HID. */
+bool chaon_lcd_show_browser(const chaon_fat_catalog_t *cat,
+                            uint8_t index, bool picked);
 #endif

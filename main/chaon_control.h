@@ -7,21 +7,30 @@
 #include "chaon_status.h"
 #include "chaon_vm.h"
 
-/* Pure BOOT-button controller. The I/O shell must sample button/USB inputs,
- * call step() once per poll, and run the VM only on EXECUTE.
+/* All BOOT gestures are classified in this controller, never in the UI.
+ * The normal short-tap/short-tap fixed HID demo remains unchanged.
  */
 enum {
     CHAON_CONTROL_POLL_MS = 20,
     CHAON_CONTROL_DEBOUNCE_MS = 40,
     CHAON_CONTROL_ARM_TTL_MS = 30000,
-    CHAON_CONTROL_CANCEL_HOLD_MS = 2000
+    CHAON_CONTROL_CANCEL_HOLD_MS = 2000,
+    CHAON_CONTROL_BROWSER_HOLD_MS = 900,
+    CHAON_CONTROL_BROWSER_EXIT_MS = 3000,
+    CHAON_CONTROL_BROWSER_IDLE_MS = 60000,
+    CHAON_CONTROL_BROWSER_MAX_ENTRIES = 8
 };
 
 typedef enum {
     CHAON_CONTROL_NONE,
     CHAON_CONTROL_ARM,
     CHAON_CONTROL_EXPIRE,
-    CHAON_CONTROL_EXECUTE
+    CHAON_CONTROL_EXECUTE,
+    CHAON_CONTROL_DISARM,
+    CHAON_CONTROL_BROWSER_ENTER,
+    CHAON_CONTROL_BROWSER_NEXT,
+    CHAON_CONTROL_BROWSER_SELECT,
+    CHAON_CONTROL_BROWSER_CLOSE
 } chaon_control_event_t;
 
 typedef struct {
@@ -33,21 +42,33 @@ typedef struct {
     int debounce_ms;
     int64_t armed_at_ms;
     int64_t cancelled_until_ms;
+    int64_t pressed_at_ms;
+    /* Advisory browsing ONLY. Neither selection nor SD metadata is ever
+     * used to authorize a VM or USB HID report. */
+    bool browser_active;
+    bool browser_selected;
+    uint8_t browser_index;
+    uint8_t browser_count;
+    int64_t browser_activity_ms;
 } chaon_control_t;
 
-/* A zero-initialized controller starts in WAIT_USB. */
+/* Backward-compatible fixed HID demo entry point. No filesystem browsing. */
 chaon_control_event_t chaon_control_step(chaon_control_t *control,
                                          bool usb_mounted,
                                          bool boot_pressed,
                                          int64_t now_ms);
 
-/* Called once by the I/O shell after an EXECUTE event and blocking VM run.
- * Resynchronizes the physical button so the cancel press cannot re-arm.
+/* Application entry point: catalogue presence/count control only the passive
+ * browser. The only EXECUTE event is still the two-short-tap fixed demo.
+ * Never accept SD file bytes or path strings in this controller.
  */
+chaon_control_event_t chaon_control_step_browser(chaon_control_t *control,
+    bool usb_mounted, bool boot_pressed, int64_t now_ms,
+    bool catalogue_available, uint8_t catalogue_count);
+
 void chaon_control_complete(chaon_control_t *control,
                              chaon_run_result_t result,
                              bool usb_mounted,
                              bool boot_pressed,
                              int64_t completed_ms);
-
 #endif
