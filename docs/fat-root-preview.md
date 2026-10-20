@@ -1,7 +1,7 @@
-# Phase 2A follow-on: bounded read-only FAT root preview (draft)
+# Phase 2A follow-on: bounded read-only FAT root preview
 
 ## Status
-Hardware smoke-tested development candidate in [draft PR #12](https://github.com/thetechbenders/chaon-usb/pull/12), built on [PR #9](https://github.com/thetechbenders/chaon-usb/pull/9).
+Hardware smoke-tested development feature introduced in [PR #12](https://github.com/thetechbenders/chaon-usb/pull/12), built on [PR #9](https://github.com/thetechbenders/chaon-usb/pull/9).
 **Code tests and the applicable original-board/Windows/FAT32 hardware smoke tests passed on 2026-10-20.** This does not establish production readiness, FAT12/FAT16 behavior on physical media, or full-directory browsing.
 
 This is a deliberately limited root-directory *metadata preview*, not a
