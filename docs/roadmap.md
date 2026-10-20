@@ -22,7 +22,7 @@
 - [x] Physically verify native 160×80 ST7735 status display on original board
 - [x] Read-only SDMMC sector probe, cold empty-slot/restoration and FAT32 root 8.3 preview (Phase 2A, merged PRs #9/#11/#12)
 - [x] Powered SD hot-removal is NOT APPLICABLE: card slot inaccessible while dongle is plugged into USB
-- [ ] Phase 2B (draft): one-button browsing and display-only PICK marker; no SD file reads or execution. See [browser controls](browser-controls.md).
+- [x] Phase 2B: one-button root filename browsing and display-only PICK marker; CI and applicable original-board/Windows/FAT32 smoke tests passed 2026-10-20 (PR #13). Still no SD file reads or execution. See [browser controls](browser-controls.md).
 - [ ] Phase 2C: bounded read-only script inspection, independent of HID
 - [ ] Phase 2D: separately threat-modeled/authorized execution of validated selected scripts
 - [ ] Script directory rules, bounded reading, versioned format and negative tests

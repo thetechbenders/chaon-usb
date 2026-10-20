@@ -602,3 +602,72 @@ This section summarizes the canonical ChaoN HQ note v27 and the operator's
 closeout; the local Markdown reports/logs were **not available to the
 repository-editing session for direct inspection**. No merge, tag or release
 is inferred from the successful hardware run.
+
+
+## Sixth physical session — Phase 2B button browser, 2026-10-20
+
+The prior Phase 2A FAT root preview session established read-only FAT32
+directory metadata and BOOT/HID recovery. This separate session validated
+the one-button, display-only navigation candidate from [PR #13](https://github.com/thetechbenders/chaon-usb/pull/13)
+on the **original** T-Dongle-S3/Windows/120 MiB FAT32 configuration.
+
+### Provenance, rollback and flashing
+
+- **Source head:** `bb715cf8d2bca18b406cb10727a1697ebeb54c81`.
+  [CI 39440312608](https://github.com/thetechbenders/chaon-usb/actions/runs/39440312608)
+  passed native C `-Werror`, UBSan, and ESP-IDF v5.5.3 ESP32-S3 with zero
+  reported warnings. CI checkout `015dc0686a15a4a3f3bf8d2e49ef9374de119de1`
+  and source head share tree `0768d779924c5301f799108ed67125f97067440a`;
+  firmware reporting version `015dc06` is expected.
+- **Artifact:** `chaon-esp32s3-candidate` ZIP ID `12274550501`,
+  SHA-256 `e2f8c1f68a65d7ff25b10a2d05a4e8322ce563fa67affd09c32b3bee18376a34`.
+  The first download made using Windows PowerShell binary redirection
+  was corrupted and never extracted or flashed. A separate binary-stream
+  `candidate-original.zip` download matched the published digest and
+  passed extraction and image-checksum validation.
+- **Rollback:** Phase 2A ZIP ID `12265813676`, source `3c297b0`,
+  SHA-256 `14be735a14fd47b2a28dcd50c2ee1f055bda2b800dafdd8e14eaea6bab6161c9`,
+  and extracted-image hashes matched their previously verified manifest.
+  The previous flash/verify evidence and full hardware report were accessible.
+  The factory full-flash backup was **not locally found or reverified**.
+- **Board and security:** esptool v5.4.0; rediscovered COM3;
+  original ESP32-S3 QFN56 v0.2, MAC `CC:BA:97:3A:4E:CC`,
+  ef/4018 16 MB flash, security flags zero, Secure Boot/flash
+  encryption disabled. Historical COM ports were not presumed current.
+- **Flashing and independent verification:** Dan explicitly approved this
+  candidate. Manifest-specified DIO/80 MHz/16 MB images at
+  `0x0` (bootloader), `0x8000` (partition table), `0x10000` (app).
+  Flash and separate `verify-flash` exited zero; all three image
+  digests matched. No full-chip erase, eFuse change, replacement build,
+  additional flash or recovery write was performed.
+
+### A–F physical smoke-test results
+
+| Test | Result | Recorded observation |
+| --- | --- | --- |
+| A: normal READY startup | **PASS** | Green READY, working LCD with filename rotation, Windows USB HID/keyboard enumerated and healthy, no unsolicited typing |
+| B: browser entry/display | **PASS** | BOOT hold/release opened full-screen BROWSE; first root filename, FILE/DIR, index/count and `+` truncation marker confirmed; no ARM or HID typing |
+| C: navigation/selection/exit | **PASS** | Short taps advanced and wrapped; ~1.2 s holds toggled PICKED on/off; navigation cleared PICK; ~3.5 s hold exited to READY/rotating filenames; no typing |
+| D: physical HID regression | **PASS** | One short tap armed, >35 s untouched window expired without typing, ~1.2 s ARMED hold disarmed, two separate short taps produced exactly one `ChaoN USB HID smoke test`, active cancellation stopped after reported prefix `ChaoN USB HID` with no stuck key, continued typing or rearm |
+| E: missing card and cold restoration | **PASS** | Card changed only when USB was disconnected; empty slot showed `SD ERR C`, no BROWSE or ARM after long hold; card restored while off returned filenames and browser |
+| F: timeout/ROM recovery/final condition | **PASS** | No BOOT input for requested >=65 s returned BROWSE to READY without typing; BOOT-held ROM mode and read-only `--no-stub get-security-info` succeeded on COM3; final BOOT-released startup, HID, filename rotation, browser responsiveness and exit to READY confirmed |
+| Powered SD hot-swap | **NOT APPLICABLE** | Card physically inaccessible with USB connected |
+| Full-card immutability | **NOT TESTED** | No before/after raw card hash; no card changes or formatting were performed |
+| Instrumented electrical/resource/timing/endurance and additional hosts/media | **NOT TESTED** | No calibrated button/HID timing trace, power/stack/heap/electrical probes, endurance or multi-host/filesystem testing |
+
+Operator timing and key-release observations were qualitative, **not**
+instrumented HID captures. Host enumeration, ROM identity, flash and separate
+verify results were recorded by tools. This session demonstrates the
+read-only metadata browser and **visual-only PICK selection**, not SD
+file-content loading, parsing or execution.
+
+At completion, the board was back at normal green READY with filenames,
+healthy HID and no accidental input or crash. The full operator report,
+artifacts and logs remain outside the repository in
+`ChaoN-USB-Recovery/2026-10-20-110849-phase2b-browser/`.
+This checked-in summary draws on the operator-provided final report and
+canonical project evidence; it is not a substitute for archived raw logs.
+
+**Disposition:** all applicable Phase 2B original-board/Windows/FAT32 smoke
+tests passed. Production qualification, wider host/media testing and
+instrumented immutability remain unverified. No release or deployment.

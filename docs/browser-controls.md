@@ -1,6 +1,6 @@
 # Phase 2B: single-button read-only file selection
 
-**Development candidate; not hardware validated, merged or flashed.**
+**Hardware smoke-tested development feature on the original T-Dongle-S3/Windows/FAT32 setup (2026-10-20).** PR #13 was tested from source commit `bb715cf8d2bca18b406cb10727a1697ebeb54c81`. This is not production qualification or permission to execute SD files.
 
 The original T-Dongle-S3 has one available control: BOOT / GPIO0.
 The button is also a ROM bootstrap pin, so BOOT-held power-on continues to
@@ -52,15 +52,23 @@ Phase 2A bounded snapshot. The ninth entry is not reachable. Physical
 FAT12/FAT16 and malformed/unsupported media remain outside previously
 completed FAT32 hardware smoke-test coverage.
 
-## Validation gates before merge
+## Verification and hardware results
 
-Portable tests must demonstrate short/long ambiguity does not execute
-unexpectedly, normal demo expiry/cancellation remain correct, browser
-cannot EXECUTE, USB disconnect and card invalidation fail closed,
-bounds/guarded pixel rendering, and BOOT-held reconnect suppression.
-Run native -Werror and UBSan plus ESP-IDF v5.5.3 esp32s3 CI.
+[Exact source-head CI run 39440312608](https://github.com/thetechbenders/chaon-usb/actions/runs/39440312608) passed seven native C test groups with `-Werror` and UBSan and built with ESP-IDF v5.5.3 for ESP32-S3, with zero reported compiler/Actions warnings. Host tests cover the 880/900 ms and 2980/3000 ms gesture boundaries, BOOT/HID regression, card/catalogue loss, USB disconnect/held-button reconnect, fault/timeout transitions, and renderer bounds. No host test replaces the physical gesture and HID checks.
 
-Before any physical flash: obtain separate owner approval and verify
-known-good rollback and artifact provenance; then test with the
-disposable FAT32 card. Never attempt powered SD hot-swap: the card is
-physically inaccessible when the USB-A dongle is inserted.
+Dan explicitly authorized flashing the exact candidate. Artifact `12274550501` (`chaon-esp32s3-candidate`) ZIP SHA-256:
+`e2f8c1f68a65d7ff25b10a2d05a4e8322ce563fa67affd09c32b3bee18376a34`.
+An independent binary-stream download matched the GitHub digest. The CI merge checkout `015dc0686a15a4a3f3bf8d2e49ef9374de119de1` and source head `bb715cf8` share Git tree `0768d779924c5301f799108ed67125f97067440a`. Embedded `015dc06` version metadata therefore identifies the same tested source tree. The original ESP32-S3 v0.2, 16 MB board was identified through ROM COM3; image-specific flash and separate verify both exited zero for bootloader, partition table and application. The previously tested Phase 2A image package was rehashed as a rollback candidate; the factory full-flash backup was not present on this computer.
+
+**Physical smoke tests A–F: PASS** on the original T-Dongle-S3, Windows host, and existing 120 MiB FAT32 card:
+
+- READY startup, normal LED/LCD, automatic filename rotation, healthy USB HID and no unsolicited typing
+- First-file view, FILE/DIR, index/count and `+` truncation, short-tap advance/wrap, PICKED toggle/clear, navigation clearing selection, long-hold exit, with no ARM or typing while browsing
+- Existing fixed text HID demo: 30-second arm expiry, long-hold disarm without typing, two-short-tap intentional single exact `ChaoN USB HID smoke test`, active cancellation (reported partial text `ChaoN USB HID`), no stuck keys or spontaneous rearm
+- Power-off card removal: `SD ERR C`, absent-catalogue long hold inert; power-off card restore returned the file preview/browser
+- Approximately 65-second no-input wait exited browse to READY; BOOT-held ROM entry and read-only no-stub recovery probe succeeded; subsequent normal boot returned to a responsive, inert device
+
+The pass disposition combines separate tool-verified flash/ROM enumeration and the operator's qualitative observations. **Not tested:** instrument-calibrated button/HID timings, HID traces, full-card before/after byte immutability, electrical/current/resource/endurance measurements, other hosts and filesystems. Powered card hot-swap is **NOT APPLICABLE** because the slot is inaccessible while USB is connected. Static read-only design does not prove byte-for-byte media immutability.
+
+See the [sixth chronological bring-up session](bringup.md#sixth-physical-session--phase-2b-button-browser-2026-10-20). The complete original report and logs remain in the operator's local `ChaoN-USB-Recovery/2026-10-20-110849-phase2b-browser/` folder, not checked into this public repository. No code or firmware was changed during the physical test. No production release, tag or deployment is implied.
+
