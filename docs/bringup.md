@@ -436,3 +436,98 @@ Local artifact, image digests, commands, flash/ROM logs and observation record:
 this tested board/Windows baseline; this is not a production-readiness or
 cross-platform claim. Stop after validation/documentation. No microSD work,
 new scripting, USB behavior change, merge, tag or production release.
+
+## Phase 2A SD probe preflight — diagnostic blocker, 2026-10-19
+
+**Not flashed; hardware validation blocked.** Dan approved the candidate flash,
+but the required running-application diagnostic path could not be established.
+When asked about a suitable 3.3 V UART adapter, Dan replied:
+**"No adapter available."** The previously working firmware was left untouched.
+
+### Verified preflight
+
+- Main `467e354fc2c2bfe09cd92bfc470d915ed51d05b8` includes merged
+  regression documentation PR #8.
+- Draft/open PR #9, `feat/sd-readonly-probe`, head
+  `891b21b73425bcf2f5daa251f662d5dad98788a2`, matches successful CI run
+  `39349865054` (native C/UBSan and ESP-IDF v5.5.3 ESP32-S3 jobs).
+  No compiler warnings were found in the reviewed log.
+- CI merge ref `282e712d466376ad4ae5ed0461c62232156381bf` and candidate
+  share tree `426d251e5b7bdcc4b1ed5f042433aa1d550cfcb4`.
+- Artifact `12233290509`, `chaon-esp32s3-candidate`, downloaded through
+  authenticated gh; ZIP SHA-256 matched:
+  `5bf6c23e4d6a9f146698c9ea4a358e1aeb522b1c3295f36dc679f56f43ce5845`.
+- Image inspection: ESP32-S3 / ESP-IDF v5.5.3, app 293,872 bytes
+  (`0x47bf0`), embedded CI merge version `282e712`, valid internal
+  image checksum/hash. Manifest is DIO/80 MHz/16 MB, with only
+  `0x0 bootloader`, `0x8000 partition table`, `0x10000 app`.
+- File SHA-256:
+  - App: `9f8a57e1c75bf4abf5a541e5f74aa78fb765efdcae17478c0523c1678b6f719a`.
+  - Bootloader: `99d1a5607e8f4506c90b928d04afb111046af59b62a0d67895b81d97b13a9423`.
+  - Partition table: `7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820`.
+- Factory backup still 16,777,216 bytes, SHA-256
+  `19af13fad3becb094ac4422782b0f3c2a7a25851bcfaa0a69bb155b2ad542175`.
+  Known-good `fb85ce8` rollback ZIP also reverified against
+  `c11a3729b3d05e396e030e717998ab947a7b7907b9f1d6f71384dfb623732561`.
+  Neither was changed, moved or uploaded.
+- Local checkout clean on `feat/esp-idf-foundation`. Existing ChaoN HID
+  interface and keyboard child `303A:4004 / CHN-S3-DEV` report status OK.
+  These observations are of the existing firmware, not this SD candidate.
+  No ROM port was selected or opened in this session; COM4 is historical,
+  not a newly verified candidate-flashing port. COM25 and CH340 COM10
+  were not opened.
+
+### Diagnostic-path findings
+
+The exact candidate's `app_main.c` retains only the HID USB configuration
+and starts the advisory logging-only SD task. There is no CDC console in its
+USB descriptor and no LCD/host-visible SD result. ROM download-mode serial
+access must not be treated as the running application's console.
+
+`sdkconfig.defaults` does not override console selection. The pinned
+[ESP-IDF v5.5.3 Kconfig](https://github.com/espressif/esp-idf/blob/v5.5.3/components/esp_system/Kconfig)
+defaults to UART0 and 115200 baud. This is a source/configuration inference;
+the artifact does not include generated `sdkconfig`, and no live UART
+console was captured. LILYGO's [original-board reference](https://github.com/Xinyuan-LilyGO/T-Dongle-S3/blob/main/docs/en/t-dongle-s3/REAMDE.MD)
+identifies QWIIC UART TX/RX as GPIO43/GPIO44. Connector contact order,
+voltage levels and actual wiring still need verification before connection.
+No UART wiring or USB behavior change was attempted.
+
+A suitable 3.3 V UART diagnostic adapter/path is unavailable. Therefore no
+candidate flash, SD boot/removal test, or inferred `SD_PRESENT` claim was made.
+
+### Read-only inspection and test ledger
+
+Static inspection of `chaon_sd_probe.c`, its call site and component
+dependencies found one `sdmmc_read_sectors(..., 0, 1)` operation, card
+initialization/status calls and logs. No sector-write API, filesystem mount,
+format, file creation/deletion, or card-derived HID execution path was found
+in the probe. The fixed HID demonstration/controller remains separate.
+This is source evidence, not a runtime trace or byte-for-byte media comparison.
+
+| Test | Status | Actual evidence / missing gate |
+| --- | --- | --- |
+| A: boot with card / SD identification | NOT TESTED | No candidate flash or live logs; card identity, sector-zero read and classification unobserved |
+| B: read-only guarantee | NOT TESTED physically | Static no-write/no-mount/no-execution inspection passed; runtime behavior and before/after card hash comparison not performed |
+| C: HID while SD task runs | NOT TESTED | Prior firmware results are not substituted for candidate regression |
+| D: removal/reinsertion | NOT TESTED | Requires successful initialization and usable diagnostic logs first |
+| E: empty-slot boot/retry | NOT TESTED | No runtime retry, CPU, memory or reset-loop observation |
+| F: candidate recovery/final SD state | NOT TESTED | No candidate ROM/normal-boot test or logged SD state |
+
+The installed disposable card is operator-reported as **128 MB** only.
+Actual capacity, sector size, SDSC compatibility, format and sector-zero hint
+remain unknown; no media read or filesystem-integrity claim was made.
+No instrument measurements or card-content hash comparison were performed.
+
+### Disposition
+
+Resume after a legitimate application-log path is available and verified,
+then rediscover ROM port/chip identity before any flash. Preserve the existing
+flash approval and repeat provenance/backup checks if state changes. No new
+firmware or USB interface was implemented to work around the blocker.
+
+PR #9 remains draft/unmerged. Earlier hardware sessions are preserved.
+No full-chip erase, eFuse/security change, factory-backup replacement,
+card write/format/mount, script execution, release or tag occurred.
+Local downloaded artifact/digests are in
+`C:\Users\Daniel\Documents\ChaoN-USB-Recovery\2026-10-19-sd-readonly-probe`.
