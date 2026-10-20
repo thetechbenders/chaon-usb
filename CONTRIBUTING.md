@@ -1,6 +1,6 @@
 # Contributing
 
-ChaoN is currently a **private, pre-release** engineering project. No public license has been chosen. Before submitting changes, coordinate scope and applicable permissions with the repository owners.
+ChaoN is a **public, pre-release** engineering project licensed under the [GNU Affero General Public License v3.0 only](LICENSE) (SPDX: `AGPL-3.0-only`). Before submitting changes, coordinate scope and applicable permissions with the repository owners. Contributors must have the rights necessary to submit their changes and ensure that contributions accepted into ChaoN can be distributed under AGPL-3.0-only. Do not copy third-party code or assets into the repository without reviewing attribution and license compatibility.
 
 ## Working agreements
 
