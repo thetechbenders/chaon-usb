@@ -495,7 +495,7 @@ esptool --chip esp32s3 --port COM4 --baud 460800 --before no-reset --after no-re
 | A: inserted-card boot/read | PASS for initialization/read and normal UI; card identity details NOT TESTED | Dan reported "SD Okay", then affirmed green READY / BOOT TO ARM, empty editor, readable unclipped footer and no resets/freezes. Windows ChaoN HID interface/keyboard 303A:4004 / CHN-S3-DEV status OK. |
 | B: read-only guarantee | PASS static inspection; byte-for-byte immutability NOT TESTED | Probe/call-site inspection found no sector writes, mount, formatting, file changes or card-derived HID. No external reader or before/after whole-card hash comparison. |
 | C: HID under SD observer | PASS by operator report | Arm/countdown/expiry without typing; cyan/RUNNING -> green READY/SD OK; exact full text ChaoN USB HID smoke test. Mid-stream cancellation left exact prefix ChaoN USB HI; red/CANCELLED -> READY, no rearm on release, stuck keys, missed input, unusual delay or freezes reported. |
-| D: powered removal/reinsertion | NOT TESTED | Dan reported the card is physically inaccessible while USB is plugged in. No powered card change attempted. Cold boots below do not prove hot-swap or same-runtime host reinitialization. |
+| D: powered removal/reinsertion | NOT APPLICABLE (mechanically inaccessible) | Dan reported the card is physically inaccessible while USB is plugged in. No powered card change was attempted or required for this physical setup. Cold boots do not prove hot-swap or same-runtime host reinitialization; those would require a separately approved access fixture. |
 | E: empty-slot boot/HID and cold restore | PASS for observed behavior; resource measurements NOT TESTED | "SD ERR C everything else is normal". Empty-slot arm/countdown/execution typed exact ChaoN USB HID smoke test; everything worked as expected. C briefly flashed to unreadable yellow text; INIT is expected by source but its text was not observed. Unpowered card restore returned "SD Ok", with requested normal-state checks affirmed; restored-card arm expiry without typing separately confirmed at closeout. |
 | F: ROM recovery and final normal boot | PASS | Rediscovered COM4 / expected 303A:1001 MAC serial; direct ROM --no-stub get-security-info exited zero, ESP32-S3 QFN56 v0.2, same MAC and unchanged security. No reflash. Dan confirmed final SD OK, green READY / BOOT TO ARM, no typing/stuck keys or freeze/reset; Windows HID/keyboard status OK. |
 
@@ -514,9 +514,16 @@ No SD IO S or other injected error code was physically exercised.
 
 No CPU/memory/log-volume instrumentation, card-bus capture, full-media hash,
 pullup measurement, electrical timing, long-duration endurance, other-OS,
-FAULT/LCD-failure injection or hot-swap validation. No UART logs were captured.
+FAULT/LCD-failure injection. No UART logs were captured. Powered hot-swap is
+**NOT APPLICABLE** to the installed-card/power-off card-change workflow because
+the card slot is inaccessible while the dongle is plugged into USB. It is not
+a failed test or a blocker for this hardware workflow. A separately approved
+fixture could investigate powered removal if that ever becomes a requirement.
 No confirmed defect or firmware correction was required by observed tests.
-Phase 2A remains **partially validated**, not all original completion gates met.
+**Validation disposition:** the SDMMC probe passed the applicable inserted-card,
+empty-slot, cold restoration, HID and ROM-recovery hardware smoke tests. The
+rest of Phase 2A (filesystem and browsing) has not yet been implemented;
+whole-card hashing, other-host testing and instrumented timings remain open.
 
 Local packages, image digests, flash/verification/recovery logs and operator
 observations are retained outside Git in

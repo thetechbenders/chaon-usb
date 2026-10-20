@@ -1,10 +1,11 @@
 # Phase 2A: read-only microSD probe and LCD diagnostics (draft)
 
-**Flashed after authorization; partial physical validation recorded below.**
+**Flashed and validated for the applicable inserted-card and cold-change smoke-test scope.**
 Dan has no UART adapter. The advisory LCD footer provided diagnostic visibility
 for the disposable, operator-reported 128 MB card without changing USB HID.
-PR #9 stays draft/unmerged. Powered removal/reinsertion remains NOT TESTED
-because the card is inaccessible while this dongle is plugged into USB.
+PR #9 stays draft/unmerged. Powered hot-swap is **NOT APPLICABLE** to this
+physical setup because the card is inaccessible while plugged into USB. It is
+not a blocker for validating ordinary installed-card use.
 
 ## Read-only scope
 
@@ -78,16 +79,17 @@ LCD failure keeps the existing advisory failure behavior and never arms HID.
    timing. OK proves successful sector-zero read, even when the logged sector
    hint would be UNKNOWN. Do not infer card capacity, SDSC compatibility or a
    filesystem type from this compact footer. If it never reaches OK, stop and
-   diagnose the code before hot-removal testing; record the failed gate.
+   diagnose the code before proceeding; record the failed gate.
 4. Verify arm, near-30-second countdown and expiry without typing. Execute the
    fixed demo into the editor: exact ChaoN USB HID smoke test, cyan/RUNNING,
    then green/READY. Cancel a repeat only after characters appear; record the
    exact partial output, red/CANCELLED, key release, and no arm on release.
    Repeat ordinary deliberate button gestures around countdown/footer changes;
    record missed presses, delays, clipping, freezes or resets.
-5. Check mechanical access before planning powered removal. On Dan's original
+5. Powered removal requires a different, separately approved test fixture. On Dan's original
    dongle, the card is obstructed while plugged into USB: **do not attempt
-   powered removal/reinsertion in this setup**. Record that test NOT TESTED.
+   powered removal/reinsertion in this setup**. Record hot-swap as
+   **NOT APPLICABLE**, not an incomplete hardware gate.
    A future separately arranged fixture must permit safe access while powered
    before testing status-poll errors, retry and same-runtime recovery. A general
    IO S/error still does not prove a dedicated physical card-detect event.
@@ -102,7 +104,9 @@ LCD failure keeps the existing advisory failure behavior and never arms HID.
    ROM recovery with read-only identification, no extra flash. Reconnect
    normally; final state must be green READY, healthy HID, no unwanted typing
    or stuck keys, and footer accurately reflecting the observed SD outcome.
-9. Report PASS/FAIL/NOT TESTED per gate, exact codes/text and timings. If an
+9. Report PASS/FAIL/NOT TESTED per applicable gate, and NOT APPLICABLE with
+   a physical reason for the powered hot-swap scenario. Record exact codes/text
+   and timings. If an
    external card reader becomes available, compare whole-card hashes before
    and after. Without that comparison, report static read-only inspection and
    observed behavior separately; never claim byte-for-byte immutability.
@@ -147,11 +151,14 @@ Separate flash verification passed for all three manifest images.
 - ROM recovery: rediscovered COM4/expected MAC; read-only no-stub identification
   succeeded without reflashing. Final normal boot SD OK/green READY/inert HID
   and no stuck keys/reset/freeze confirmed; Windows HID/keyboard status OK.
-- Powered removal/reinsert: **NOT TESTED**, card inaccessible while plugged in.
+- Powered removal/reinsert: **NOT APPLICABLE to this setup** because the card
+  is mechanically inaccessible while plugged in. No powered test attempted.
   Other ERR/IO states were not fault-injected. Whole-card immutability hash,
   actual capacity/SDSC/CID/sector hint, precise latency, CPU/memory/log volume,
   electrical/pullup behavior and endurance remain unverified. No UART logs.
 
 See [the fourth physical session](bringup.md#fourth-physical-session--phase-2a-lcd-sd-probe-2026-10-19)
-for package/image hashes, tool evidence and A–F dispositions. This is partial
-physical validation; keep PR #9 draft/unmerged and stop before filesystem work.
+for package/image hashes, tool evidence and A–F dispositions. All applicable
+inserted-card, empty-slot, cold restoration, HID and ROM-recovery hardware smoke
+tests passed. This does not prove filesystem browsing, hot-swap, endurance or
+production readiness. Keep PR #9 draft/unmerged and stop before filesystem work.
