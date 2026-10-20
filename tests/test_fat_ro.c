@@ -92,10 +92,10 @@ static bool sparse_read(void *ctx, uint32_t lba, uint8_t out[512])
     (void)ctx;
     const uint8_t *src = NULL;
     if (lba == 0) src = sparse_boot;
-    else if (lba == 32) src = sparse_fat;
-    else if (lba == 832) src = sparse_fat2;
     else if (lba == sparse_root_lba) src = sparse_root;
     else if (lba == sparse_next_lba) src = sparse_next;
+    else if (lba == 32) src = sparse_fat;
+    else if (lba == 832) src = sparse_fat2;
     if (!src) return false;
     memcpy(out, src, 512);
     return true;

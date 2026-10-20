@@ -6,6 +6,7 @@
 #include <string.h>
 static uint8_t framebuffer[CHAON_SCREEN_BYTES + 2];
 static uint8_t untouched[CHAON_SCREEN_BYTES];
+static uint8_t previous_strip[CHAON_SCREEN_SD_HEIGHT * CHAON_SCREEN_WIDTH * 2];
 int main(void)
 {
     chaon_fat_catalog_t cat = {0};
@@ -19,17 +20,27 @@ int main(void)
     assert(!memcmp(untouched, framebuffer, CHAON_SCREEN_SD_Y * 160U * 2U));
     assert(framebuffer[CHAON_SCREEN_BYTES] == 0xA5);
     assert(framebuffer[CHAON_SCREEN_BYTES + 1] == 0x5A);
+    memcpy(previous_strip, framebuffer + CHAON_SCREEN_SD_Y * CHAON_SCREEN_WIDTH * 2,
+           sizeof previous_strip);
     cat.more = true; /* cycle/sector cap: unknown contents, not empty */
     assert(chaon_screen_render_catalog(&cat, 0, framebuffer,
                                        CHAON_SCREEN_BYTES));
+    assert(memcmp(previous_strip,
+                  framebuffer + CHAON_SCREEN_SD_Y * CHAON_SCREEN_WIDTH * 2,
+                  sizeof previous_strip) != 0);
     cat.more = false;
     cat.count = 1;
     strcpy(cat.entries[0].name, "HELLO.TXT");
     assert(chaon_screen_render_catalog(&cat, 0, framebuffer,
                                        CHAON_SCREEN_BYTES));
+    memcpy(previous_strip, framebuffer + CHAON_SCREEN_SD_Y * CHAON_SCREEN_WIDTH * 2,
+           sizeof previous_strip);
     cat.more = true; /* visibly mark truncated listings */
     assert(chaon_screen_render_catalog(&cat, 0, framebuffer,
                                        CHAON_SCREEN_BYTES));
+    assert(memcmp(previous_strip,
+                  framebuffer + CHAON_SCREEN_SD_Y * CHAON_SCREEN_WIDTH * 2,
+                  sizeof previous_strip) != 0);
     assert(!chaon_screen_render_catalog(&cat, 1, framebuffer,
                                         CHAON_SCREEN_BYTES));
     assert(!chaon_screen_render_catalog(&cat, 0, framebuffer, 12));
