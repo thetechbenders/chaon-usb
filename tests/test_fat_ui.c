@@ -97,6 +97,36 @@ int main(void)
     assert(!memcmp(untouched, framebuffer, CHAON_SCREEN_BYTES));
     assert(framebuffer[CHAON_SCREEN_BYTES] == 0xA5);
     assert(framebuffer[CHAON_SCREEN_BYTES+1] == 0x5A);
+    /* Selected-file script report alters only the optional diagnostic.
+     * Never interpret source bytes, and never overrun a short framebuffer. */
+    cat.count = 1;
+    cat.more = false;
+    strcpy(cat.entries[0].name, "TEST.CHN");
+    const chaon_inspection_t waiting={.state=CHAON_INSPECT_PENDING};
+    const chaon_inspection_t valid={.state=CHAON_INSPECT_VALID,
+        .step_count=32, .first_op=CHAON_INSPECT_OP_TYPE};
+    const chaon_inspection_t invalid={.state=CHAON_INSPECT_BAD_SYNTAX,
+        .error_line=999};
+    assert(chaon_screen_render_browser_inspect(&cat, 0, true, &waiting,
+        framebuffer, CHAON_SCREEN_BYTES));
+    memcpy(untouched, framebuffer, CHAON_SCREEN_BYTES);
+    assert(chaon_screen_render_browser_inspect(&cat, 0, true, &valid,
+        framebuffer, CHAON_SCREEN_BYTES));
+    assert(memcmp(untouched, framebuffer, CHAON_SCREEN_BYTES)!=0);
+    memcpy(untouched, framebuffer, CHAON_SCREEN_BYTES);
+    assert(chaon_screen_render_browser_inspect(&cat, 0, true, &invalid,
+        framebuffer, CHAON_SCREEN_BYTES));
+    assert(memcmp(untouched, framebuffer, CHAON_SCREEN_BYTES)!=0);
+    memcpy(untouched, framebuffer, CHAON_SCREEN_BYTES);
+    assert(!chaon_screen_render_browser_inspect(&cat, 1, true, &valid,
+        framebuffer, CHAON_SCREEN_BYTES));
+    assert(!chaon_screen_render_browser_inspect(&cat, 0, true, &valid,
+        framebuffer, CHAON_SCREEN_BYTES-1));
+    assert(!chaon_screen_render_browser_inspect(NULL, 0, true, &valid,
+        framebuffer, CHAON_SCREEN_BYTES));
+    assert(memcmp(untouched, framebuffer, CHAON_SCREEN_BYTES)==0);
+    assert(framebuffer[CHAON_SCREEN_BYTES]==0xA5);
+    assert(framebuffer[CHAON_SCREEN_BYTES+1]==0x5A);
     puts("ChaoN root catalogue/browser display bounds tests: PASS");
     return 0;
 }
