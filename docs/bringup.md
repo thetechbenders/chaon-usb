@@ -291,3 +291,148 @@ LCD-failure fallback were not fault-injected; other OS hosts, USB suspend,
 current draw, endurance, and instrumented timing remain unvalidated.
 microSD scripting remains unimplemented. Both PRs remain draft/unmerged.
 No merge, tag, release, publication, extra feature, or unrelated cleanup.
+
+## Third physical session — post-merge hardware regression, 2026-10-19
+
+This section tests the merged BOOT-controller firmware. The first- and
+second-session records above remain historical evidence for their original
+firmware versions and at-the-time PR states. PRs #1, #6 and licensing PR #7
+were already merged before this session.
+
+### Identity, authorization and provenance
+
+- Live repository: public, AGPL-3.0-only, default branch `main`, head
+  `679ded5b2f88e685099e24040fe727c8911a8868`.
+- Firmware source: `fb85ce8596c25c9749120c8678cf3da21e70f411`.
+  Comparing this commit to main found only LICENSE, README, CONTRIBUTING,
+  branding and roadmap changes; no runtime source or build-setting changes.
+- CI run `39343230416`: native C tests/UBSan and ESP-IDF v5.5.3 ESP32-S3
+  jobs successful. No compiler warnings found in the reviewed log.
+- CI checked out merge ref `78e9bf62467e4d9a39914585580bd8efb2fb5402`,
+  whose tree `7bd14681b3618f859d123be2bf2e926ac11795e6` matches the firmware
+  source tree. Embedded version `78e9bf6` is therefore expected.
+- Artifact `12230365264`, `chaon-esp32s3-candidate`, downloaded using
+  authenticated gh after Dan's explicit "Approve flashing" response.
+  ZIP SHA-256 verified:
+  `c11a3729b3d05e396e030e717998ab947a7b7907b9f1d6f71384dfb623732561`.
+- Rediscovered **COM4**, USB `303A:1001`, parent
+  `USB\VID_303A&PID_1001\CC:BA:97:3A:4E:CC`. esptool v5.4.0 confirmed
+  ESP32-S3 QFN56 v0.2, MAC `cc:ba:97:3a:4e:cc`, flash `ef/4018`,
+  actual 16 MB quad. Secure Boot and flash encryption disabled, flags zero.
+  Original-board/no-PSRAM identity follows the established board
+  specification; no new physical PSRAM measurement was performed.
+  COM25 and CH340 COM10 were not opened.
+- Factory backup at
+  `C:\Users\Daniel\Documents\ChaoN-USB-Recovery\2026-10-19-first-bringup\factory-ccba973a4ecc-16MB.bin`
+  rechecked: 16,777,216 bytes; SHA-256
+  `19af13fad3becb094ac4422782b0f3c2a7a25851bcfaa0a69bb155b2ad542175`.
+  It was not overwritten, moved or uploaded.
+- Working rollback package `4d8d9e0` remains available at
+  `C:\Users\Daniel\Documents\ChaoN-USB-Recovery\2026-10-19-lcd-led-bringup\candidate-4d8d9e0.zip`;
+  its ZIP SHA-256 `124bcbc2e35b0ba415c2b16cea056e8c2fa2047563e41999c07bd54bb4eeb97e`
+  matched. Local Git checkout was clean on `feat/esp-idf-foundation` at
+  `e755932`; no operator changes or local source edits.
+
+### Flash evidence
+
+The verified artifact targets ESP32-S3 / ESP-IDF v5.5.3. Its application is
+261,200 bytes (`0x3fc50`), with valid internal checksum/image hash.
+The manifest specifies DIO, 80 MHz, 16 MB and only these files:
+
+| Offset | Image | File SHA-256 |
+| --- | --- | --- |
+| `0x0` | `bootloader/bootloader.bin` | `461f2c06f44991a2afd9a411c3c641a3182be0da31ad78a34afb204055bcbd1c` |
+| `0x8000` | `partition_table/partition-table.bin` | `7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820` |
+| `0x10000` | `chaon.bin` | `39bbb75fedb29c6cde26b9aff76eb58a0c131056ac59e8fc90cc74f852f28c71` |
+
+Commands executed from the extracted `candidate-fb85ce8/build` directory
+with esptool v5.4.0:
+
+```powershell
+esptool --chip esp32s3 --port COM4 --baud 460800 --before no-reset --after no-reset write-flash --no-progress --flash-mode dio --flash-freq 80m --flash-size 16MB 0x0 bootloader/bootloader.bin 0x10000 chaon.bin 0x8000 partition_table/partition-table.bin
+esptool --chip esp32s3 --port COM4 --baud 460800 --before no-reset --after no-reset verify-flash --flash-mode dio --flash-freq 80m --flash-size 16MB 0x0 bootloader/bootloader.bin 0x10000 chaon.bin 0x8000 partition_table/partition-table.bin
+```
+
+Both exited zero; all three images passed write-time and separate digest
+verification. Bootloader header settings were applied in memory with identical
+verification options. Only image-covering sectors were erased:
+`0x0–0x5fff`, `0x8000–0x8fff`, `0x10000–0x4ffff`.
+No full-chip erase, unrelated port access, eFuse/security change, local rebuild,
+older artifact substitution or repeat flash.
+
+### Interactive tests A–H
+
+These observations apply to this board, Windows host, and firmware `fb85ce8`.
+A short "Passed" reply affirms the specified expected checks; it is not an
+instrumented measurement.
+
+| Test | Result | Expected | Operator's reply | Actual evidence |
+| --- | --- | --- | --- | --- |
+| A | PASS | READY / BOOT TO ARM, steady green, editor empty | Passed | Operator affirmed requested observations |
+| B | PASS | ARMED, flashing yellow, near-30S countdown, no typing; after >=35s green READY and empty editor | Passed | Operator affirmed requested observations |
+| C | PASS | Exact sentence once; cyan/RUNNING then green/READY; no duplicate characters or stuck modifiers; manual lowercase check | ChaoN USB HID smoke test  /  / Passed | Exact sentence supplied and requested checks affirmed |
+| D | PASS | Stop while characters actively appear, red/CANCELLED then green READY, held cancellation release does not rearm, no stuck keys | ChaoN USB HID smok /  / Passed. I stopped it just in time | Exact nonempty strict prefix supplied; all requested checks affirmed |
+| E | PASS | BOOT-held power-on enters ROM without unexpected typing; cancellation release not an arm gesture | Done | Operator reported completion of requested no-text check; host shows COM4 303A:1001 / expected MAC serial, no dongle HID interface. Cancellation-release check separately affirmed in D. |
+| F | PASS | Disconnect while ARMED; reconnect BOOT released -> READY / BOOT TO ARM, steady green, no typing, arm cleared | passed | Operator affirmed requested observations |
+| G | PASS | 3 ordinary manual trials during countdown refresh; each press executes once, exact sentence, no missed press or unusual delay | Passed | Operator affirmed all three requested trials; no missed/delayed press or incorrect output reported |
+| H | PASS | Read-only ROM identity check without reflash, then normal green READY/inert boot with no stuck keys | recovery connected; final normal boot: Passed | Direct ROM command exit 0, same MAC/revision; operator affirmed final normal-state checks |
+
+Timing and evidence limits:
+
+- **A:** Approximately 10-second wait requested; no instrumented timing.
+- **B:** 35-second wait requested; exact countdown/blink timing not instrument-measured.
+- **C:** Execution indicator observation qualitative.
+- **D:** Manual timing, no latency measurement.
+- **E:** Held for requested 2 seconds; no instrumented hold timing.
+- **F:** Approximately 10-second post-reconnect wait requested.
+- **G:** Qualitative manual check only; no button waveform, latency or worst-case timing measurement.
+- **H:** Manual recovery and requested 10-second final wait; no instrumented timing.
+
+The exact mid-stream cancellation output on this firmware was
+`ChaoN USB HID smok`, a nonempty strict prefix of
+`ChaoN USB HID smoke test`. This trial stopped active typing before completion;
+neither the older firmware's observations nor the earlier zero-character
+cancellation trial was used to claim this pass. The requested held cancellation
+button release did not produce a reported extra arm.
+
+Test G consisted of three ordinary manual trials around countdown digit
+updates. No missed press, unusual delay, duplicate execution, or incorrect
+output was reported. It does not establish a worst-case latency or minimum
+button-pulse guarantee.
+
+Test E's BOOT-held power-on produced the expected ROM recovery USB identity,
+not normal HID execution. Test H independently verified direct read-only ROM
+communication using:
+
+```powershell
+esptool --chip esp32s3 --port COM4 --before no-reset --after no-reset --no-stub get-security-info
+```
+
+It returned ESP32-S3 QFN56 v0.2, MAC `cc:ba:97:3a:4e:cc`, unchanged security
+flags, and exit zero without uploading a stub or reflashing. After normal
+reconnection, Windows again reported `ChaoN USB HID`, `303A:4004`,
+`CHN-S3-DEV`, a healthy HID interface and keyboard child; Dan affirmed green
+READY / BOOT TO ARM, no typing and no stuck keys.
+
+### Disposition
+
+- **CI-verified:** the exact artifact's native C/UBSan and ESP32-S3 builds.
+- **Tool-verified:** GitHub provenance, ZIP/image digests, chip/flash identity,
+  separate flash verification, USB enumeration, backup integrity and ROM access.
+- **Operator-observed:** the A–H behavior and exact cancellation prefix above.
+- **Instrument-measured:** none of the physical button/LED/HID timing.
+- **Not tested in this session:** electrical timing, calibrated colors/current,
+  FAULT/LCD-failure injection, USB suspend, endurance and other OS hosts.
+
+No confirmed defect, code correction or additional flash was required.
+Factory backup digest was unchanged at closeout. The local checkout remained
+clean; only this new documentation session is proposed through a separate
+reviewable branch/PR. The first two sessions above were preserved intact.
+
+Local artifact, image digests, commands, flash/ROM logs and observation record:
+`C:\Users\Daniel\Documents\ChaoN-USB-Recovery\2026-10-19-post-merge-regression`.
+
+**Recommendation:** ready for the next separately scoped development phase on
+this tested board/Windows baseline; this is not a production-readiness or
+cross-platform claim. Stop after validation/documentation. No microSD work,
+new scripting, USB behavior change, merge, tag or production release.
