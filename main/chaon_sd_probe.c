@@ -92,16 +92,19 @@ bool chaon_sd_probe_inspect_snapshot(uint8_t index,
     const chaon_fat_entry_t *expected, chaon_inspection_t *out)
 {
     if (!expected || !out) return false;
+    *out = (chaon_inspection_t){ .state = CHAON_INSPECT_NONE };
     portENTER_CRITICAL(&diagnostic_lock);
+    /* Validate catalogue identity BEFORE touching the caller's summary.
+     * Otherwise a stale mailbox value could be copied on a false result. */
     const bool ok = catalogue_valid &&
         diagnostic == CHAON_SD_CATALOG_OK &&
-        chaon_inspect_mailbox_snapshot(&mailbox, index, expected, out) &&
         index < catalogue.count &&
         catalogue.count <= CHAON_FAT_MAX_FILES &&
         memcmp(catalogue.entries[index].raw_name, expected->raw_name, 11) == 0 &&
         catalogue.entries[index].first_cluster == expected->first_cluster &&
         catalogue.entries[index].file_size == expected->file_size &&
-        catalogue.entries[index].is_directory == expected->is_directory;
+        catalogue.entries[index].is_directory == expected->is_directory &&
+        chaon_inspect_mailbox_snapshot(&mailbox, index, expected, out);
     portEXIT_CRITICAL(&diagnostic_lock);
     return ok;
 }
