@@ -16,9 +16,11 @@ FAT_ROOT_SRCS := main/chaon_fat_ro.c tests/test_fat_ro.c
 FAT_ROOT_BIN := tests/chaon_fat_ro_tests
 FAT_UI_SRCS := main/chaon_screen.c main/chaon_status.c main/chaon_sd_diag.c tests/test_fat_ui.c
 FAT_UI_BIN := tests/chaon_fat_ui_tests
+INSPECT_SRCS := main/chaon_fat_ro.c main/chaon_fat_file.c main/chaon_inspect.c main/chaon_script.c tests/test_inspection.c
+INSPECT_BIN := tests/chaon_script_inspect_tests
 
 .PHONY: test clean
-test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN)
+test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN)
 	./$(NATIVE_BIN)
 	./$(VISUAL_BIN)
 	./$(CONTROL_BIN)
@@ -26,6 +28,7 @@ test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN)
 	./$(SD_DIAG_BIN)
 	./$(FAT_ROOT_BIN)
 	./$(FAT_UI_BIN)
+	./$(INSPECT_BIN)
 
 $(NATIVE_BIN): $(NATIVE_SRCS) main/chaon_script.h main/chaon_hid.h main/chaon_vm.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(NATIVE_SRCS) -o $(NATIVE_BIN)
@@ -50,5 +53,8 @@ $(FAT_ROOT_BIN): $(FAT_ROOT_SRCS) main/chaon_fat_ro.h
 $(FAT_UI_BIN): $(FAT_UI_SRCS) main/chaon_screen.h main/chaon_fat_ro.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(FAT_UI_SRCS) -o $(FAT_UI_BIN)
 
+$(INSPECT_BIN): $(INSPECT_SRCS) main/chaon_inspect.h main/chaon_fat_ro.h main/chaon_script.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(INSPECT_SRCS) -o $(INSPECT_BIN)
+
 clean:
-	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN)
+	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN)
