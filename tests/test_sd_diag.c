@@ -8,12 +8,14 @@
 static const chaon_sd_diag_t diagnostics[] = {
     CHAON_SD_INIT, CHAON_SD_READ_OK, CHAON_SD_HOST_ERROR,
     CHAON_SD_SLOT_ERROR, CHAON_SD_CARD_ERROR, CHAON_SD_SIZE_ERROR,
-    CHAON_SD_READ_ERROR, CHAON_SD_LOST_IO, CHAON_SD_CLEANUP_ERROR,
+    CHAON_SD_READ_ERROR, CHAON_SD_LOST_IO, CHAON_SD_CATALOG_OK,
+    CHAON_SD_FS_UNSUPPORTED, CHAON_SD_FS_ERROR, CHAON_SD_CLEANUP_ERROR,
     CHAON_SD_TASK_ERROR, (chaon_sd_diag_t)999
 };
 static const char *const labels[] = {
     "SD INIT", "SD OK", "SD ERR H", "SD ERR B", "SD ERR C",
-    "SD ERR Z", "SD ERR R", "SD IO S", "SD ERR D", "SD ERR T", "SD ERR U"
+    "SD ERR Z", "SD ERR R", "SD IO S", "SD DIR", "SD FS N",
+    "SD FS E", "SD ERR D", "SD ERR T", "SD ERR U"
 };
 enum { COUNT = sizeof diagnostics / sizeof diagnostics[0],
        STRIP_OFFSET = CHAON_SCREEN_SD_Y * CHAON_SCREEN_WIDTH * 2,

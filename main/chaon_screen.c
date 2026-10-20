@@ -159,7 +159,6 @@ bool chaon_screen_render_catalog(const chaon_fat_catalog_t *cat,
     char label[28] = "SD 0:0 ";
     label[3] = (char)('1' + index);
     label[5] = (char)('0' + cat->count); /* count 1..8 */
-    if (cat->more) label[6] = '+'; /* font fallback as blank, no semantics */
     size_t offset = 7;
     const char *name = cat->entries[index].name;
     while (*name && offset < sizeof label - 1) label[offset++] = *name++;
