@@ -1,5 +1,6 @@
 #include "chaon_screen.h"
 #include <string.h>
+#include <stdio.h>
 
 /* Small original 5x7 upper-case display font, one byte per glyph column.
  * Restrict UI labels to supported ASCII: A-Z, 0-9, colon, hyphen and space.
@@ -174,8 +175,9 @@ bool chaon_screen_render_catalog(const chaon_fat_catalog_t *cat,
     return true;
 }
 
-bool chaon_screen_render_browser(const chaon_fat_catalog_t *cat,
+bool chaon_screen_render_browser_inspect(const chaon_fat_catalog_t *cat,
                                  uint8_t index, bool picked,
+                                 const chaon_inspection_t *info,
                                  uint8_t *frame, size_t length)
 {
     if (!cat || !frame || length < CHAON_SCREEN_BYTES ||
@@ -209,10 +211,59 @@ bool chaon_screen_render_browser(const chaon_fat_catalog_t *cat,
     }
     print_text(frame, 9, 41, filename, 2, green);
     rect(frame, 9, 57, 143, 1, 0x3166);
-    print_text(frame, 9, 62, picked ? "HOLD BACK 3S EXIT" :
-                "TAP NEXT HOLD PICK", 1, 0xBDF7);
+    char diagnostic[26] = {0};
+    if (!picked) {
+        print_text(frame, 9, 62, "TAP NEXT HOLD PICK", 1, 0xBDF7);
+    } else {
+        const chaon_inspect_state_t state =
+            info ? info->state : CHAON_INSPECT_NONE;
+        switch (state) {
+            case CHAON_INSPECT_PENDING:
+                strcpy(diagnostic, "CHECKING"); break;
+            case CHAON_INSPECT_VALID: {
+                const char *op = "UNKNOWN";
+                switch (info->first_op) {
+                    case CHAON_INSPECT_OP_TYPE: op = "TYPE"; break;
+                    case CHAON_INSPECT_OP_DELAY: op = "DELAY"; break;
+                    case CHAON_INSPECT_OP_ENTER: op = "ENTER"; break;
+                    case CHAON_INSPECT_OP_TAB: op = "TAB"; break;
+                    default: break;
+                }
+                (void)snprintf(diagnostic, sizeof diagnostic,
+                    "OK %u %s", (unsigned)info->step_count, op);
+                break;
+            }
+            case CHAON_INSPECT_BAD_SYNTAX:
+                (void)snprintf(diagnostic, sizeof diagnostic,
+                    "SYNTAX LINE %u", (unsigned)info->error_line); break;
+            case CHAON_INSPECT_BAD_SOURCE:
+                strcpy(diagnostic, "BAD SOURCE"); break;
+            case CHAON_INSPECT_NOT_SCRIPT:
+                strcpy(diagnostic, "NOT CHN"); break;
+            case CHAON_INSPECT_TOO_LARGE:
+                strcpy(diagnostic, "TOO LARGE"); break;
+            case CHAON_INSPECT_STALE:
+                strcpy(diagnostic, "STALE FILE"); break;
+            case CHAON_INSPECT_IO_ERROR:
+                strcpy(diagnostic, "SD READ ERROR"); break;
+            case CHAON_INSPECT_BAD_MEDIA:
+                strcpy(diagnostic, "INVALID MEDIA"); break;
+            default:
+                strcpy(diagnostic, "NO INSPECTION"); break;
+        }
+        print_text(frame, 9, 62, diagnostic, 1,
+                   state == CHAON_INSPECT_VALID ? green : 0xFFE0);
+    }
     print_text(frame, 9, CHAON_SCREEN_SD_Y, "3S EXIT", 1, 0xB7AD);
     return true;
+}
+
+bool chaon_screen_render_browser(const chaon_fat_catalog_t *cat,
+                                 uint8_t index, bool picked,
+                                 uint8_t *frame, size_t length)
+{
+    return chaon_screen_render_browser_inspect(cat, index, picked,
+                                               NULL, frame, length);
 }
 
 chaon_screen_update_t chaon_screen_update(const chaon_screen_key_t *previous,

@@ -7,6 +7,7 @@
 #include "chaon_status.h"
 #include "chaon_sd_diag.h"
 #include "chaon_fat_ro.h"
+#include "chaon_inspect.h"
 
 enum { CHAON_SCREEN_WIDTH = 160, CHAON_SCREEN_HEIGHT = 80,
        CHAON_SCREEN_SD_Y = 72, CHAON_SCREEN_SD_HEIGHT = 8,
@@ -29,6 +30,10 @@ bool chaon_screen_render_catalog(const chaon_fat_catalog_t *catalog,
  */
 bool chaon_screen_render_browser(const chaon_fat_catalog_t *catalog,
     uint8_t index, bool picked, uint8_t *buffer, size_t size);
+/* Display diagnostic metadata ONLY; no source or parsed script bytes. */
+bool chaon_screen_render_browser_inspect(const chaon_fat_catalog_t *catalog,
+    uint8_t index, bool picked, const chaon_inspection_t *info,
+    uint8_t *buffer, size_t size);
 
 typedef struct {
     chaon_status_t status;
