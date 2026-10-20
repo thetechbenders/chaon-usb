@@ -153,6 +153,7 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
     static bool showed_browser;
     static uint8_t last_browser_index;
     static bool last_browser_picked;
+    static chaon_inspection_t last_browser_inspection;
 
     const chaon_rgb_t rgb = chaon_status_led(status, (uint32_t)now_ms);
     if (!sent_led || rgb.red != previous.red ||
@@ -177,15 +178,27 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
             if (chaon_sd_probe_catalog_snapshot(&cat) &&
                 control->browser_index < cat.count &&
                 cat.count == control->browser_count) {
+                chaon_inspection_t information =
+                    { .state = CHAON_INSPECT_NONE };
+                if (control->browser_selected)
+                    (void)chaon_sd_probe_inspect_snapshot(
+                        control->browser_index,
+                        &cat.entries[control->browser_index], &information);
                 if (!showed_browser ||
                     last_browser_index != control->browser_index ||
-                    last_browser_picked != control->browser_selected) {
-                    if (!chaon_lcd_show_browser(&cat, control->browser_index,
-                                               control->browser_selected)) {
+                    last_browser_picked != control->browser_selected ||
+                    last_browser_inspection.state != information.state ||
+                    last_browser_inspection.step_count != information.step_count ||
+                    last_browser_inspection.error_line != information.error_line ||
+                    last_browser_inspection.first_op != information.first_op) {
+                    if (!chaon_lcd_show_browser_inspect(&cat,
+                            control->browser_index, control->browser_selected,
+                            &information)) {
                         ESP_LOGE(TAG, "LCD_BROWSER_FAIL; HID still gated");
                         *lcd_ok = false;
                     }
                 }
+                last_browser_inspection = information;
             }
         }
         last_browser_index = control->browser_index;
@@ -279,7 +292,15 @@ void app_main(void)
         } else if (event == CHAON_CONTROL_BROWSER_ENTER) {
             ESP_LOGI(TAG, "read-only browser entered");
         } else if (event == CHAON_CONTROL_BROWSER_SELECT) {
-            ESP_LOGI(TAG, "browser pick marker changed (NO execution)");
+            if (control.browser_selected && catalog_valid &&
+                control.browser_index < current_catalog.count &&
+                chaon_sd_probe_inspect_request(control.browser_index,
+                    &current_catalog.entries[control.browser_index])) {
+                ESP_LOGI(TAG, "read-only inspection requested (NO HID)");
+            } else {
+                chaon_sd_probe_inspect_clear();
+                ESP_LOGI(TAG, "inspection unavailable/cleared (NO HID)");
+            }
         } else if (event == CHAON_CONTROL_BROWSER_CLOSE) {
             ESP_LOGI(TAG, "read-only browser exited");
         } else if (event == CHAON_CONTROL_EXPIRE) {
@@ -301,6 +322,11 @@ void app_main(void)
                                    gpio_get_level(BUTTON_PIN) == 0,
                                    completed_ms);
         }
+        /* Any deselection, navigation, USB loss or timeout invalidates an
+         * in-flight result. The SD task checks its generation before
+         * publishing, even if a slow card read completes afterward. */
+        if (!control.browser_active || !control.browser_selected)
+            chaon_sd_probe_inspect_clear();
         paint_status(&control, esp_timer_get_time() / 1000, &lcd_ok);
         vTaskDelay(pdMS_TO_TICKS(CHAON_CONTROL_POLL_MS));
     }
