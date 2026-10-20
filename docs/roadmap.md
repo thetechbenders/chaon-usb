@@ -28,7 +28,7 @@
 ## Phase 3: product hardening
 
 - [ ] Host layout selection and user documentation
-- [ ] Decide USB IDs, licensing/publication, release packaging
+- [ ] Decide USB IDs and release packaging (source repository public under AGPL-3.0-only; no production firmware release)
 - [ ] Threat model script ingestion and firmware update pathway
 - [ ] End-to-end on-device test matrix, reproducible release artifacts
 - [ ] No release without owner approval

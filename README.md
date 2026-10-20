@@ -6,9 +6,9 @@
 
 **The Chaotic Neutral HID.** Experimental, screen-equipped USB HID instrument written in C for the **original LILYGO T-Dongle-S3** (ESP32-S3).
 
-> **Initial LCD/LED hardware validation completed:** Firmware `4d8d9e0` passed ESP-IDF v5.5.3 CI, verified flashing, and the agreed LCD/LED/HID smoke tests on Dan's original T-Dongle-S3 and Windows host. The factory backup and verified `323c180` rollback package are preserved. See [bring-up evidence and limits](docs/bringup.md) and [LCD/LED results](docs/status-ui.md). microSD scripting is not implemented; both PRs remain draft/unmerged.
+> **Development status:** Firmware `4d8d9e0` passed ESP-IDF v5.5.3 CI, verified flashing, and the agreed LCD/LED/HID smoke tests on an original T-Dongle-S3 and Windows host. The factory backup and verified `323c180` rollback package remain preserved. PRs #1 and #6 have since merged into `main`. The latest BOOT controller refactor (`fb85ce8`) passed host tests and ESP32-S3 CI but **has not been physically flashed or retested**. See [bring-up evidence and limits](docs/bringup.md) and [LCD/LED results](docs/status-ui.md). microSD scripting is not implemented and no production firmware release has been published.
 
-## What exists in this branch
+## Current implementation
 
 - Native ESP-IDF / FreeRTOS firmware structure, ESP32-S3 USB OTG and TinyUSB keyboard device configuration.
 - An inert-on-plug-in USB HID demo. Two deliberate, separate **press-and-release** actions on the BOOT button (GPIO0) arm then execute a fixed harmless text-only test. Arming expires after 30 seconds; USB unplug/restart disarms.
@@ -38,7 +38,7 @@ Run portable host tests without ESP-IDF:
 
     make test
 
-CI runs host tests and an ESP32-S3 build on PRs and manual dispatch. The branch is intentionally unmerged pending the software build and physical acceptance gates.
+CI runs host tests and an ESP32-S3 build on PRs and manual dispatch. The latest `main` firmware still requires a physical BOOT-controller regression test before a production release.
 
 ## Documentation
 
@@ -53,7 +53,7 @@ CI runs host tests and an ESP32-S3 build on PRs and manual dispatch. The branch 
 
 ## License
 
-**Undecided.** The repository is private and no open-source license has been selected. Do not describe this code as licensed or released until the owners make that decision.
+ChaoN-USB's original source code, documentation, and project artwork are licensed under the **GNU Affero General Public License v3.0 only** ([AGPL-3.0-only](LICENSE)). Copyright © 2026 Techbenders contributors.
 
-Copyright © Techbenders contributors. All rights reserved pending explicit licensing.
+The repository is public and AGPL-licensed, but **no production firmware has been released**. Third-party dependencies (including ESP-IDF and TinyUSB) retain their respective licenses; ChaoN's AGPL does not replace those separate notices.
 
