@@ -436,3 +436,91 @@ Local artifact, image digests, commands, flash/ROM logs and observation record:
 this tested board/Windows baseline; this is not a production-readiness or
 cross-platform claim. Stop after validation/documentation. No microSD work,
 new scripting, USB behavior change, merge, tag or production release.
+
+
+## Fourth physical session — Phase 2A LCD SD probe, 2026-10-19
+
+This session supersedes the earlier UART diagnostic blocker for the updated
+candidate only. Dan has no UART adapter; the ST7735 footer supplied stage
+visibility. The original 891b21b candidate was not flashed. Earlier sessions
+above remain intact.
+
+### Provenance, authorization and flash
+
+- Tested firmware source: **f22f18e4e95c77aa1eae086944f4886793a05cef**,
+  draft/open PR #9, feat/sd-readonly-probe; main baseline
+  467e354fc2c2bfe09cd92bfc470d915ed51d05b8.
+- [CI 39352112253](https://github.com/thetechbenders/chaon-usb/actions/runs/39352112253)
+  passed native -Werror tests, UBSan and ESP-IDF v5.5.3 / ESP32-S3.
+  Reviewed logs/annotations had zero compiler/Actions warnings or failures.
+- CI merge build 76a259b79204f5efd08812fd50ee4634e2d7d770 shares tree
+  e590b5d442e75cbd7b0d69259f1e096ee927654f with source; embedded version
+  76a259b is expected.
+- Artifact **12232863952**, chaon-esp32s3-candidate, ZIP SHA-256:
+  `9ce9a822f134becd3fd68837d7b086039141ff96adde3255b7fecca51cd582c1`.
+  App 294640 bytes, SHA-256
+  `09bcc0b18603d36f5e16395da521bc536bfeae1a292c03c0bbf6f0f858eb1d14`.
+  Manifest/extracted images byte-equal to verified ZIP; no local rebuild.
+- Dan explicitly authorized this updated artifact: "Flash it".
+  Rediscovered ROM COM4 / USB 303A:1001 / MAC cc:ba:97:3a:4e:cc.
+  esptool v5.4.0 confirmed ESP32-S3 QFN56 v0.2, flash ef/4018 / 16 MB,
+  security flags zero, Secure Boot/encryption disabled. Other ports untouched.
+- Factory backup reverified unchanged: 16777216 bytes, SHA-256
+  `19af13fad3becb094ac4422782b0f3c2a7a25851bcfaa0a69bb155b2ad542175`.
+  Working fb85ce8 rollback ZIP reverified:
+  `c11a3729b3d05e396e030e717998ab947a7b7907b9f1d6f71384dfb623732561`.
+  No backup contents uploaded or replaced.
+- Only manifest images written, DIO/80MHz/16MB: 0x0 bootloader,
+  0x8000 partition table, 0x10000 app. Write and separate verify-flash
+  exited zero; all three digests matched. Only image-covering sectors
+  0x0–0x5fff, 0x8000–0x8fff, 0x10000–0x57fff erased.
+  No full-chip erase, eFuse/security change or additional flash.
+
+Bootloader SHA-256:
+`4fac6f12f2b8e10a5f09e0d8b93872370db660dce29697ab0dddd9fdc1569758`.
+Partition SHA-256:
+`7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820`.
+
+Commands from the extracted candidate's build directory:
+
+```powershell
+esptool --chip esp32s3 --port COM4 --baud 460800 --before no-reset --after no-reset write-flash --no-progress --flash-mode dio --flash-freq 80m --flash-size 16MB 0x0 bootloader/bootloader.bin 0x10000 chaon.bin 0x8000 partition_table/partition-table.bin
+esptool --chip esp32s3 --port COM4 --baud 460800 --before no-reset --after no-reset verify-flash --flash-mode dio --flash-freq 80m --flash-size 16MB 0x0 bootloader/bootloader.bin 0x10000 chaon.bin 0x8000 partition_table/partition-table.bin
+```
+
+### Physical test results and evidence boundaries
+
+| Test | Result | Actual evidence |
+| --- | --- | --- |
+| A: inserted-card boot/read | PASS for initialization/read and normal UI; card identity details NOT TESTED | Dan reported "SD Okay", then affirmed green READY / BOOT TO ARM, empty editor, readable unclipped footer and no resets/freezes. Windows ChaoN HID interface/keyboard 303A:4004 / CHN-S3-DEV status OK. |
+| B: read-only guarantee | PASS static inspection; byte-for-byte immutability NOT TESTED | Probe/call-site inspection found no sector writes, mount, formatting, file changes or card-derived HID. No external reader or before/after whole-card hash comparison. |
+| C: HID under SD observer | PASS by operator report | Arm/countdown/expiry without typing; cyan/RUNNING -> green READY/SD OK; exact full text ChaoN USB HID smoke test. Mid-stream cancellation left exact prefix ChaoN USB HI; red/CANCELLED -> READY, no rearm on release, stuck keys, missed input, unusual delay or freezes reported. |
+| D: powered removal/reinsertion | NOT TESTED | Dan reported the card is physically inaccessible while USB is plugged in. No powered card change attempted. Cold boots below do not prove hot-swap or same-runtime host reinitialization. |
+| E: empty-slot boot/HID and cold restore | PASS for observed behavior; resource measurements NOT TESTED | "SD ERR C everything else is normal". Empty-slot arm/countdown/execution typed exact ChaoN USB HID smoke test; everything worked as expected. C briefly flashed to unreadable yellow text; INIT is expected by source but its text was not observed. Unpowered card restore returned "SD Ok", with requested normal-state checks affirmed; restored-card arm expiry without typing separately confirmed at closeout. |
+| F: ROM recovery and final normal boot | PASS | Rediscovered COM4 / expected 303A:1001 MAC serial; direct ROM --no-stub get-security-info exited zero, ESP32-S3 QFN56 v0.2, same MAC and unchanged security. No reflash. Dan confirmed final SD OK, green READY / BOOT TO ARM, no typing/stuck keys or freeze/reset; Windows HID/keyboard status OK. |
+
+The full output and nonempty cancellation prefix were supplied directly by
+Dan. Requested checks affirmed by "Passed" remain operator observations,
+not USB report traces or latency measurements. Near-30-second countdown,
+>=35-second expiry and observation waits were requested, not instrument-timed.
+
+SD OK means the source path initialized the card, accepted a 512-byte sector
+size and successfully read sector zero. Actual capacity, SDSC type, card CID,
+filesystem/sector classification and raw ESP-IDF errors were not visible.
+"128 MB" is operator-reported; no capacity or filesystem claim follows.
+SD ERR C deliberately combines unavailable/card-initialization failure;
+empty-slot observation does not create a general absence/failure distinction.
+No SD IO S or other injected error code was physically exercised.
+
+No CPU/memory/log-volume instrumentation, card-bus capture, full-media hash,
+pullup measurement, electrical timing, long-duration endurance, other-OS,
+FAULT/LCD-failure injection or hot-swap validation. No UART logs were captured.
+No confirmed defect or firmware correction was required by observed tests.
+Phase 2A remains **partially validated**, not all original completion gates met.
+
+Local packages, image digests, flash/verification/recovery logs and operator
+observations are retained outside Git in
+`C:\Users\Daniel\Documents\ChaoN-USB-Recovery\2026-10-19-sd-lcd-diagnostics`.
+Factory contents are excluded. Documentation follow-up does not change tested
+firmware f22f18e or warrant a new build. PR #9 stays draft/unmerged; no
+filesystem browsing, SD execution, USB changes, tag or release.

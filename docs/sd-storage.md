@@ -1,9 +1,10 @@
 # Phase 2A: read-only microSD probe and LCD diagnostics (draft)
 
-**Not physically validated or flashed.** Dan has no UART adapter. This
-candidate adds an advisory LCD footer so the disposable, operator-reported
-128 MB card can be tested without changing the USB HID interface.
-PR #9 stays draft/unmerged; updated firmware needs separate flash authorization.
+**Flashed after authorization; partial physical validation recorded below.**
+Dan has no UART adapter. The advisory LCD footer provided diagnostic visibility
+for the disposable, operator-reported 128 MB card without changing USB HID.
+PR #9 stays draft/unmerged. Powered removal/reinsertion remains NOT TESTED
+because the card is inaccessible while this dongle is plugged into USB.
 
 ## Read-only scope
 
@@ -84,12 +85,15 @@ LCD failure keeps the existing advisory failure behavior and never arms HID.
    exact partial output, red/CANCELLED, key release, and no arm on release.
    Repeat ordinary deliberate button gestures around countdown/footer changes;
    record missed presses, delays, clipping, freezes or resets.
-5. Only after SD OK: remove the disposable card while running. Observe whether
-   IO S/error appears on a subsequent 3-second status poll, followed by retry
-   INIT and an error code. Do not label a general I/O error as proven removal.
-   Check that ordinary BOOT/HID interactions remain responsive.
-6. Reinsert and allow a retry cycle (5-second retry delay plus initialization).
-   Record reappearance of OK and repeat a basic BOOT interaction. Stop on
+5. Check mechanical access before planning powered removal. On Dan's original
+   dongle, the card is obstructed while plugged into USB: **do not attempt
+   powered removal/reinsertion in this setup**. Record that test NOT TESTED.
+   A future separately arranged fixture must permit safe access while powered
+   before testing status-poll errors, retry and same-runtime recovery. A general
+   IO S/error still does not prove a dedicated physical card-detect event.
+6. For the available setup, unplug before changing the card. Cold empty-slot
+   and restored-card boots below test separate initialization paths; they do
+   not establish hot-swap or same-runtime host reinitialization. Stop on
    crashes, watchdog loops or unresponsiveness; do not repeatedly reflash.
 7. Boot with an empty slot. Record the actual error/retry sequence; verify
    inert READY, working HID/countdown and no freeze/reset loop. No claim that
@@ -121,3 +125,33 @@ SDMMC/SDSC compatibility, hot removal, pullups or physical input latency.
 Future filesystem design and bounded directory browsing require separate
 scope/review; generic FatFs mounting is not proof of read-only media.
 No SD-sourced script execution, USB CDC, HID descriptor change, release or tag.
+
+## Observed hardware results — 2026-10-19
+
+Firmware f22f18e4e95c77aa1eae086944f4886793a05cef was flashed after Dan's
+explicit authorization from artifact 12232863952, successful CI 39352112253
+(native -Werror/UBSan and ESP-IDF v5.5.3 ESP32-S3, zero warnings).
+Separate flash verification passed for all three manifest images.
+
+- Installed disposable card: operator reported SD OK, legible/unclipped footer,
+  normal green READY, inert insertion, no resets/freezes. This establishes the
+  successful initialization/512-byte sector-zero-read path on this card.
+- Arm/countdown/expiry, exact fixed demo, and mid-stream cancel passed by
+  operator report. Full text: `ChaoN USB HID smoke test`; cancelled prefix:
+  `ChaoN USB HI`. Requested LED/UI/key-release/no-rearm checks affirmed.
+- Empty-slot normal boot: exact `SD ERR C`, normal READY and functioning HID.
+  The error briefly changed to unreadable yellow text; INIT is source-expected
+  but was not legibly observed. No exact retry timing or resource use measured.
+- Card restored only while unplugged: SD OK returned; arm expiry remained
+  inert. This is cold restoration, not same-runtime SD host reinitialization.
+- ROM recovery: rediscovered COM4/expected MAC; read-only no-stub identification
+  succeeded without reflashing. Final normal boot SD OK/green READY/inert HID
+  and no stuck keys/reset/freeze confirmed; Windows HID/keyboard status OK.
+- Powered removal/reinsert: **NOT TESTED**, card inaccessible while plugged in.
+  Other ERR/IO states were not fault-injected. Whole-card immutability hash,
+  actual capacity/SDSC/CID/sector hint, precise latency, CPU/memory/log volume,
+  electrical/pullup behavior and endurance remain unverified. No UART logs.
+
+See [the fourth physical session](bringup.md#fourth-physical-session--phase-2a-lcd-sd-probe-2026-10-19)
+for package/image hashes, tool evidence and A–F dispositions. This is partial
+physical validation; keep PR #9 draft/unmerged and stop before filesystem work.
