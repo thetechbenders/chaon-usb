@@ -147,31 +147,47 @@ fail:
     return false;
 }
 
-bool chaon_lcd_show(chaon_status_t status, uint32_t remaining_s)
+/* A contiguous full-width band shares the existing DMA framebuffer.
+ * Only the main UI loop calls this code, never the SD task. */
+static bool flush_band(unsigned y, unsigned height)
 {
-    if (!lcd_initialized) return false;
-    if (!chaon_screen_render(status, remaining_s,
-                             framebuffer, sizeof framebuffer)) return false;
-    /* Landscape orientation uses physical column offset 1, row offset 26
-     * as in vendor's panel-gap settings after XY swap.
-     */
-    const uint8_t columns[] = {0x00,0x01,0x00,0xa0}; /* 1..160 */
-    const uint8_t rows[] = {0x00,0x1a,0x00,0x69}; /* 26..105 */
-    esp_err_t result = command(0x2a, columns, sizeof columns); /* CASET */
+    const uint8_t columns[] = {0x00, 0x01, 0x00, 0xa0};
+    const uint8_t rows[] = {
+        0x00, (uint8_t)(26U + y), 0x00, (uint8_t)(25U + y + height)
+    };
+    esp_err_t result = command(0x2a, columns, sizeof columns);
     if (result == ESP_OK)
-        result = command(0x2b, rows, sizeof rows); /* RASET */
+        result = command(0x2b, rows, sizeof rows);
     if (result == ESP_OK)
-        result = command(0x2c, NULL, 0); /* RAMWR */
+        result = command(0x2c, NULL, 0);
     if (result == ESP_OK)
-        result = tx(true, framebuffer, sizeof framebuffer);
+        result = tx(true, framebuffer + y * CHAON_SCREEN_WIDTH * 2U,
+                    height * CHAON_SCREEN_WIDTH * 2U);
     if (result != ESP_OK) {
         ESP_LOGE(TAG, "LCD_WRITE_FAIL esp_err=%s", esp_err_to_name(result));
         gpio_set_level(LCD_BL, 1);
         return false;
     }
+    return true;
+}
+
+bool chaon_lcd_show(chaon_status_t status, uint32_t remaining_s,
+                    chaon_sd_diag_t sd)
+{
+    if (!lcd_initialized) return false;
+    if (!chaon_screen_render(status, remaining_s, sd,
+                             framebuffer, sizeof framebuffer)) return false;
+    if (!flush_band(0, CHAON_SCREEN_HEIGHT)) return false;
     if (!backlight_enabled) {
-        gpio_set_level(LCD_BL, 0); /* active-low backlight after first frame */
+        gpio_set_level(LCD_BL, 0);
         backlight_enabled = true;
     }
     return true;
+}
+
+bool chaon_lcd_show_sd(chaon_sd_diag_t sd)
+{
+    if (!lcd_initialized || !backlight_enabled) return false;
+    if (!chaon_screen_render_sd(sd, framebuffer, sizeof framebuffer)) return false;
+    return flush_band(CHAON_SCREEN_SD_Y, CHAON_SCREEN_SD_HEIGHT);
 }

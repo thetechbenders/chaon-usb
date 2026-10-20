@@ -31,23 +31,23 @@ int main(void)
     frame[0] = 0xCC;
     frame[CHAON_SCREEN_BYTES] = 0xA5;
     frame[CHAON_SCREEN_BYTES + 1] = 0x5A;
-    assert(!chaon_screen_render(CHAON_STATUS_READY, 0, NULL, sizeof frame));
-    assert(!chaon_screen_render(CHAON_STATUS_READY, 0, frame,
+    assert(!chaon_screen_render(CHAON_STATUS_READY, 0, CHAON_SD_INIT, NULL, sizeof frame));
+    assert(!chaon_screen_render(CHAON_STATUS_READY, 0, CHAON_SD_INIT, frame,
                                 CHAON_SCREEN_BYTES - 1));
     const chaon_status_t states[] = {
         CHAON_STATUS_WAIT_USB, CHAON_STATUS_READY, CHAON_STATUS_ARMED,
         CHAON_STATUS_RUNNING, CHAON_STATUS_CANCELLED, CHAON_STATUS_FAULT
     };
     for (unsigned i = 0; i < sizeof(states) / sizeof(states[0]); ++i) {
-        assert(chaon_screen_render(states[i], 30, frame, CHAON_SCREEN_BYTES));
+        assert(chaon_screen_render(states[i], 30, CHAON_SD_INIT, frame, CHAON_SCREEN_BYTES));
         assert(frame[CHAON_SCREEN_BYTES] == 0xA5);
         assert(frame[CHAON_SCREEN_BYTES + 1] == 0x5A);
         assert(frame[0] != 0xCC); /* top left stripe */
     }
-    assert(chaon_screen_render(CHAON_STATUS_READY, 0, frame, CHAON_SCREEN_BYTES));
+    assert(chaon_screen_render(CHAON_STATUS_READY, 0, CHAON_SD_INIT, frame, CHAON_SCREEN_BYTES));
     uint8_t ready_frame[CHAON_SCREEN_BYTES];
     memcpy(ready_frame, frame, sizeof ready_frame);
-    assert(chaon_screen_render(CHAON_STATUS_ARMED, 12, frame, CHAON_SCREEN_BYTES));
+    assert(chaon_screen_render(CHAON_STATUS_ARMED, 12, CHAON_SD_INIT, frame, CHAON_SCREEN_BYTES));
     assert(memcmp(ready_frame, frame, CHAON_SCREEN_BYTES) != 0);
     puts("ChaoN status and screen tests: PASS");
     return 0;
