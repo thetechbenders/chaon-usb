@@ -120,6 +120,162 @@ static void test_success_returns_ready(void)
     assert(c.state == CHAON_STATUS_WAIT_USB);
 }
 
+
+/* Browser interaction uses the same debounced BOOT sampling as HID. */
+static chaon_control_event_t gesture(chaon_control_t *c, bool available,
+                                    uint8_t count, unsigned duration_ms,
+                                    int64_t *clock_ms)
+{
+    chaon_control_event_t event = CHAON_CONTROL_NONE;
+    unsigned samples = duration_ms / CHAON_CONTROL_POLL_MS;
+    if (samples < 4) samples = 4;
+    for (unsigned i = 0; i < samples; ++i) {
+        const chaon_control_event_t e = chaon_control_step_browser(
+            c, true, true, *clock_ms, available, count);
+        if (e != CHAON_CONTROL_NONE) event = e;
+        *clock_ms += CHAON_CONTROL_POLL_MS;
+    }
+    for (unsigned i = 0; i < 4; ++i) {
+        const chaon_control_event_t e = chaon_control_step_browser(
+            c, true, false, *clock_ms, available, count);
+        if (e != CHAON_CONTROL_NONE) event = e;
+        *clock_ms += CHAON_CONTROL_POLL_MS;
+    }
+    return event;
+}
+static void browser_ready(chaon_control_t *c, int64_t *t, uint8_t count)
+{
+    for (unsigned i=0;i<4;++i) {
+        assert(chaon_control_step_browser(c, true, false, *t, true, count)
+               == CHAON_CONTROL_NONE);
+        *t += CHAON_CONTROL_POLL_MS;
+    }
+}
+static void test_browse_selection_never_executes(void)
+{
+    chaon_control_t c = {0};
+    int64_t t = 0;
+    browser_ready(&c, &t, 3);
+    assert(gesture(&c, true, 3, 1020, &t) == CHAON_CONTROL_BROWSER_ENTER);
+    assert(c.browser_active && c.state == CHAON_STATUS_READY);
+    assert(c.browser_count == 3 && c.browser_index == 0 &&
+           !c.browser_selected);
+    assert(gesture(&c, true, 3, 80, &t) == CHAON_CONTROL_BROWSER_NEXT);
+    assert(c.browser_index == 1 && !c.browser_selected);
+    assert(gesture(&c, true, 3, 1040, &t) == CHAON_CONTROL_BROWSER_SELECT);
+    assert(c.browser_index == 1 && c.browser_selected);
+    assert(gesture(&c, true, 3, 1060, &t) == CHAON_CONTROL_BROWSER_SELECT);
+    assert(!c.browser_selected);
+    assert(gesture(&c, true, 3, 80, &t) == CHAON_CONTROL_BROWSER_NEXT);
+    assert(c.browser_index == 2);
+    assert(gesture(&c, true, 3, 80, &t) == CHAON_CONTROL_BROWSER_NEXT);
+    assert(c.browser_index == 0); /* wrap; no extra filename read */
+    assert(gesture(&c, true, 3, 3120, &t) == CHAON_CONTROL_BROWSER_CLOSE);
+    assert(!c.browser_active && c.state == CHAON_STATUS_READY);
+    assert(gesture(&c, true, 3, 80, &t) == CHAON_CONTROL_ARM);
+    assert(c.state == CHAON_STATUS_ARMED);
+    /* Extended ARMED press is disarm, NOT execution. */
+    assert(gesture(&c, true, 3, 1040, &t) == CHAON_CONTROL_DISARM);
+    assert(c.state == CHAON_STATUS_READY);
+    assert(gesture(&c, true, 3, 80, &t) == CHAON_CONTROL_ARM);
+    assert(gesture(&c, true, 3, 80, &t) == CHAON_CONTROL_EXECUTE);
+}
+static void test_browser_failure_closes_and_suppresses_release(void)
+{
+    chaon_control_t c = {0};
+    int64_t t = 0;
+    browser_ready(&c, &t, 8);
+    assert(gesture(&c, true, 8, 1040, &t) == CHAON_CONTROL_BROWSER_ENTER);
+    /* Press while browsing, then card disappears before release. */
+    for (unsigned i=0;i<5;++i) {
+        (void)chaon_control_step_browser(&c,true,true,t,true,8);
+        t += CHAON_CONTROL_POLL_MS;
+    }
+    assert(chaon_control_step_browser(&c, true, true, t, false, 0)
+           == CHAON_CONTROL_BROWSER_CLOSE);
+    assert(!c.browser_active && c.state == CHAON_STATUS_READY);
+    t += CHAON_CONTROL_POLL_MS;
+    for (unsigned i=0;i<4;++i) {
+        assert(chaon_control_step_browser(&c,true,false,t,false,0)
+               == CHAON_CONTROL_NONE);
+        t += CHAON_CONTROL_POLL_MS;
+    }
+    assert(c.state == CHAON_STATUS_READY); /* no phantom HID arm */
+    assert(gesture(&c, false, 0, 1040, &t) == CHAON_CONTROL_NONE);
+    assert(c.state == CHAON_STATUS_READY); /* no catalogue => no browser/arm */
+    assert(gesture(&c, false, 0, 80, &t) == CHAON_CONTROL_ARM);
+    assert(c.state == CHAON_STATUS_ARMED);
+}
+static void test_browser_count_and_idle(void)
+{
+    chaon_control_t c={0};int64_t t=0;
+    browser_ready(&c,&t,2);
+    assert(gesture(&c,true,2,1100,&t)==CHAON_CONTROL_BROWSER_ENTER);
+    assert(chaon_control_step_browser(&c,true,false,t,true,3)
+           == CHAON_CONTROL_BROWSER_CLOSE);
+    assert(!c.browser_active && c.state==CHAON_STATUS_READY);
+    t+=CHAON_CONTROL_POLL_MS;
+    assert(gesture(&c,true,3,1030,&t)==CHAON_CONTROL_BROWSER_ENTER);
+    t=c.browser_activity_ms+CHAON_CONTROL_BROWSER_IDLE_MS;
+    assert(chaon_control_step_browser(&c,true,false,t,true,3)
+           == CHAON_CONTROL_BROWSER_CLOSE);
+    assert(!c.browser_active);
+    t+=CHAON_CONTROL_POLL_MS;
+    assert(gesture(&c,true,3,80,&t)==CHAON_CONTROL_ARM);
+}
+static void test_browser_usb_recovery_and_fault(void)
+{
+    chaon_control_t c={0};int64_t t=0;
+    browser_ready(&c,&t,2);
+    assert(gesture(&c,true,2,1050,&t)==CHAON_CONTROL_BROWSER_ENTER);
+    assert(chaon_control_step_browser(&c,false,true,t,true,2)
+           == CHAON_CONTROL_NONE);
+    t+=CHAON_CONTROL_POLL_MS;
+    assert(!c.browser_active && c.state==CHAON_STATUS_WAIT_USB);
+    for(unsigned i=0;i<4;++i) {
+        assert(chaon_control_step_browser(&c,true,true,t,true,2)
+               == CHAON_CONTROL_NONE);
+        t+=CHAON_CONTROL_POLL_MS;
+    }
+    assert(c.state==CHAON_STATUS_READY && !c.browser_active);
+    for(unsigned i=0;i<4;++i) {
+        assert(chaon_control_step_browser(&c,true,false,t,true,2)
+               == CHAON_CONTROL_NONE);
+        t+=CHAON_CONTROL_POLL_MS;
+    }
+    assert(c.state==CHAON_STATUS_READY);
+    assert(gesture(&c,true,2,80,&t)==CHAON_CONTROL_ARM);
+    assert(gesture(&c,true,2,80,&t)==CHAON_CONTROL_EXECUTE);
+    chaon_control_complete(&c,CHAON_RUN_IO_ERROR,true,false,t);
+    assert(c.state==CHAON_STATUS_FAULT);
+    assert(gesture(&c,true,2,1050,&t)==CHAON_CONTROL_NONE);
+    assert(!c.browser_active && c.state==CHAON_STATUS_FAULT);
+}
+static void test_browser_timeout_while_pressed(void)
+{
+    chaon_control_t c={0};int64_t t=0;
+    browser_ready(&c,&t,1);
+    assert(gesture(&c,true,1,1030,&t)==CHAON_CONTROL_BROWSER_ENTER);
+    /* Stable pressed as the 60 second inactivity deadline arrives. */
+    t=c.browser_activity_ms+CHAON_CONTROL_BROWSER_IDLE_MS-160;
+    for(unsigned i=0;i<5;++i) {
+        (void)chaon_control_step_browser(&c,true,true,t,true,1);
+        t+=CHAON_CONTROL_POLL_MS;
+    }
+    t=c.browser_activity_ms+CHAON_CONTROL_BROWSER_IDLE_MS;
+    assert(chaon_control_step_browser(&c,true,true,t,true,1)
+           == CHAON_CONTROL_BROWSER_CLOSE);
+    assert(!c.browser_active);
+    t+=CHAON_CONTROL_POLL_MS;
+    for(unsigned i=0;i<4;++i) {
+        assert(chaon_control_step_browser(&c,true,false,t,true,1)
+               == CHAON_CONTROL_NONE);
+        t+=CHAON_CONTROL_POLL_MS;
+    }
+    assert(c.state==CHAON_STATUS_READY);
+    assert(gesture(&c,true,1,80,&t)==CHAON_CONTROL_ARM);
+}
+
 int main(void)
 {
     test_inert_and_expiry();
@@ -127,6 +283,11 @@ int main(void)
     test_held_connect_and_disconnect();
     test_fault_blocks_arm_and_reset();
     test_success_returns_ready();
-    puts("ChaoN BOOT state machine tests: PASS");
+    test_browse_selection_never_executes();
+    test_browser_failure_closes_and_suppresses_release();
+    test_browser_count_and_idle();
+    test_browser_usb_recovery_and_fault();
+    test_browser_timeout_while_pressed();
+    puts("ChaoN BOOT/browser state machine tests: PASS");
     return 0;
 }
