@@ -251,6 +251,31 @@ static void test_browser_usb_recovery_and_fault(void)
     assert(gesture(&c,true,2,1050,&t)==CHAON_CONTROL_NONE);
     assert(!c.browser_active && c.state==CHAON_STATUS_FAULT);
 }
+static void test_browser_exact_hold_boundaries(void)
+{
+    chaon_control_t c={0};int64_t t=0;
+    browser_ready(&c,&t,2);
+    /* 880 ms remains a short press in READY, 900 ms never EXECUTES
+     * when already ARMED. Times refer to debounced press/release. */
+    assert(gesture(&c,true,2,880,&t)==CHAON_CONTROL_ARM);
+    assert(c.state==CHAON_STATUS_ARMED);
+    assert(gesture(&c,true,2,900,&t)==CHAON_CONTROL_DISARM);
+    assert(c.state==CHAON_STATUS_READY);
+    assert(gesture(&c,true,2,900,&t)==CHAON_CONTROL_BROWSER_ENTER);
+    assert(c.browser_active);
+    assert(gesture(&c,true,2,880,&t)==CHAON_CONTROL_BROWSER_NEXT);
+    assert(c.browser_index==1 && !c.browser_selected);
+    assert(gesture(&c,true,2,900,&t)==CHAON_CONTROL_BROWSER_SELECT);
+    assert(c.browser_selected);
+    assert(gesture(&c,true,2,2980,&t)==CHAON_CONTROL_BROWSER_SELECT);
+    assert(!c.browser_selected && c.browser_active);
+    assert(gesture(&c,true,2,3000,&t)==CHAON_CONTROL_BROWSER_CLOSE);
+    assert(!c.browser_active && c.state==CHAON_STATUS_READY);
+    /* Broken / malicious oversized catalogue fails to open or ARM. */
+    assert(gesture(&c,true,255,900,&t)==CHAON_CONTROL_NONE);
+    assert(c.state==CHAON_STATUS_READY);
+}
+
 static void test_browser_timeout_while_pressed(void)
 {
     chaon_control_t c={0};int64_t t=0;
@@ -288,6 +313,7 @@ int main(void)
     test_browser_count_and_idle();
     test_browser_usb_recovery_and_fault();
     test_browser_timeout_while_pressed();
+    test_browser_exact_hold_boundaries();
     puts("ChaoN BOOT/browser state machine tests: PASS");
     return 0;
 }
