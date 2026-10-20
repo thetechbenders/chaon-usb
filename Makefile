@@ -21,7 +21,7 @@ test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN)
 	./$(VISUAL_BIN)
 	./$(CONTROL_BIN)
 	./$(SD_SECTOR_BIN)
-	./$(SD_DIAG_BIN) $(FAT_ROOT_BIN)
+	./$(SD_DIAG_BIN)
 	./$(FAT_ROOT_BIN)
 
 $(NATIVE_BIN): $(NATIVE_SRCS) main/chaon_script.h main/chaon_hid.h main/chaon_vm.h
@@ -44,4 +44,4 @@ $(FAT_ROOT_BIN): $(FAT_ROOT_SRCS) main/chaon_fat_ro.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(FAT_ROOT_SRCS) -o $(FAT_ROOT_BIN)
 
 clean:
-	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN)
+	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN)
