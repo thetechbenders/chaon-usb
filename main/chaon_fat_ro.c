@@ -86,7 +86,8 @@ chaon_fat_result_t chaon_fat_list_root(chaon_fat_read_t io, void *ctx,
     if (!signature(work)) return CHAON_FAT_UNSUPPORTED;
 
     uint32_t partition = 0, partition_size = capacity;
-    if (le16(work + 11) != 512) {
+    if (!((work[0] == 0xEB || work[0] == 0xE9) &&
+          le16(work + 11) == 512)) {
         /* Not a FAT superfloppy BPB: inspect primary MBR, never extended
          * partition tables or GPT. Require a known FAT partition type. */
         bool found = false;
@@ -124,7 +125,7 @@ chaon_fat_result_t chaon_fat_list_root(chaon_fat_read_t io, void *ctx,
         total > partition_size || !total)
         return CHAON_FAT_INVALID;
     const uint64_t root_sectors = ((uint64_t)root_entries * 32U + 511U)/512U;
-    const uint64_t fat_start = (uint64_t)partition + reserved;
+    uint64_t fat_start = (uint64_t)partition + reserved;
     const uint64_t root_relative = (uint64_t)reserved +
                                   (uint64_t)nfat * fat_sectors;
     const uint64_t data_relative = root_relative + root_sectors;
@@ -146,6 +147,14 @@ chaon_fat_result_t chaon_fat_list_root(chaon_fat_read_t io, void *ctx,
     if (fat_entries < clusters + 2U) return CHAON_FAT_INVALID;
     if (type == CHAON_FAT32) {
         if (root_entries || fat16) return CHAON_FAT_INVALID;
+        /* FAT32 ExtFlags bit 7 disables mirroring. In that mode the
+         * low nibble selects the active FAT; FAT #0 isn't always current. */
+        const uint16_t flags = le16(work + 40);
+        if (flags & 0x0080U) {
+            const uint32_t active_fat = flags & 0x000FU;
+            if (active_fat >= nfat) return CHAON_FAT_INVALID;
+            fat_start += (uint64_t)active_fat * fat_sectors;
+        }
     } else if (!root_entries || !fat16) {
         return CHAON_FAT_INVALID;
     }

@@ -46,3 +46,14 @@ Open gates: CI and native negative tests, independent bounds review,
 UI readability, real FAT type and card geometry confirmation, cross-platform
 and resource measurements. This is NOT production firmware and does not
 enable SD script execution.
+
+## Review hardening
+
+- A valid MBR can coincidentally contain `0x0200` at offset 11; the
+  superfloppy path requires both a FAT jump opcode and 512-byte BPB sector
+  size before deciding not to inspect the primary MBR.
+- For FAT32 with FAT mirroring disabled, the active FAT number from BPB
+  extended flags is used; invalid indices fail closed.
+- A truncated scan is never labelled `SD EMPTY`. If no names are available
+  but the bound is reached, the footer shows `SD PARTIAL`; when a preview
+  contains names but is incomplete, the displayed count has a `+` marker.

@@ -19,8 +19,15 @@ int main(void)
     assert(!memcmp(untouched, framebuffer, CHAON_SCREEN_SD_Y * 160U * 2U));
     assert(framebuffer[CHAON_SCREEN_BYTES] == 0xA5);
     assert(framebuffer[CHAON_SCREEN_BYTES + 1] == 0x5A);
+    cat.more = true; /* cycle/sector cap: unknown contents, not empty */
+    assert(chaon_screen_render_catalog(&cat, 0, framebuffer,
+                                       CHAON_SCREEN_BYTES));
+    cat.more = false;
     cat.count = 1;
     strcpy(cat.entries[0].name, "HELLO.TXT");
+    assert(chaon_screen_render_catalog(&cat, 0, framebuffer,
+                                       CHAON_SCREEN_BYTES));
+    cat.more = true; /* visibly mark truncated listings */
     assert(chaon_screen_render_catalog(&cat, 0, framebuffer,
                                        CHAON_SCREEN_BYTES));
     assert(!chaon_screen_render_catalog(&cat, 1, framebuffer,

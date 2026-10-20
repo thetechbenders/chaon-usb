@@ -54,6 +54,8 @@ static void mbr_partition(void)
     reset();boot(1,16);
     uint8_t *mbr=disk[0];mbr[510]=0x55;mbr[511]=0xAA;
     mbr[450]=0x06;w32(mbr+454,1);w32(mbr+458,200);
+    /* Bytes at MBR offset 11 may coincidentally equal 512. */
+    w16(mbr+11,512);
     item(3,0,"TEST    BIN",0x20);
     assert(scan()==CHAON_FAT_OK);
     assert(list.count==1 && strcmp(list.entries[0].name,"TEST.BIN")==0);
@@ -82,7 +84,7 @@ static void bounded_and_invalid(void)
 
 /* Sparse synthetic media exercise true FAT16/FAT32 geometry without
  * allocating a 100,000-sector host test image. */
-static uint8_t sparse_boot[512], sparse_fat[512];
+static uint8_t sparse_boot[512], sparse_fat[512], sparse_fat2[512];
 static uint8_t sparse_root[512], sparse_next[512];
 static uint32_t sparse_root_lba, sparse_next_lba;
 static bool sparse_read(void *ctx, uint32_t lba, uint8_t out[512])
@@ -91,6 +93,7 @@ static bool sparse_read(void *ctx, uint32_t lba, uint8_t out[512])
     const uint8_t *src = NULL;
     if (lba == 0) src = sparse_boot;
     else if (lba == 32) src = sparse_fat;
+    else if (lba == 832) src = sparse_fat2;
     else if (lba == sparse_root_lba) src = sparse_root;
     else if (lba == sparse_next_lba) src = sparse_next;
     if (!src) return false;
@@ -120,6 +123,27 @@ static void test_fat32_chain(void)
     w32(sparse_fat+8,0x0FFFFFF7); /* bad cluster */
     assert(chaon_fat_list_root(sparse_read,NULL,100000,work,&list)==CHAON_FAT_INVALID);
 }
+static void test_fat32_active_fat(void)
+{
+    memset(sparse_boot,0,512);memset(sparse_fat,0,512);
+    memset(sparse_fat2,0,512);memset(sparse_root,0xE5,512);
+    memset(sparse_next,0,512);
+    uint8_t *b=sparse_boot;
+    b[0]=0xEB;b[510]=0x55;b[511]=0xAA;
+    w16(b+11,512);b[13]=1;w16(b+14,32);b[16]=2;
+    w32(b+32,90000);w32(b+36,800);w32(b+44,2);
+    w16(b+40,0x0081); /* mirroring disabled: use FAT #1 */
+    sparse_root_lba=1632;sparse_next_lba=1633;
+    w32(sparse_fat+8,0x0FFFFFF7); /* inactive FAT #0 is bad */
+    w32(sparse_fat2+8,3);w32(sparse_fat2+12,0x0FFFFFFF);
+    memcpy(sparse_next,"ACTIVE  TXT",11);sparse_next[11]=0x20;
+    assert(chaon_fat_list_root(sparse_read,NULL,100000,work,&list)==CHAON_FAT_OK);
+    assert(list.type==CHAON_FAT32 && list.count==1);
+    assert(strcmp(list.entries[0].name,"ACTIVE.TXT")==0);
+    w16(b+40,0x0082); /* nonexistent FAT #2: reject */
+    assert(chaon_fat_list_root(sparse_read,NULL,100000,work,&list)==CHAON_FAT_INVALID);
+}
+
 static void test_fat16_sparse(void)
 {
     memset(sparse_boot,0,512);memset(sparse_root,0,512);
@@ -138,7 +162,7 @@ static void test_fat16_sparse(void)
 int main(void)
 {
     fat12_root();mbr_partition();bounded_and_invalid();
-    test_fat16_sparse();test_fat32_chain();
+    test_fat16_sparse();test_fat32_chain();test_fat32_active_fat();
     puts("ChaoN FAT root read-only catalogue tests: PASS");
     return 0;
 }
