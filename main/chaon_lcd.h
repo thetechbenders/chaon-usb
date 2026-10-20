@@ -5,6 +5,7 @@
 #include "chaon_status.h"
 #include "chaon_sd_diag.h"
 #include "chaon_fat_ro.h"
+#include "chaon_inspect.h"
 
 /* ST7735 on original T-Dongle-S3. Experimental until physically inspected.
  * Failure never blocks USB HID, and backlight remains off on init errors.
