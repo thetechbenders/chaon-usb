@@ -31,7 +31,7 @@ typedef struct {
     chaon_fat_entry_t entries[CHAON_FAT_MAX_FILES];
 } chaon_fat_catalog_t;
 
-/* Uses caller-provided 512-byte workspace; output zeroed on errors.
+/* Uses caller-provided 512-byte workspace; result valid only on OK/LIMIT.
  * card_sectors constrains every read, including malicious BPB/MBR LBAs.
  * Only FAT12/16/32 8.3 entries in the ROOT are previewed.
  * No subdirectory traversal, LFN reconstruction or file content reads.
