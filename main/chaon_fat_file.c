@@ -20,10 +20,11 @@ static chaon_fat_file_result_t clear_error(uint8_t out[2048],
 chaon_fat_file_result_t chaon_fat_read_script(chaon_fat_read_t read_sector,
     void *ctx, uint32_t card_sectors, uint8_t work[CHAON_FAT_SECTOR_BYTES],
     uint8_t index, const chaon_fat_entry_t *expected,
-    uint8_t out[2048], size_t *out_length)
+    uint8_t *out, size_t out_capacity, size_t *out_length)
 {
-    if (!out || !out_length) return CHAON_FAT_FILE_INVALID;
-    *out_length = 0;
+    if (out_length) *out_length = 0;
+    if (!out || !out_length || out_capacity < CHAON_MAX_SOURCE)
+        return CHAON_FAT_FILE_INVALID;
     memset(out, 0, CHAON_MAX_SOURCE);
     if (!read_sector || !work || !expected || !card_sectors ||
         index >= CHAON_FAT_MAX_FILES)

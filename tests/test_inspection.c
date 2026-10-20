@@ -6,7 +6,8 @@
 #include <string.h>
 
 /* Sparse FAT32 layout with 1-sector clusters, no RAM-hungry disk image. */
-static uint8_t boot[512], fat[512], root[512], file_a[512], file_b[512], temp[512];
+static uint8_t boot[512], fat[512], root[512];
+static uint8_t file_a[512], file_b[512], file_c[512], file_d[512], temp[512];
 static uint8_t output[2048];
 static chaon_fat_catalog_t list;
 static uint32_t reads, fail_lba;
@@ -21,6 +22,8 @@ static bool fetch(void *ctx, uint32_t lba, uint8_t out[512])
     else if (lba == 832) source = root;
     else if (lba == 833) source = file_a;
     else if (lba == 834) source = file_b;
+    else if (lba == 835) source = file_c;
+    else if (lba == 836) source = file_d;
     if (!source) return false;
     memcpy(out, source, 512);
     return true;
@@ -36,6 +39,8 @@ static void fixture(const char *text)
     memset(root,0,sizeof root);
     memset(file_a,0,sizeof file_a);
     memset(file_b,0,sizeof file_b);
+    memset(file_c,0,sizeof file_c);
+    memset(file_d,0,sizeof file_d);
     boot[0]=0xEB;boot[510]=0x55;boot[511]=0xAA;
     w16(boot+11,512);boot[13]=1;w16(boot+14,32);
     boot[16]=1;w32(boot+32,90000);w32(boot+36,800);
@@ -45,11 +50,16 @@ static void fixture(const char *text)
     const size_t len=strlen(text);
     assert(len < 2048);
     w32(root+28,(uint32_t)len);
-    memcpy(file_a,text,len<512?len:512);
-    if (len>512) memcpy(file_b,text+512,len-512);
-    w32(fat+8,0x0FFFFFFF); /* root EOC */
-    w32(fat+12,4);          /* file cluster 3 -> 4 */
-    w32(fat+16,0x0FFFFFFF);
+    uint8_t *blocks[4] = {file_a, file_b, file_c, file_d};
+    for (size_t offset=0;offset<len;offset+=512) {
+        const size_t chunk = len-offset < 512 ? len-offset : 512;
+        memcpy(blocks[offset/512], text+offset, chunk);
+    }
+    w32(fat+8,0x0FFFFFFF);  /* root EOC */
+    w32(fat+12,4);           /* file cluster 3 -> 4 */
+    w32(fat+16,5);           /* file cluster 4 -> 5 */
+    w32(fat+20,6);           /* file cluster 5 -> 6 */
+    w32(fat+24,0x0FFFFFFF); /* file cluster 6 EOC */
     reads=0;fail_lba=UINT32_MAX;
     assert(chaon_fat_list_root(fetch,NULL,90000,temp,&list)==CHAON_FAT_OK);
     assert(list.type==CHAON_FAT32&&list.count==1);
@@ -60,7 +70,7 @@ static void fixture(const char *text)
 static chaon_fat_file_result_t open_selected(size_t *size)
 {
     return chaon_fat_read_script(fetch,NULL,90000,temp,0,
-                                  &list.entries[0],output,size);
+                                  &list.entries[0],output,sizeof output,size);
 }
 static void basic_inspection(void)
 {
@@ -109,29 +119,29 @@ static void stale_and_bounds(void)
     chaon_fat_entry_t expected=list.entries[0];
     expected.first_cluster=4;
     assert(chaon_fat_read_script(fetch,NULL,90000,temp,0,
-        &expected,output,&size)==CHAON_FAT_FILE_STALE);
+        &expected,output,sizeof output,&size)==CHAON_FAT_FILE_STALE);
     assert(size==0);
     expected=list.entries[0];
     memcpy(expected.raw_name,"DIFF    CHN",11);
     assert(chaon_fat_read_script(fetch,NULL,90000,temp,0,
-        &expected,output,&size)==CHAON_FAT_FILE_STALE);
+        &expected,output,sizeof output,&size)==CHAON_FAT_FILE_STALE);
     expected=list.entries[0];
     expected.is_directory=true;
     assert(chaon_fat_read_script(fetch,NULL,90000,temp,0,
-        &expected,output,&size)==CHAON_FAT_FILE_UNSUPPORTED);
+        &expected,output,sizeof output,&size)==CHAON_FAT_FILE_UNSUPPORTED);
     expected=list.entries[0];
     memcpy(expected.raw_name+8,"TXT",3);
     assert(chaon_fat_read_script(fetch,NULL,90000,temp,0,
-        &expected,output,&size)==CHAON_FAT_FILE_UNSUPPORTED);
+        &expected,output,sizeof output,&size)==CHAON_FAT_FILE_UNSUPPORTED);
     w32(root+28,2048);
     expected=list.entries[0];
     expected.file_size=2048;
     assert(chaon_fat_read_script(fetch,NULL,90000,temp,0,
-        &expected,output,&size)==CHAON_FAT_FILE_TOO_LARGE);
+        &expected,output,sizeof output,&size)==CHAON_FAT_FILE_TOO_LARGE);
     assert(chaon_fat_read_script(NULL,NULL,90000,temp,0,
-        &expected,output,&size)==CHAON_FAT_FILE_INVALID);
+        &expected,output,sizeof output,&size)==CHAON_FAT_FILE_INVALID);
     assert(chaon_fat_read_script(fetch,NULL,90000,temp,8,
-        &expected,output,&size)==CHAON_FAT_FILE_INVALID);
+        &expected,output,sizeof output,&size)==CHAON_FAT_FILE_INVALID);
 }
 static void syntax_and_ascii(void)
 {
@@ -157,10 +167,44 @@ static void syntax_and_ascii(void)
     r=chaon_inspect_bytes(a,0);
     assert(r.state==CHAON_INSPECT_BAD_SOURCE);
 }
+static void full_size_boundary_and_buffer_capacity(void)
+{
+    /* Fill all four supported data sectors, including a 2047-byte file. */
+    char source[2048] = {0};
+    size_t n = 0;
+    for (unsigned line=0;line<16;++line) {
+        source[n++]='#';
+        for (unsigned c=0;c<120;++c) source[n++]='a';
+        source[n++]='\n';
+    }
+    source[n++]='#';
+    for (unsigned c=0;c<84;++c) source[n++]='a';
+    source[n++]='\n';
+    memcpy(source+n,"TYPE \"X\"\n",9);
+    n += 9;
+    assert(n==2047 && source[n]==0);
+    fixture(source);
+    size_t size=0;
+    assert(open_selected(&size)==CHAON_FAT_FILE_OK);
+    assert(size==2047 && output[2047]==0);
+    assert(chaon_inspect_bytes(output,size).state==CHAON_INSPECT_VALID);
+    fail_lba=836; /* failure in fourth sector must erase partial contents */
+    assert(open_selected(&size)==CHAON_FAT_FILE_IO_ERROR);
+    assert(size==0 && output[0]==0 && output[2047]==0);
+    fail_lba=UINT32_MAX;
+    uint8_t undersized[64];
+    memset(undersized,0xA5,sizeof undersized);
+    size=42;
+    assert(chaon_fat_read_script(fetch,NULL,90000,temp,0,
+        &list.entries[0],undersized,sizeof undersized,&size)==
+        CHAON_FAT_FILE_INVALID);
+    assert(size==0 && undersized[0]==0xA5 && undersized[63]==0xA5);
+}
 int main(void)
 {
     basic_inspection();chained_and_bad_chain();stale_and_bounds();
     syntax_and_ascii();
+    full_size_boundary_and_buffer_capacity();
     puts("ChaoN bounded read-only script inspection tests: PASS");
     return 0;
 }

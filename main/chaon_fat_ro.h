@@ -51,7 +51,8 @@ chaon_fat_result_t chaon_fat_list_root(chaon_fat_read_t read_sector,
 /* Phase 2C accepts only root FAT32 DOS 8.3 .CHN files, <=2047 bytes.
  * Re-enumerates the root and compares the exact selected entry identity
  * before following up to four 512-byte data sectors. No writes or HID.
- * out is cleared on every error and terminated only on success. */
+ * out_capacity must be at least 2048; undersized outputs are never written.
+ * When capacity is sufficient, errors clear out and success terminates it. */
 typedef enum {
     CHAON_FAT_FILE_OK, CHAON_FAT_FILE_UNSUPPORTED, CHAON_FAT_FILE_STALE,
     CHAON_FAT_FILE_TOO_LARGE, CHAON_FAT_FILE_INVALID,
@@ -60,6 +61,6 @@ typedef enum {
 chaon_fat_file_result_t chaon_fat_read_script(chaon_fat_read_t read_sector,
     void *ctx, uint32_t card_sectors, uint8_t work[CHAON_FAT_SECTOR_BYTES],
     uint8_t index, const chaon_fat_entry_t *expected,
-    uint8_t out[2048], size_t *out_length);
+    uint8_t *out, size_t out_capacity, size_t *out_length);
 
 #endif
