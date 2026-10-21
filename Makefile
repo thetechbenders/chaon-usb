@@ -20,9 +20,11 @@ INSPECT_SRCS := main/chaon_fat_ro.c main/chaon_fat_file.c main/chaon_inspect.c m
 INSPECT_BIN := tests/chaon_script_inspect_tests
 MAILBOX_SRCS := main/chaon_inspect_mailbox.c tests/test_inspect_mailbox.c
 MAILBOX_BIN := tests/chaon_inspect_mailbox_tests
+STAGE_SRCS := main/chaon_program_stage.c main/chaon_inspect.c main/chaon_script.c tests/test_program_stage.c
+STAGE_BIN := tests/chaon_program_stage_tests
 
 .PHONY: test clean
-test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN)
+test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN)
 	./$(NATIVE_BIN)
 	./$(VISUAL_BIN)
 	./$(CONTROL_BIN)
@@ -32,6 +34,7 @@ test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN)
 	./$(FAT_UI_BIN)
 	./$(INSPECT_BIN)
 	./$(MAILBOX_BIN)
+	./$(STAGE_BIN)
 
 $(NATIVE_BIN): $(NATIVE_SRCS) main/chaon_script.h main/chaon_hid.h main/chaon_vm.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(NATIVE_SRCS) -o $(NATIVE_BIN)
@@ -62,5 +65,8 @@ $(INSPECT_BIN): $(INSPECT_SRCS) main/chaon_inspect.h main/chaon_fat_ro.h main/ch
 $(MAILBOX_BIN): $(MAILBOX_SRCS) main/chaon_inspect_mailbox.h main/chaon_inspect.h main/chaon_fat_ro.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(MAILBOX_SRCS) -o $(MAILBOX_BIN)
 
+$(STAGE_BIN): $(STAGE_SRCS) main/chaon_program_stage.h main/chaon_inspect.h main/chaon_script.h main/chaon_fat_ro.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(STAGE_SRCS) -o $(STAGE_BIN)
+
 clean:
-	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN)
+	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN)

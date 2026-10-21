@@ -11,6 +11,14 @@ static uint8_t file_a[512], file_b[512], file_c[512], file_d[512], temp[512];
 static uint8_t output[2048];
 static chaon_fat_catalog_t list;
 static uint32_t reads, fail_lba;
+static chaon_inspect_workspace_t parse_workspace;
+static chaon_program_t compiled;
+static bool all_zero(const void *data, size_t size)
+{
+    const uint8_t *bytes = data;
+    for (size_t i=0;i<size;++i) if (bytes[i]) return false;
+    return true;
+}
 static bool fetch(void *ctx, uint32_t lba, uint8_t out[512])
 {
     (void)ctx;
@@ -83,6 +91,14 @@ static void basic_inspection(void)
     const chaon_inspection_t r=chaon_inspect_bytes(output,size);
     assert(r.state==CHAON_INSPECT_VALID && r.step_count==3);
     assert(r.first_op==CHAON_INSPECT_OP_DELAY && r.error_line==0);
+    const chaon_inspection_t staged=chaon_inspect_compile_bytes(output,size,
+        &parse_workspace,&compiled);
+    assert(staged.state==CHAON_INSPECT_VALID && compiled.count==3);
+    assert(compiled.steps[0].op==CHAON_OP_DELAY &&
+           compiled.steps[0].delay_ms==50);
+    assert(compiled.steps[1].op==CHAON_OP_TYPE &&
+           !strcmp(compiled.steps[1].text,"Hello"));
+    assert(all_zero(&parse_workspace,sizeof parse_workspace));
     assert(reads<20);
 }
 static void chained_and_bad_chain(void)
@@ -133,6 +149,12 @@ static void stale_and_bounds(void)
     memcpy(expected.raw_name+8,"TXT",3);
     assert(chaon_fat_read_script(fetch,NULL,90000,temp,0,
         &expected,output,sizeof output,&size)==CHAON_FAT_FILE_UNSUPPORTED);
+    w32(root+28,0);
+    expected=list.entries[0];
+    expected.file_size=0;
+    assert(chaon_fat_read_script(fetch,NULL,90000,temp,0,
+        &expected,output,sizeof output,&size)==CHAON_FAT_FILE_TOO_LARGE);
+    assert(size==0&&output[0]==0);
     w32(root+28,2048);
     expected=list.entries[0];
     expected.file_size=2048;
@@ -151,6 +173,17 @@ static void syntax_and_ascii(void)
     static const uint8_t b[]="TYPE \"oops\n";
     r=chaon_inspect_bytes(b,sizeof(b)-1);
     assert(r.state==CHAON_INSPECT_BAD_SYNTAX&&r.error_line==1);
+    memset(&compiled,0xA5,sizeof compiled);
+    r=chaon_inspect_compile_bytes(b,sizeof(b)-1,&parse_workspace,&compiled);
+    assert(r.state==CHAON_INSPECT_BAD_SYNTAX&&r.error_line==1);
+    assert(all_zero(&compiled,sizeof compiled));
+    assert(all_zero(&parse_workspace,sizeof parse_workspace));
+    static const uint8_t partial[]="TYPE \"OK\"\nBROKEN\n";
+    memset(&compiled,0xA5,sizeof compiled);
+    r=chaon_inspect_compile_bytes(partial,sizeof(partial)-1,
+        &parse_workspace,&compiled);
+    assert(r.state==CHAON_INSPECT_BAD_SYNTAX&&r.error_line==2);
+    assert(all_zero(&compiled,sizeof compiled));
     static const uint8_t c[]={'T','A','B','\n',0,'E','N','T','E','R'};
     r=chaon_inspect_bytes(c,sizeof c);
     assert(r.state==CHAON_INSPECT_BAD_SOURCE);
@@ -164,8 +197,18 @@ static void syntax_and_ascii(void)
     assert(r.state==CHAON_INSPECT_BAD_SOURCE);
     r=chaon_inspect_bytes(a,2048);
     assert(r.state==CHAON_INSPECT_BAD_SOURCE);
+    memset(&compiled,0xA5,sizeof compiled);
+    r=chaon_inspect_compile_bytes(a,2048,&parse_workspace,&compiled);
+    assert(r.state==CHAON_INSPECT_BAD_SOURCE);
+    assert(all_zero(&compiled,sizeof compiled));
+    assert(all_zero(&parse_workspace,sizeof parse_workspace));
     r=chaon_inspect_bytes(a,0);
     assert(r.state==CHAON_INSPECT_BAD_SOURCE);
+    memset(&compiled,0xA5,sizeof compiled);
+    r=chaon_inspect_compile_bytes(NULL,1,&parse_workspace,&compiled);
+    assert(r.state==CHAON_INSPECT_BAD_SOURCE);
+    assert(all_zero(&compiled,sizeof compiled));
+    assert(all_zero(&parse_workspace,sizeof parse_workspace));
 }
 static void full_size_boundary_and_buffer_capacity(void)
 {
@@ -188,6 +231,12 @@ static void full_size_boundary_and_buffer_capacity(void)
     assert(open_selected(&size)==CHAON_FAT_FILE_OK);
     assert(size==2047 && output[2047]==0);
     assert(chaon_inspect_bytes(output,size).state==CHAON_INSPECT_VALID);
+    const chaon_inspection_t result=chaon_inspect_compile_bytes(output,size,
+        &parse_workspace,&compiled);
+    assert(result.state==CHAON_INSPECT_VALID && compiled.count==1);
+    assert(compiled.steps[0].op==CHAON_OP_TYPE &&
+           !strcmp(compiled.steps[0].text,"X"));
+    assert(all_zero(&parse_workspace,sizeof parse_workspace));
     fail_lba=836; /* failure in fourth sector must erase partial contents */
     assert(open_selected(&size)==CHAON_FAT_FILE_IO_ERROR);
     assert(size==0 && output[0]==0 && output[2047]==0);
