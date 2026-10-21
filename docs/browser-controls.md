@@ -29,10 +29,11 @@ release at the existing 20 ms poll cadence; it is not a physical timing
 guarantee. If a gesture straddles a USB disconnect, timer expiry, or SD
 invalidation, it must not be repurposed as ARM.
 
-**PICK is display-only.** It does not open any file, read file contents,
-parse scripts, allocate a dynamic string, generate HID input, or confer
-execution authority. The only event that starts the VM remains two
-normal, separate short taps while not browsing; the VM continues to run
+In the physically tested Phase 2B baseline, **PICK is display-only**. In the
+stacked, unvalidated Phase 2C/2D candidate it additionally requests bounded
+read-only inspection and inert program staging. PICK still cannot generate HID
+input or confer execution authority. The only event that starts the VM remains
+two normal, separate short taps while not browsing; the VM continues to run
 the embedded fixed text demonstration.
 
 The SD task remains read-only and publishes a bounded catalogue snapshot.
@@ -73,16 +74,20 @@ The pass disposition combines separate tool-verified flash/ROM enumeration and t
 See the [sixth chronological bring-up session](bringup.md#sixth-physical-session--phase-2b-button-browser-2026-10-20). The complete original report and logs remain in the operator's local `ChaoN-USB-Recovery/2026-10-20-110849-phase2b-browser/` folder, not checked into this public repository. No code or firmware was changed during the physical test. No production release, tag or deployment is implied.
 
 
-## Phase 2C selected-file diagnostics (draft, not physically validated)
+## Phase 2C/2D selected-file diagnostics and staging (draft)
 
 Picking a file additionally requests **read-only inspection** of a
 root-level FAT32 `.CHN` file in the optional SD task. The LCD shows
 only validation status, instruction count/first opcode, or the first
 error-line number. Picking a non-script/directory gives a bounded
 diagnostic or no valid request. Navigating or exiting invalidates any
-outstanding result. No source text or executable script crosses into
-the browser, BOOT controller, HID VM or USB stack.
+outstanding result. No source text or staged instruction crosses into the
+browser, BOOT controller, HID VM or USB stack. The SD service owns the one
+staged program and the current application never copies it out.
 
 The timings and gesture meanings in the Phase 2B table are unchanged.
 Successful validation confers no execution permission. See
 [script-inspection.md](script-inspection.md) for the Phase 2C boundary.
+The staging ownership contract and future authority design are in
+[program-staging.md](program-staging.md) and
+[execution-authority.md](execution-authority.md).

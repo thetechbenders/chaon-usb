@@ -26,17 +26,21 @@ No credential collection, persistence, evasion, or unattended keystroke injectio
 Before release: decide authentication/trust for any script ingestion, signed firmware policy, update/recovery flow, USB VID/PID assignment, and a threat model suitable for a USB interface that host computers inherently trust as input.
 
 
-## Phase 2C read-only inspection
+## Phase 2C/2D read-only inspection and staging
 
 The development inspector only validates at most 2047 bytes from one
 FAT32 root `.CHN` file after rechecking the raw directory-entry identity
-and bounded cluster chain. It returns a small diagnostic summary to the
-LCD and wipes private source/parsed temporary memory after validation.
-It does not publish script text or commands to `app_main`, the BOOT
-controller, USB descriptors, HID mapping or the VM. A validated file is
-**not trusted or executable**. The only HID demo is the preexisting fixed
+and bounded cluster chain. It returns a small diagnostic summary to the LCD
+and wipes private source, workspace and candidate memory after validation.
+Phase 2D can publish one fixed-capacity program into an SD-service-owned,
+generation/identity-bound stage. The application does not copy or execute it,
+and the LCD remains summary-only. A validated or staged file is **not trusted
+or executable**. The only HID demo is the preexisting fixed
 string requiring two distinct short physical presses outside browsing.
 No card writes or FAT filesystem mounts are performed.
 
 This firmware extension is a draft and has not passed physical Phase 2C
 testing on the original board. It is not a production safety claim.
+
+Future physical execution authorization is design-only and documented in
+[execution-authority.md](execution-authority.md). It requires a new milestone.

@@ -6,7 +6,7 @@
 
 **The Chaotic Neutral HID.** Experimental, screen-equipped USB HID instrument written in C for the **original LILYGO T-Dongle-S3** (ESP32-S3).
 
-> **Development status (2026-10-20):** The inert, physically BOOT-gated HID controller passed hardware regression on the original T-Dongle-S3/Windows host. The read-only SD probe (`f22f18e`, PR #9) and FAT32 root-directory preview (`3c297b0`, PR #12) subsequently passed their applicable physical smoke tests and ESP32-S3 CI. The FAT root preview and subsequent single-button browser (PR #13, tested source `bb715cf8`) passed their applicable original-board/Windows/FAT32 smoke tests. Both remain **development features, not production release qualification**. Browsing is limited to eight DOS 8.3 root entries with a display-only PICK marker; it does **not** load, open, parse or execute scripts from SD. See [bring-up evidence](docs/bringup.md), [SD probe diagnostics](docs/sd-storage.md), [FAT preview validation](docs/fat-root-preview.md), and [browser controls](docs/browser-controls.md). No production firmware has been released.
+> **Development status (2026-10-21):** The inert, physically BOOT-gated HID controller, read-only SD probe, FAT32 root preview and single-button browser passed their documented original-board/Windows/FAT32 smoke tests through Phase 2B. Stacked Phase 2C/2D draft work adds bounded read-only `.CHN` inspection and one-slot inert program staging, but it is **not physically validated or merged** and cannot execute SD content. The embedded fixed demo remains the only VM/HID program. See [inspection](docs/script-inspection.md), [staging](docs/program-staging.md) and [future execution-authority design](docs/execution-authority.md). No production firmware has been released.
 
 ## Current implementation
 
@@ -16,6 +16,7 @@
 - A US keyboard-layout HID usage mapper; no arbitrary keyboard-layout claims.
 - State-driven APA102 colors (ChaoN green READY, yellow flashing ARMED, red CANCELLED), native ST7735 160×80 status display, portable renderer tests, GitHub CI and hardware validation documentation.
 - **Hardware smoke-tested storage features (PRs #9/#12/#13):** read-only SDMMC sector observation, bounded FAT12/16/32 root-directory metadata listing, and BOOT-operated, display-only navigation/PICK selection. Physical filesystem coverage is FAT32 only; this is neither a full file manager nor an SD-script interpreter.
+- **Unmerged, unvalidated Phase 2C/2D draft:** bounded FAT32 root `.CHN` reading, Script v0 validation, summary-only LCD diagnostics and one fixed-capacity staged program. Staging has no execution authority and no path to HID.
 
 **The demo writes into whichever window currently has keyboard focus. Use only on a computer you own or are explicitly authorized to test.** Plugging the device in will not intentionally type anything until physical confirmation. The button is also the boot-strap/download pin, so never hold it during power-on when you want normal boot.
 
@@ -54,6 +55,9 @@ CI runs host tests and an ESP32-S3 build on configured PR targets and manual dis
 - [Read-only SD probe and LCD diagnostics](docs/sd-storage.md)
 - [Bounded FAT root preview and 2026-10-20 hardware results](docs/fat-root-preview.md)
 - [Single-button browser contract and Phase 2B validation](docs/browser-controls.md)
+- [Bounded script inspection](docs/script-inspection.md)
+- [Bounded program staging ownership and invalidation](docs/program-staging.md)
+- [Future removable-media execution-authority design](docs/execution-authority.md)
 
 ## License
 
