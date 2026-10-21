@@ -4,6 +4,7 @@
 #include "chaon_sd_diag.h"
 #include "chaon_fat_ro.h"
 #include "chaon_inspect.h"
+#include "chaon_script.h"
 #include <stdbool.h>
 
 /* Starts an optional, low-priority SDMMC observation task.
@@ -26,5 +27,13 @@ bool chaon_sd_probe_inspect_request(uint8_t index,
 bool chaon_sd_probe_inspect_snapshot(uint8_t index,
     const chaon_fat_entry_t *expected, chaon_inspection_t *out);
 void chaon_sd_probe_inspect_clear(void);
+
+/* Bounded copy-out interface for a future, separately authorized control
+ * feature. A successful copy is validation evidence, NOT execution authority.
+ * Current app_main intentionally has no caller and still runs only its
+ * embedded fixed demo. Callers must provide non-stack fixed storage. */
+bool chaon_sd_probe_staged_program_copy(uint8_t index,
+    const chaon_fat_entry_t *expected, uint32_t *generation,
+    chaon_program_t *out);
 
 #endif
