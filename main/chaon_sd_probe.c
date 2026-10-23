@@ -8,6 +8,7 @@
 #include "chaon_sd_sector.h"
 #include "chaon_fat_ro.h"
 #include "chaon_inspect_mailbox.h"
+#include "chaon_program_stage.h"
 #include <string.h>
 
 #include <stdbool.h>
@@ -35,6 +36,9 @@ static chaon_sd_diag_t diagnostic = CHAON_SD_INIT;
 static chaon_fat_catalog_t catalogue;
 static bool catalogue_valid;
 static chaon_inspect_mailbox_t mailbox;
+/* One fixed-capacity program slot. The SD service owns it for the lifetime
+ * of the firmware and all access is serialized by diagnostic_lock. */
+static chaon_program_stage_t program_stage;
 
 static void publish(chaon_sd_diag_t next)
 {
@@ -42,6 +46,7 @@ static void publish(chaon_sd_diag_t next)
     diagnostic = next;
     catalogue_valid = false;
     chaon_inspect_mailbox_clear(&mailbox);
+    chaon_program_stage_clear(&program_stage);
     portEXIT_CRITICAL(&diagnostic_lock);
 }
 
@@ -60,6 +65,7 @@ static void publish_catalog(const chaon_fat_catalog_t *found)
     catalogue_valid = true;
     diagnostic = CHAON_SD_CATALOG_OK;
     chaon_inspect_mailbox_clear(&mailbox);
+    chaon_program_stage_clear(&program_stage);
     portEXIT_CRITICAL(&diagnostic_lock);
 }
 
@@ -81,9 +87,18 @@ bool chaon_sd_probe_inspect_request(uint8_t index,
 {
     if (!expected) return false;
     portENTER_CRITICAL(&diagnostic_lock);
-    const bool ok = catalogue_valid &&
-        diagnostic == CHAON_SD_CATALOG_OK &&
-        chaon_inspect_mailbox_request(&mailbox, &catalogue, index, expected);
+    bool ok = catalogue_valid && diagnostic == CHAON_SD_CATALOG_OK;
+    if (ok) {
+        const bool inspect_ok = chaon_inspect_mailbox_request(&mailbox,
+            &catalogue, index, expected);
+        const bool stage_ok = chaon_program_stage_request(&program_stage,
+            &catalogue, index, expected);
+        ok = inspect_ok && stage_ok;
+        if (!ok) {
+            chaon_inspect_mailbox_clear(&mailbox);
+            chaon_program_stage_clear(&program_stage);
+        }
+    }
     portEXIT_CRITICAL(&diagnostic_lock);
     return ok;
 }
@@ -112,9 +127,34 @@ bool chaon_sd_probe_inspect_snapshot(uint8_t index,
 void chaon_sd_probe_inspect_clear(void)
 {
     portENTER_CRITICAL(&diagnostic_lock);
-    if (mailbox.queued || mailbox.report.state != CHAON_INSPECT_NONE)
+    if (mailbox.queued || mailbox.report.state != CHAON_INSPECT_NONE ||
+        program_stage.state != CHAON_PROGRAM_STAGE_EMPTY) {
         chaon_inspect_mailbox_clear(&mailbox);
+        chaon_program_stage_clear(&program_stage);
+    }
     portEXIT_CRITICAL(&diagnostic_lock);
+}
+
+bool chaon_sd_probe_staged_program_copy(uint8_t index,
+    const chaon_fat_entry_t *expected, uint32_t *generation,
+    chaon_program_t *out)
+{
+    if (generation) *generation = 0;
+    if (!generation || !out) return false;
+    memset(out, 0, sizeof *out);
+    if (!expected) return false;
+    portENTER_CRITICAL(&diagnostic_lock);
+    const bool ok = catalogue_valid &&
+        diagnostic == CHAON_SD_CATALOG_OK && index < catalogue.count &&
+        catalogue.count <= CHAON_FAT_MAX_FILES &&
+        memcmp(catalogue.entries[index].raw_name, expected->raw_name, 11) == 0 &&
+        catalogue.entries[index].first_cluster == expected->first_cluster &&
+        catalogue.entries[index].file_size == expected->file_size &&
+        catalogue.entries[index].is_directory == expected->is_directory &&
+        chaon_program_stage_copy(&program_stage, index, expected,
+                                 generation, out);
+    portEXIT_CRITICAL(&diagnostic_lock);
+    return ok;
 }
 
 static bool read_sector_only(void *ctx, uint32_t lba, uint8_t dest[512])
@@ -128,22 +168,36 @@ static bool read_sector_only(void *ctx, uint32_t lba, uint8_t dest[512])
 static sdmmc_card_t card;
 static uint8_t sector_zero[512] __attribute__((aligned(64)));
 
-/* Scratch belongs exclusively to the SD task and stays outside its 4 KB
- * stack. Never expose raw source or parsed programs to app_main / HID. */
+/* This shared DMA scratch may contain the final sector of a script. Volatile
+ * stores make the post-inspection wipe explicit and prevent dead-store
+ * elimination when a later SD operation overwrites the buffer. */
+static void clear_sector_scratch(void)
+{
+    volatile uint8_t *byte = sector_zero;
+    for (size_t i = 0; i < sizeof sector_zero; ++i) byte[i] = 0;
+}
+
+/* All three objects belong exclusively to the SD task and stay outside its
+ * 4 KB stack. Source/workspace/candidate are wiped on every completion. */
 static uint8_t inspection_source[CHAON_MAX_SOURCE];
+static chaon_inspect_workspace_t inspection_workspace;
+static chaon_program_t candidate_program;
 
 static chaon_inspection_t inspect_one(uint8_t index,
-                                      const chaon_fat_entry_t *identity)
+    const chaon_fat_entry_t *identity, chaon_program_t *candidate)
 {
     size_t size = 0;
     chaon_inspection_t info = { .state = CHAON_INSPECT_BAD_MEDIA };
+    memset(candidate, 0, sizeof *candidate);
+    memset(&inspection_workspace, 0, sizeof inspection_workspace);
     const chaon_fat_file_result_t status =
         chaon_fat_read_script(read_sector_only, &card,
             (uint32_t)card.csd.capacity, sector_zero, index, identity,
             inspection_source, sizeof inspection_source, &size);
     switch (status) {
         case CHAON_FAT_FILE_OK:
-            info = chaon_inspect_bytes(inspection_source, size);
+            info = chaon_inspect_compile_bytes(inspection_source, size,
+                &inspection_workspace, candidate);
             break;
         case CHAON_FAT_FILE_UNSUPPORTED:
             info.state = CHAON_INSPECT_NOT_SCRIPT; break;
@@ -156,26 +210,58 @@ static chaon_inspection_t inspect_one(uint8_t index,
         default:
             info.state = CHAON_INSPECT_BAD_MEDIA; break;
     }
+    clear_sector_scratch();
     memset(inspection_source, 0, sizeof inspection_source);
+    memset(&inspection_workspace, 0, sizeof inspection_workspace);
+    if (info.state != CHAON_INSPECT_VALID)
+        memset(candidate, 0, sizeof *candidate);
     return info;
 }
 
 static bool process_inspection(void)
 {
     uint32_t epoch = 0;
+    uint32_t stage_epoch = 0;
     uint8_t index = 0;
+    uint8_t stage_index = 0;
     chaon_fat_entry_t entry = {0};
+    chaon_fat_entry_t stage_entry = {0};
     portENTER_CRITICAL(&diagnostic_lock);
-    const bool pending = catalogue_valid &&
+    const bool inspect_pending = catalogue_valid &&
         chaon_inspect_mailbox_take(&mailbox, &epoch, &index, &entry);
+    const bool stage_pending = catalogue_valid &&
+        chaon_program_stage_take(&program_stage, &stage_epoch, &stage_index,
+                                 &stage_entry);
+    bool pending = inspect_pending && stage_pending && index == stage_index &&
+        entry.is_directory == stage_entry.is_directory &&
+        entry.first_cluster == stage_entry.first_cluster &&
+        entry.file_size == stage_entry.file_size &&
+        memcmp(entry.raw_name, stage_entry.raw_name, 11) == 0;
+    if ((inspect_pending || stage_pending) && !pending) {
+        chaon_inspect_mailbox_clear(&mailbox);
+        chaon_program_stage_clear(&program_stage);
+    }
     portEXIT_CRITICAL(&diagnostic_lock);
     if (!pending) return false;
 
-    const chaon_inspection_t summary = inspect_one(index, &entry);
+    chaon_inspection_t summary = inspect_one(index, &entry,
+                                             &candidate_program);
     portENTER_CRITICAL(&diagnostic_lock);
-    if (catalogue_valid && diagnostic == CHAON_SD_CATALOG_OK)
+    if (catalogue_valid && diagnostic == CHAON_SD_CATALOG_OK) {
+        if (summary.state == CHAON_INSPECT_VALID &&
+            !chaon_program_stage_publish(&program_stage, stage_epoch,
+                stage_index, &stage_entry, &candidate_program)) {
+            summary = (chaon_inspection_t){
+                .state = CHAON_INSPECT_BAD_MEDIA
+            };
+        } else if (summary.state != CHAON_INSPECT_VALID) {
+            (void)chaon_program_stage_publish(&program_stage, stage_epoch,
+                stage_index, &stage_entry, NULL);
+        }
         chaon_inspect_mailbox_publish(&mailbox, epoch, index, summary);
+    }
     portEXIT_CRITICAL(&diagnostic_lock);
+    memset(&candidate_program, 0, sizeof candidate_program);
     ESP_LOGI(TAG, "INSPECT state=%u count=%u line=%u (READ ONLY)",
              (unsigned)summary.state, (unsigned)summary.step_count,
              (unsigned)summary.error_line);

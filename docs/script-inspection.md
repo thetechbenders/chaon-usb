@@ -1,8 +1,14 @@
-# Phase 2C: bounded read-only script inspection (portable backend)
+# Phase 2C inspection and Phase 2D bounded staging
 
-**Development candidate, not merged:** the stacked Phase 2D firmware containing this Phase 2C inspection path was flashed and physically tested on the original T-Dongle-S3 on 2026-10-23. Combined acceptance: **33 PASS, 0 FAIL, 1 NOT TESTED, 2 NOT APPLICABLE**. The in-flight supersession race was not physically established; native adversarial tests cover it. No SD-derived HID execution or production release occurred. The existing HID demo
-remains the only executable path. A successful build alone is not hardware
-validation.
+**Development candidate; both branches remain unmerged.** The earlier stacked
+Phase 2D candidate `e34e621` containing this Phase 2C inspection path was
+physically accepted on the original T-Dongle-S3 on 2026-10-23: **33 PASS,
+0 FAIL, 1 NOT TESTED, 2 NOT APPLICABLE**. The in-flight supersession race was
+not physically established, and internal staged bytes were deliberately not
+instrumented; native adversarial tests provide that evidence. The later F3
+sector-scratch clearing change has not been flashed or physically tested. No
+SD-derived HID program was executed. The embedded fixed demo remains the only
+executable path; Phase 2D staging grants no execution authority.
 
 ## Implemented in the draft backend
 
@@ -21,8 +27,8 @@ validation.
   ChaoN Script v0 grammar. It rejects embedded NUL, binary/control/high-bit
   bytes, oversized input and invalid scripts. The grammar itself is defined
   in [script-language.md](script-language.md): max 32 commands, max 80
-  characters per TYPE, 1–10000 ms delay. The scratch parsed program is private,
-  held off task stack, cleared immediately after inspection, and never exposed.
+  characters per TYPE, 1–10000 ms delay. Parser workspace and candidate output
+  are private to the SD task, held off its stack and cleared after every attempt.
 - A small diagnostic summary can report valid/invalid, first instruction
   category, count and first failing line. It contains **no script text,
   parsed instruction array, file address, executable callback or HID command**.
@@ -46,8 +52,8 @@ No physical FAT12/FAT16 support is implied.
    A one-slot lock-guarded mailbox accepts it only when the current
    catalogue identity still matches. The SD task exclusively executes
    sector reads and parser checks. Its static 2048-byte source scratch
-   is zeroed afterward; no source text, decoded program or callback is
-   shared with the UI or controller.
+   is zeroed afterward. Phase 2D may copy a fully validated candidate into one
+   generation-bound internal stage; the UI still receives only the summary.
 4. The LCD renders `CHECKING`, `OK <count> <first-op>`,
    `SYNTAX LINE <n>`, or a bounded error category (`NOT CHN`,
    `TOO LARGE`, `STALE FILE`, `SD READ ERROR`, etc.).
@@ -58,10 +64,10 @@ No physical FAT12/FAT16 support is implied.
    SD observation task to fail closed and reinitialize.
 
 The 20 ms button controller and its fixed HID demo remain unchanged. Even
-a *valid* file has **no executable authority**. Parsed instructions live
-only briefly in private static inspector scratch; `app_main`'s existing
-`chaon_run(&demo, &io)` continues to use the original embedded fixed demo,
-never an SD program.
+a *valid staged* file has **no executable authority**. `app_main` does not call
+the program copy interface; its existing `chaon_run(&demo, &io)` continues to
+use the original embedded fixed demo, never an SD program. See
+[program-staging.md](program-staging.md) for ownership and invalidation.
 
 The Phase 2C implementation intentionally does **not** display complete
 script lines or provide script execution, launch, trust grants, USB output
@@ -76,11 +82,13 @@ oversized and unsupported files, injected read failures, malformed ASCII,
 source limit, parse rejection and no read callback writes.
 
 Additional host tests exercise mailbox replacement, cancellation, stale
-result suppression, identity mismatches, pending/complete snapshots,
-and the summary-only LCD framebuffer bounds. The FreeRTOS task and GPIO/SD
-timing still require original-board physical smoke tests.
+result suppression, identity mismatches, pending/complete snapshots, stage
+replacement, invalid/partial program rejection, buffer guards and the absence
+of VM/HID linkage from staging, plus summary-only LCD framebuffer bounds.
 
-ESP-IDF v5.5.3 ESP32-S3 builds are required for the real target. No
-new firmware should be flashed, merged or released solely because
-CI passes. The original board continues running the physically tested
-Phase 2B firmware until Dan separately authorizes a new flash.
+Physical acceptance applies to the earlier stacked `e34e621` firmware and its
+observable behavior. A Phase 2C-only binary was not separately flashed, the
+in-flight read race was not reproduced physically, and staged program bytes
+were not observed on-device. ESP-IDF v5.5.3 ESP32-S3 builds remain required for
+the real target. A successful build is not hardware validation, and neither
+draft branch has been merged or released.
