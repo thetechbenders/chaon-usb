@@ -1,7 +1,6 @@
 # Phase 2C inspection and Phase 2D bounded staging
 
-**Development candidate: connected to the optional SD task and browser LCD,
-NOT hardware validated, NOT flashed, NOT merged.** The existing HID demo
+**Development candidate, not merged:** the combined Phase 2C/2D firmware was flashed and physically smoke-tested on the original T-Dongle-S3 on 2026-10-23: **33 PASS, 0 FAIL, 1 NOT TESTED, 2 NOT APPLICABLE**. The in-flight supersession race was not physically confirmed and is supported by native adversarial tests. No SD-derived HID program was executed. The existing HID demo
 remains the only executable path. Phase 2D adds an inert fixed-capacity staged
 program slot, not execution authority. A successful build alone is not
 hardware validation.
