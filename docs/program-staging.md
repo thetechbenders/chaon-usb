@@ -1,8 +1,6 @@
 # Phase 2D: bounded SD program staging
 
-**Stacked development candidate on the unmerged Phase 2C inspection branch.
-Not flashed, not physically validated, not merged, and not an SD execution
-feature.** The embedded fixed text demo remains the only program passed to
+**Stacked development candidate on the unmerged Phase 2C inspection branch.** The combined Phase 2C/2D firmware was flashed and physically smoke-tested on the original T-Dongle-S3 on 2026-10-23 (**33 PASS, 0 FAIL, 1 NOT TESTED, 2 NOT APPLICABLE**). The in-flight read supersession race remains physically untested; private staged bytes were not instrumented. This is not merged, production-qualified, or an SD execution feature. The embedded fixed text demo remains the only program passed to
 `chaon_run`.
 
 ## Contract
