@@ -29,6 +29,21 @@
 - [ ] Script directory rules, bounded reading, versioned format and negative tests
 - [ ] Tests for parser fuzz targets and edge cases
 
+## Proposed future feature: dual-personality USB (not implemented)
+
+**Status:** exploratory roadmap only; no implementation authorization, scheduled release, or change to Phase 2C/2D acceptance. The original T-Dongle-S3 has one BOOT/GPIO0 button and ESP32-S3 native USB. The currently flashed Phase 2D candidate is HID-only with direct read-only SDMMC access; USB MSC and a writable FAT/VFS path do not yet exist.
+
+**Concept:** enumerate as an ordinary microSD-backed USB Mass Storage (MSC) device on normal insertion; a deliberate triple-click of BOOT requests a switch to ChaoN's USB HID identity, with an optional deliberate return to storage mode. Use **mutually exclusive USB personalities**, not an always-present MSC+keyboard composite, so ordinary insertion never exposes the keyboard interface. Switching would disconnect and re-enumerate USB, with correct descriptor/state teardown and no concurrent host/device filesystem ownership.
+
+**Investigation gates (order tentative):**
+
+1. **Read-only MSC prototype:** independently verify TinyUSB/ESP-IDF support, sector reads, host enumeration, correct capacity/bounds, and compatibility with original ESP32-S3 hardware. Keep firmware's filesystem access offline while MSC owns the card. No host writes in this stage.
+2. **Mode switch and physical gestures:** design a higher-level BOOT event recognizer that safely distinguishes triple-click from current single/double/hold actions. A triple-click must not first arm or execute the existing fixed demo. Preserve BOOT-held-power-on ROM download; suppress transition/reconnection releases and cancel on USB loss. Prove mode-switch USB detach/re-enumeration on Windows and regression on the original board.
+3. **Writable MSC only after a storage-integrity review:** evaluate host write callbacks, cache coherence, FAT geometry, media-change handling, pending writes, SYNCHRONIZE CACHE/eject, power-loss behavior, and write-protect/error policy. Do not claim a firmware-triggered USB disconnect guarantees Windows has flushed buffered data. Forbid simultaneous host writes and ChaoN reads/inspection/staging; acquire exclusive ownership only after confirmed safe transition, otherwise refuse switching and require physical unplug/eject.
+4. **Product regression and recovery:** test host eject and unexpected disconnect, write interruption, card absence and cold replacement, media corruption, USB identity and OS driver behavior, SD service teardown/restart, staged-program invalidation, 20 ms button polling boundaries, benign fixed-demo gating, ROM recovery and rollback. Require separate approvals for firmware flash, removable-media writing and release.
+
+**Safety boundary:** storage mode exposes no HID keyboard interface; storage writes (if ever enabled) must not translate into execution authorization. HID mode must not present writable MSC or concurrently access a host-owned card. Phase 2C/2D validation and the separate removable-media execution-authority review are prerequisites, not implied by this roadmap item.
+
 ## Phase 3: product hardening
 
 - [ ] Host layout selection and user documentation
