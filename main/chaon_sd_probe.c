@@ -7,6 +7,8 @@
 #include "chaon_sd_probe.h"
 #include "chaon_sd_sector.h"
 #include "chaon_fat_ro.h"
+#include "chaon_inspect_mailbox.h"
+#include <string.h>
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -32,12 +34,14 @@ static portMUX_TYPE diagnostic_lock = portMUX_INITIALIZER_UNLOCKED;
 static chaon_sd_diag_t diagnostic = CHAON_SD_INIT;
 static chaon_fat_catalog_t catalogue;
 static bool catalogue_valid;
+static chaon_inspect_mailbox_t mailbox;
 
 static void publish(chaon_sd_diag_t next)
 {
     portENTER_CRITICAL(&diagnostic_lock);
     diagnostic = next;
     catalogue_valid = false;
+    chaon_inspect_mailbox_clear(&mailbox);
     portEXIT_CRITICAL(&diagnostic_lock);
 }
 
@@ -55,6 +59,7 @@ static void publish_catalog(const chaon_fat_catalog_t *found)
     catalogue = *found;
     catalogue_valid = true;
     diagnostic = CHAON_SD_CATALOG_OK;
+    chaon_inspect_mailbox_clear(&mailbox);
     portEXIT_CRITICAL(&diagnostic_lock);
 }
 
@@ -69,6 +74,49 @@ bool chaon_sd_probe_catalog_snapshot(chaon_fat_catalog_t *result)
     return valid;
 }
 
+/* All mailbox operations are short, lock-protected metadata copies.
+ * Neither filesystem I/O nor parsing is performed in the UI/main task. */
+bool chaon_sd_probe_inspect_request(uint8_t index,
+                                    const chaon_fat_entry_t *expected)
+{
+    if (!expected) return false;
+    portENTER_CRITICAL(&diagnostic_lock);
+    const bool ok = catalogue_valid &&
+        diagnostic == CHAON_SD_CATALOG_OK &&
+        chaon_inspect_mailbox_request(&mailbox, &catalogue, index, expected);
+    portEXIT_CRITICAL(&diagnostic_lock);
+    return ok;
+}
+
+bool chaon_sd_probe_inspect_snapshot(uint8_t index,
+    const chaon_fat_entry_t *expected, chaon_inspection_t *out)
+{
+    if (!expected || !out) return false;
+    *out = (chaon_inspection_t){ .state = CHAON_INSPECT_NONE };
+    portENTER_CRITICAL(&diagnostic_lock);
+    /* Validate catalogue identity BEFORE touching the caller's summary.
+     * Otherwise a stale mailbox value could be copied on a false result. */
+    const bool ok = catalogue_valid &&
+        diagnostic == CHAON_SD_CATALOG_OK &&
+        index < catalogue.count &&
+        catalogue.count <= CHAON_FAT_MAX_FILES &&
+        memcmp(catalogue.entries[index].raw_name, expected->raw_name, 11) == 0 &&
+        catalogue.entries[index].first_cluster == expected->first_cluster &&
+        catalogue.entries[index].file_size == expected->file_size &&
+        catalogue.entries[index].is_directory == expected->is_directory &&
+        chaon_inspect_mailbox_snapshot(&mailbox, index, expected, out);
+    portEXIT_CRITICAL(&diagnostic_lock);
+    return ok;
+}
+
+void chaon_sd_probe_inspect_clear(void)
+{
+    portENTER_CRITICAL(&diagnostic_lock);
+    if (mailbox.queued || mailbox.report.state != CHAON_INSPECT_NONE)
+        chaon_inspect_mailbox_clear(&mailbox);
+    portEXIT_CRITICAL(&diagnostic_lock);
+}
+
 static bool read_sector_only(void *ctx, uint32_t lba, uint8_t dest[512])
 {
     return sdmmc_read_sectors((sdmmc_card_t *)ctx, dest, lba, 1) == ESP_OK;
@@ -79,6 +127,60 @@ static bool read_sector_only(void *ctx, uint32_t lba, uint8_t dest[512])
  */
 static sdmmc_card_t card;
 static uint8_t sector_zero[512] __attribute__((aligned(64)));
+
+/* Scratch belongs exclusively to the SD task and stays outside its 4 KB
+ * stack. Never expose raw source or parsed programs to app_main / HID. */
+static uint8_t inspection_source[CHAON_MAX_SOURCE];
+
+static chaon_inspection_t inspect_one(uint8_t index,
+                                      const chaon_fat_entry_t *identity)
+{
+    size_t size = 0;
+    chaon_inspection_t info = { .state = CHAON_INSPECT_BAD_MEDIA };
+    const chaon_fat_file_result_t status =
+        chaon_fat_read_script(read_sector_only, &card,
+            (uint32_t)card.csd.capacity, sector_zero, index, identity,
+            inspection_source, sizeof inspection_source, &size);
+    switch (status) {
+        case CHAON_FAT_FILE_OK:
+            info = chaon_inspect_bytes(inspection_source, size);
+            break;
+        case CHAON_FAT_FILE_UNSUPPORTED:
+            info.state = CHAON_INSPECT_NOT_SCRIPT; break;
+        case CHAON_FAT_FILE_TOO_LARGE:
+            info.state = CHAON_INSPECT_TOO_LARGE; break;
+        case CHAON_FAT_FILE_STALE:
+            info.state = CHAON_INSPECT_STALE; break;
+        case CHAON_FAT_FILE_IO_ERROR:
+            info.state = CHAON_INSPECT_IO_ERROR; break;
+        default:
+            info.state = CHAON_INSPECT_BAD_MEDIA; break;
+    }
+    memset(inspection_source, 0, sizeof inspection_source);
+    return info;
+}
+
+static bool process_inspection(void)
+{
+    uint32_t epoch = 0;
+    uint8_t index = 0;
+    chaon_fat_entry_t entry = {0};
+    portENTER_CRITICAL(&diagnostic_lock);
+    const bool pending = catalogue_valid &&
+        chaon_inspect_mailbox_take(&mailbox, &epoch, &index, &entry);
+    portEXIT_CRITICAL(&diagnostic_lock);
+    if (!pending) return false;
+
+    const chaon_inspection_t summary = inspect_one(index, &entry);
+    portENTER_CRITICAL(&diagnostic_lock);
+    if (catalogue_valid && diagnostic == CHAON_SD_CATALOG_OK)
+        chaon_inspect_mailbox_publish(&mailbox, epoch, index, summary);
+    portEXIT_CRITICAL(&diagnostic_lock);
+    ESP_LOGI(TAG, "INSPECT state=%u count=%u line=%u (READ ONLY)",
+             (unsigned)summary.state, (unsigned)summary.step_count,
+             (unsigned)summary.error_line);
+    return summary.state == CHAON_INSPECT_IO_ERROR;
+}
 
 static void probe_task(void *ctx)
 {
@@ -151,9 +253,19 @@ static void probe_task(void *ctx)
                 }
                 /* No card-detect GPIO is known: poll card status and
                  * reinitialize only after SDMMC reports an error. */
+                unsigned time_to_status_ms = CHAON_SD_POLL_MS;
                 do {
-                    vTaskDelay(pdMS_TO_TICKS(CHAON_SD_POLL_MS));
-                    err = sdmmc_get_status(&card);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                    if (process_inspection()) {
+                        err = ESP_FAIL; /* fail closed and reinitialize SD */
+                        break;
+                    }
+                    if (time_to_status_ms <= 100) {
+                        time_to_status_ms = CHAON_SD_POLL_MS;
+                        err = sdmmc_get_status(&card);
+                    } else {
+                        time_to_status_ms -= 100;
+                    }
                 } while (err == ESP_OK);
                 publish(CHAON_SD_LOST_IO);
                 ESP_LOGW(TAG, "SD_LOST_OR_IO_ERROR %s",

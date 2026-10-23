@@ -72,3 +72,17 @@ The pass disposition combines separate tool-verified flash/ROM enumeration and t
 
 See the [sixth chronological bring-up session](bringup.md#sixth-physical-session--phase-2b-button-browser-2026-10-20). The complete original report and logs remain in the operator's local `ChaoN-USB-Recovery/2026-10-20-110849-phase2b-browser/` folder, not checked into this public repository. No code or firmware was changed during the physical test. No production release, tag or deployment is implied.
 
+
+## Phase 2C selected-file diagnostics (draft, not physically validated)
+
+Picking a file additionally requests **read-only inspection** of a
+root-level FAT32 `.CHN` file in the optional SD task. The LCD shows
+only validation status, instruction count/first opcode, or the first
+error-line number. Picking a non-script/directory gives a bounded
+diagnostic or no valid request. Navigating or exiting invalidates any
+outstanding result. No source text or executable script crosses into
+the browser, BOOT controller, HID VM or USB stack.
+
+The timings and gesture meanings in the Phase 2B table are unchanged.
+Successful validation confers no execution permission. See
+[script-inspection.md](script-inspection.md) for the Phase 2C boundary.

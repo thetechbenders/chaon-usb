@@ -69,6 +69,10 @@ static bool add_sector(const uint8_t *sector, chaon_fat_catalog_t *catalog,
         short_name(entry, dest->name);
         if (!dest->name[0]) continue;
         dest->is_directory = (entry[11] & 0x10) != 0;
+        memcpy(dest->raw_name, entry, 11);
+        dest->first_cluster = (uint32_t)le16(entry + 26) |
+                              (uint32_t)le16(entry + 20) << 16;
+        dest->file_size = le32(entry + 28);
         ++catalog->count;
     }
     return false;
@@ -159,6 +163,12 @@ chaon_fat_result_t chaon_fat_list_root(chaon_fat_read_t io, void *ctx,
         return CHAON_FAT_INVALID;
     }
     out->type = type;
+    out->volume_end = (uint32_t)((uint64_t)partition + total);
+    out->data_start = (uint32_t)((uint64_t)partition + data_relative);
+    out->active_fat = (uint32_t)fat_start;
+    out->fat_sectors = fat_sectors;
+    out->cluster_count = (uint32_t)clusters;
+    out->sectors_per_cluster = (uint8_t)cluster_sectors;
     uint64_t sectors_left = CHAON_FAT_MAX_ROOT_SECTORS;
     bool complete = false;
     if (type != CHAON_FAT32) {

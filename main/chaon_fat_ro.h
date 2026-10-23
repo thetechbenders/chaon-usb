@@ -23,12 +23,21 @@ typedef enum {
 typedef struct {
     char name[13]; /* sanitized printable upper-case DOS 8.3 name */
     bool is_directory;
+    /* Identity and immutable-at-enumeration file locator. Never an HID input. */
+    uint8_t raw_name[11];
+    uint32_t first_cluster;
+    uint32_t file_size;
 } chaon_fat_entry_t;
 typedef struct {
     chaon_fat_type_t type;
     uint8_t count;
     bool more;  /* at least one more entry was seen, or scan hit I/O bound */
     chaon_fat_entry_t entries[CHAON_FAT_MAX_FILES];
+    /* Geometry validated during listing; used only by the bounded,
+     * read-only FAT32 file inspector after a fresh directory rescan. */
+    uint32_t volume_end, data_start, active_fat, fat_sectors;
+    uint32_t cluster_count;
+    uint8_t sectors_per_cluster;
 } chaon_fat_catalog_t;
 
 /* Uses caller-provided 512-byte workspace; result valid only on OK/LIMIT.
@@ -39,4 +48,19 @@ typedef struct {
 chaon_fat_result_t chaon_fat_list_root(chaon_fat_read_t read_sector,
     void *ctx, uint32_t card_sectors, uint8_t work[CHAON_FAT_SECTOR_BYTES],
     chaon_fat_catalog_t *out);
+/* Phase 2C accepts only root FAT32 DOS 8.3 .CHN files, <=2047 bytes.
+ * Re-enumerates the root and compares the exact selected entry identity
+ * before following up to four 512-byte data sectors. No writes or HID.
+ * out_capacity must be at least 2048; undersized outputs are never written.
+ * When capacity is sufficient, errors clear out and success terminates it. */
+typedef enum {
+    CHAON_FAT_FILE_OK, CHAON_FAT_FILE_UNSUPPORTED, CHAON_FAT_FILE_STALE,
+    CHAON_FAT_FILE_TOO_LARGE, CHAON_FAT_FILE_INVALID,
+    CHAON_FAT_FILE_IO_ERROR
+} chaon_fat_file_result_t;
+chaon_fat_file_result_t chaon_fat_read_script(chaon_fat_read_t read_sector,
+    void *ctx, uint32_t card_sectors, uint8_t work[CHAON_FAT_SECTOR_BYTES],
+    uint8_t index, const chaon_fat_entry_t *expected,
+    uint8_t *out, size_t out_capacity, size_t *out_length);
+
 #endif
