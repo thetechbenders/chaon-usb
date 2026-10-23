@@ -22,9 +22,12 @@ MAILBOX_SRCS := main/chaon_inspect_mailbox.c tests/test_inspect_mailbox.c
 MAILBOX_BIN := tests/chaon_inspect_mailbox_tests
 STAGE_SRCS := main/chaon_program_stage.c main/chaon_inspect.c main/chaon_script.c tests/test_program_stage.c
 STAGE_BIN := tests/chaon_program_stage_tests
+SD_PROBE_SRCS := main/chaon_fat_ro.c main/chaon_fat_file.c main/chaon_inspect.c main/chaon_script.c main/chaon_inspect_mailbox.c main/chaon_program_stage.c main/chaon_sd_sector.c tests/test_sd_probe_inspection.c
+SD_PROBE_BIN := tests/chaon_sd_probe_inspection_tests
+SD_PROBE_CPPFLAGS := -Itests/sd_probe_stubs
 
 .PHONY: test clean
-test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN)
+test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
 	./$(NATIVE_BIN)
 	./$(VISUAL_BIN)
 	./$(CONTROL_BIN)
@@ -35,6 +38,7 @@ test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN)
 	./$(INSPECT_BIN)
 	./$(MAILBOX_BIN)
 	./$(STAGE_BIN)
+	./$(SD_PROBE_BIN)
 
 $(NATIVE_BIN): $(NATIVE_SRCS) main/chaon_script.h main/chaon_hid.h main/chaon_vm.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(NATIVE_SRCS) -o $(NATIVE_BIN)
@@ -68,5 +72,8 @@ $(MAILBOX_BIN): $(MAILBOX_SRCS) main/chaon_inspect_mailbox.h main/chaon_inspect.
 $(STAGE_BIN): $(STAGE_SRCS) main/chaon_program_stage.h main/chaon_inspect.h main/chaon_script.h main/chaon_fat_ro.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(STAGE_SRCS) -o $(STAGE_BIN)
 
+$(SD_PROBE_BIN): $(SD_PROBE_SRCS) main/chaon_sd_probe.c main/chaon_sd_probe.h main/chaon_fat_ro.h main/chaon_inspect_mailbox.h main/chaon_program_stage.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(SD_PROBE_CPPFLAGS) $(SD_PROBE_SRCS) -o $(SD_PROBE_BIN)
+
 clean:
-	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN)
+	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)

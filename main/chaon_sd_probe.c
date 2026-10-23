@@ -168,6 +168,15 @@ static bool read_sector_only(void *ctx, uint32_t lba, uint8_t dest[512])
 static sdmmc_card_t card;
 static uint8_t sector_zero[512] __attribute__((aligned(64)));
 
+/* This shared DMA scratch may contain the final sector of a script. Volatile
+ * stores make the post-inspection wipe explicit and prevent dead-store
+ * elimination when a later SD operation overwrites the buffer. */
+static void clear_sector_scratch(void)
+{
+    volatile uint8_t *byte = sector_zero;
+    for (size_t i = 0; i < sizeof sector_zero; ++i) byte[i] = 0;
+}
+
 /* All three objects belong exclusively to the SD task and stay outside its
  * 4 KB stack. Source/workspace/candidate are wiped on every completion. */
 static uint8_t inspection_source[CHAON_MAX_SOURCE];
@@ -201,8 +210,7 @@ static chaon_inspection_t inspect_one(uint8_t index,
         default:
             info.state = CHAON_INSPECT_BAD_MEDIA; break;
     }
-    /* The FAT reader also uses this shared 512-byte DMA sector scratch. */
-    memset(sector_zero, 0, sizeof sector_zero);
+    clear_sector_scratch();
     memset(inspection_source, 0, sizeof inspection_source);
     memset(&inspection_workspace, 0, sizeof inspection_workspace);
     if (info.state != CHAON_INSPECT_VALID)
