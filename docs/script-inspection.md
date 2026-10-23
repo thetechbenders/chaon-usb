@@ -1,9 +1,14 @@
 # Phase 2C inspection and Phase 2D bounded staging
 
-**Development candidate, not merged:** the combined Phase 2C/2D firmware was flashed and physically smoke-tested on the original T-Dongle-S3 on 2026-10-23: **33 PASS, 0 FAIL, 1 NOT TESTED, 2 NOT APPLICABLE**. The in-flight supersession race was not physically confirmed and is supported by native adversarial tests. No SD-derived HID program was executed. The existing HID demo
-remains the only executable path. Phase 2D adds an inert fixed-capacity staged
-program slot, not execution authority. A successful build alone is not
-hardware validation.
+**Development candidate; both branches remain unmerged.** The earlier stacked
+Phase 2D candidate `e34e621` containing this Phase 2C inspection path was
+physically accepted on the original T-Dongle-S3 on 2026-10-23: **33 PASS,
+0 FAIL, 1 NOT TESTED, 2 NOT APPLICABLE**. The in-flight supersession race was
+not physically established, and internal staged bytes were deliberately not
+instrumented; native adversarial tests provide that evidence. The later F3
+sector-scratch clearing change has not been flashed or physically tested. No
+SD-derived HID program was executed. The embedded fixed demo remains the only
+executable path; Phase 2D staging grants no execution authority.
 
 ## Implemented in the draft backend
 
@@ -79,10 +84,11 @@ source limit, parse rejection and no read callback writes.
 Additional host tests exercise mailbox replacement, cancellation, stale
 result suppression, identity mismatches, pending/complete snapshots, stage
 replacement, invalid/partial program rejection, buffer guards and the absence
-of VM/HID linkage from staging, plus summary-only LCD framebuffer bounds. The FreeRTOS task and GPIO/SD
-timing still require original-board physical smoke tests.
+of VM/HID linkage from staging, plus summary-only LCD framebuffer bounds.
 
-ESP-IDF v5.5.3 ESP32-S3 builds are required for the real target. No
-new firmware should be flashed, merged or released solely because
-CI passes. The original board continues running the physically tested
-Phase 2B firmware until Dan separately authorizes a new flash.
+Physical acceptance applies to the earlier stacked `e34e621` firmware and its
+observable behavior. A Phase 2C-only binary was not separately flashed, the
+in-flight read race was not reproduced physically, and staged program bytes
+were not observed on-device. ESP-IDF v5.5.3 ESP32-S3 builds remain required for
+the real target. A successful build is not hardware validation, and neither
+draft branch has been merged or released.
