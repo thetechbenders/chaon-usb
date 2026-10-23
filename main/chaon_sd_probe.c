@@ -201,6 +201,8 @@ static chaon_inspection_t inspect_one(uint8_t index,
         default:
             info.state = CHAON_INSPECT_BAD_MEDIA; break;
     }
+    /* The FAT reader also uses this shared 512-byte DMA sector scratch. */
+    memset(sector_zero, 0, sizeof sector_zero);
     memset(inspection_source, 0, sizeof inspection_source);
     memset(&inspection_workspace, 0, sizeof inspection_workspace);
     if (info.state != CHAON_INSPECT_VALID)
