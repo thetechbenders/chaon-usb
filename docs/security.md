@@ -39,8 +39,11 @@ or executable**. The only HID demo is the preexisting fixed
 string requiring two distinct short physical presses outside browsing.
 No card writes or FAT filesystem mounts are performed.
 
-This firmware extension is a draft and has not passed physical Phase 2C
-testing on the original board. It is not a production safety claim.
+The earlier stacked `e34e621` firmware containing these Phase 2C/2D paths
+passed the documented original-board acceptance on 2026-10-23. A Phase 2C-only
+binary was not separately flashed, internal staged bytes were not observed,
+and the later sector-scratch clearing source change has not been physically
+retested. This remains an unmerged draft, not a production safety claim.
 
 Future physical execution authorization is design-only and documented in
 [execution-authority.md](execution-authority.md). It requires a new milestone.

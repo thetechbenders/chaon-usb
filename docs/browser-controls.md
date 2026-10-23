@@ -29,9 +29,11 @@ release at the existing 20 ms poll cadence; it is not a physical timing
 guarantee. If a gesture straddles a USB disconnect, timer expiry, or SD
 invalidation, it must not be repurposed as ARM.
 
-In the physically tested Phase 2B baseline, **PICK is display-only**. In the
-stacked, unvalidated Phase 2C/2D candidate it additionally requests bounded
-read-only inspection and inert program staging. PICK still cannot generate HID
+In the physically tested Phase 2B baseline, **PICK is display-only**. The
+earlier stacked `e34e621` Phase 2C/2D candidate was also physically accepted;
+in that draft path PICK additionally requests bounded read-only inspection and
+inert program staging. The later sector-scratch clearing source change has not
+been physically retested. PICK still cannot generate HID
 input or confer execution authority. The only event that starts the VM remains
 two normal, separate short taps while not browsing; the VM continues to run
 the embedded fixed text demonstration.

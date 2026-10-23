@@ -6,7 +6,7 @@
 
 **The Chaotic Neutral HID.** Experimental, screen-equipped USB HID instrument written in C for the **original LILYGO T-Dongle-S3** (ESP32-S3).
 
-> **Development status (2026-10-23):** The inert, physically BOOT-gated HID controller, read-only SD probe, FAT32 root preview and single-button browser passed their documented original-board/Windows/FAT32 smoke tests through Phase 2B. Stacked Phase 2C/2D draft work adds bounded read-only `.CHN` inspection and one-slot inert program staging, and it **passed combined original-board physical acceptance (33 PASS, 0 FAIL, 1 NOT TESTED, 2 NOT APPLICABLE) on 2026-10-23**, but remains unmerged and cannot execute SD content. The physical in-flight SD-read supersession race was not established; native adversarial tests cover it. The embedded fixed demo remains the only VM/HID program. See [inspection](docs/script-inspection.md), [staging](docs/program-staging.md) and [future execution-authority design](docs/execution-authority.md). No production firmware has been released.
+> **Development status (2026-10-23):** The inert, physically BOOT-gated HID controller, read-only SD probe, FAT32 root preview and single-button browser passed their documented original-board/Windows/FAT32 smoke tests through Phase 2B. The earlier stacked Phase 2C/2D candidate `e34e621` passed combined original-board physical acceptance (**33 PASS, 0 FAIL, 1 NOT TESTED, 2 NOT APPLICABLE**) on 2026-10-23. The current unmerged source adds a sector-scratch clearing fix and has not been flashed or physically retested. The physical in-flight SD-read supersession race was not established, and staged bytes were not instrumented; native adversarial tests cover those internal guarantees. SD content cannot execute, and the embedded fixed demo remains the only VM/HID program. See [inspection](docs/script-inspection.md), [staging](docs/program-staging.md) and [future execution-authority design](docs/execution-authority.md). No production firmware has been released.
 
 ## Current implementation
 
@@ -16,7 +16,7 @@
 - A US keyboard-layout HID usage mapper; no arbitrary keyboard-layout claims.
 - State-driven APA102 colors (ChaoN green READY, yellow flashing ARMED, red CANCELLED), native ST7735 160×80 status display, portable renderer tests, GitHub CI and hardware validation documentation.
 - **Hardware smoke-tested storage features (PRs #9/#12/#13):** read-only SDMMC sector observation, bounded FAT12/16/32 root-directory metadata listing, and BOOT-operated, display-only navigation/PICK selection. Physical filesystem coverage is FAT32 only; this is neither a full file manager nor an SD-script interpreter.
-- **Unmerged, physically smoke-tested Phase 2C/2D draft:** bounded FAT32 root `.CHN` reading, Script v0 validation, summary-only LCD diagnostics and one fixed-capacity staged program. Staging has no execution authority and no path to HID.
+- **Unmerged Phase 2C/2D draft:** bounded FAT32 root `.CHN` reading, Script v0 validation, summary-only LCD diagnostics and one fixed-capacity staged program. The earlier `e34e621` candidate was physically smoke-tested; the later scratch-clearing source change was not. Staging has no execution authority and no path to HID.
 
 **The demo writes into whichever window currently has keyboard focus. Use only on a computer you own or are explicitly authorized to test.** Plugging the device in will not intentionally type anything until physical confirmation. The button is also the boot-strap/download pin, so never hold it during power-on when you want normal boot.
 

@@ -1,6 +1,13 @@
 # Phase 2D: bounded SD program staging
 
-**Stacked development candidate on the unmerged Phase 2C inspection branch.** The combined Phase 2C/2D firmware was flashed and physically smoke-tested on the original T-Dongle-S3 on 2026-10-23 (**33 PASS, 0 FAIL, 1 NOT TESTED, 2 NOT APPLICABLE**). The in-flight read supersession race remains physically untested; private staged bytes were not instrumented. This is not merged, production-qualified, or an SD execution feature. The embedded fixed text demo remains the only program passed to
+**Stacked development candidate on the unmerged Phase 2C inspection branch.**
+The earlier `e34e621` firmware was physically accepted on the original
+T-Dongle-S3 on 2026-10-23 (**33 PASS, 0 FAIL, 1 NOT TESTED,
+2 NOT APPLICABLE**). The in-flight read supersession race remains physically
+untested, and private staged bytes were not instrumented. The current source
+adds the F3 sector-scratch clearing fix and has not been flashed or physically
+retested. This is not merged, production-qualified, or an SD execution
+feature. The embedded fixed text demo remains the only program passed to
 `chaon_run`.
 
 ## Contract
@@ -20,10 +27,10 @@ outside the critical section. Publication requires all of the following:
 
 The SD task parses into a private static candidate. A successful publication
 copies that candidate into one fixed stage and then wipes the candidate,
-source buffer and parser workspace. Invalid grammar, partial parsing, an empty
-or oversized file, stale identity, I/O failure, cancellation or supersession
-leaves no valid program and clears the affected buffers. No allocation is
-dynamic.
+source buffer, parser workspace and shared 512-byte sector scratch. Invalid
+grammar, partial parsing, an empty or oversized file, stale identity, I/O
+failure, cancellation or supersession leaves no valid program and clears the
+affected buffers. No allocation is dynamic.
 
 `chaon_sd_probe_staged_program_copy` is an inert, bounded copy-out interface
 for a future separately authorized control feature. It is not called by the
@@ -37,7 +44,7 @@ a valid staged copy must never be treated as human consent.
 
 | Object | Owner and lifetime | Crossing rule |
 | --- | --- | --- |
-| 512-byte sector scratch | SD task, static for firmware lifetime | Never published |
+| 512-byte sector scratch | SD task, static for firmware lifetime | Never published; explicitly wiped after each inspection attempt, then legitimately reused by later sector probing and catalogue operations |
 | 2048-byte file source | SD task, static for firmware lifetime | Wiped after every attempt |
 | 2048-byte parser workspace | SD task, static for firmware lifetime | Wiped by the compiler and again by the task |
 | Candidate `chaon_program_t` | SD task, static, one inspection attempt | Published only by bounded copy after all checks; then wiped |
