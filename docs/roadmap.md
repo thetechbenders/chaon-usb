@@ -23,8 +23,8 @@
 - [x] Read-only SDMMC sector probe, cold empty-slot/restoration and FAT32 root 8.3 preview (Phase 2A, merged PRs #9/#11/#12)
 - [x] Powered SD hot-removal is NOT APPLICABLE: card slot inaccessible while dongle is plugged into USB
 - [x] Phase 2B: one-button root filename browsing and display-only PICK marker; CI and applicable original-board/Windows/FAT32 smoke tests passed 2026-10-20 (PR #13). Still no SD file reads or execution. See [browser controls](browser-controls.md).
-- [ ] Phase 2C: bounded read-only FAT32 .CHN inspection backend and summary-only SD-task/LCD path implemented in draft PR #14; native/target CI and original-board hardware validation remain gates. No SD execution. See [inspection design](script-inspection.md).
-- [ ] Phase 2D: bounded one-slot program staging implemented on the Phase 2C draft; native/target review and hardware validation remain gates. Staging grants no HID authority.
+- [ ] Phase 2C: bounded read-only FAT32 .CHN inspection backend and summary-only SD-task/LCD path implemented in draft PR #14; native/target CI and combined original-board hardware smoke tests passed 2026-10-23; review and merge remain gates. No SD execution. See [inspection design](script-inspection.md).
+- [ ] Phase 2D: bounded one-slot program staging implemented on the Phase 2C draft; native/target CI and observable original-board acceptance passed 2026-10-23; internal staged bytes and in-flight physical supersession remain uninstrumented. Review and merge remain gates. Staging grants no HID authority.
 - [ ] Future separately authorized milestone: implement and physically validate explicit, time-limited removable-media execution authority
 - [ ] Script directory rules, bounded reading, versioned format and negative tests
 - [ ] Tests for parser fuzz targets and edge cases
