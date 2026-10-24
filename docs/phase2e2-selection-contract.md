@@ -51,3 +51,26 @@ review demonstrate no aliasing or accidental authorization. The current
 hardware-accepted Phase 2E.1 firmware remains the fallback.
 
 No flash, merge, tag or release is authorized by this document.
+
+
+## Added one-shot execution-owned slot
+
+A separate statically allocated `chaon_execution_slot_t` now copies a selected,
+validated program into a one-shot owner only if the caller provides an explicit
+authorization predicate and a matching generation, USB epoch, and full SHA-256
+source fingerprint. `take` consumes the slot and clears the source buffer.
+This does **not** implement physical authorization; the predicate is currently
+a parameter, not a certified controller output. No application code calls the
+slot or sends its contents to TinyUSB.
+
+The SD task still needs to independently read and hash exact source bytes,
+revalidate them before ARM/RUN, and atomically bind the owned snapshot under
+the correct lock. A staged program alone is not execution authority.
+
+### CI note
+
+The existing GitHub Actions CI pull-request trigger is limited to the `main`,
+`feat/esp-idf-foundation`, and `feat/sd-readonly-probe` base branches.
+Because PR #18 is stacked on draft PR #17, no automatic exact-head PR CI
+is expected until it is explicitly dispatched or separately validated.
+Do not label it software-validated on the basis of earlier Phase 2E.1 CI.
