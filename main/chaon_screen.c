@@ -266,6 +266,33 @@ bool chaon_screen_render_browser(const chaon_fat_catalog_t *cat,
                                                NULL, frame, length);
 }
 
+bool chaon_screen_render_hold(uint32_t elapsed_ms, uint8_t *frame, size_t length)
+{
+    if (!frame || length < CHAON_SCREEN_BYTES) return false;
+    if (elapsed_ms > 5000) elapsed_ms = 5000;
+    for (size_t i = 0; i < CHAON_SCREEN_BYTES; i += 2) {
+        frame[i] = 0x10;
+        frame[i + 1] = 0x82;
+    }
+    const uint16_t green = 0xB7AD;
+    rect(frame, 0, 0, 3, CHAON_SCREEN_HEIGHT, green);
+    print_text(frame, 9, 6, "CHAON", 2, green);
+    rect(frame, 9, 25, 143, 1, 0x3166);
+    print_text(frame, 9, 31,
+               elapsed_ms == 5000 ? "RELEASE NOW" : "HOLD TO CONFIRM",
+               1, elapsed_ms == 5000 ? green : 0xFFE0);
+    rect(frame, 9, 47, 142, 12, 0x3166);
+    const int width = (int)((elapsed_ms * 138U) / 5000U);
+    rect(frame, 11, 49, width, 8, green);
+    char progress[8] = {
+        (char)('0' + elapsed_ms / 1000U), '.',
+        (char)('0' + (elapsed_ms % 1000U) / 100U),
+        ' ', '/', ' ', '5', '\0'
+    };
+    print_text(frame, 9, 65, progress, 1, 0xBDF7);
+    return true;
+}
+
 bool chaon_screen_render_confirmation(uint32_t remaining_seconds,
                                       uint8_t *frame, size_t length)
 {
