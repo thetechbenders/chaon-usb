@@ -30,9 +30,9 @@ INSPECT_SRCS := main/chaon_fat_ro.c main/chaon_fat_file.c main/chaon_inspect.c m
 INSPECT_BIN := tests/chaon_script_inspect_tests
 MAILBOX_SRCS := main/chaon_inspect_mailbox.c tests/test_inspect_mailbox.c
 MAILBOX_BIN := tests/chaon_inspect_mailbox_tests
-STAGE_SRCS := main/chaon_program_stage.c main/chaon_inspect.c main/chaon_script.c tests/test_program_stage.c
+STAGE_SRCS := main/chaon_source_sha256.c main/chaon_program_stage.c main/chaon_inspect.c main/chaon_script.c tests/test_program_stage.c
 STAGE_BIN := tests/chaon_program_stage_tests
-SD_PROBE_SRCS := main/chaon_fat_ro.c main/chaon_fat_file.c main/chaon_inspect.c main/chaon_script.c main/chaon_inspect_mailbox.c main/chaon_program_stage.c main/chaon_sd_sector.c tests/test_sd_probe_inspection.c
+SD_PROBE_SRCS := main/chaon_source_sha256.c main/chaon_fat_ro.c main/chaon_fat_file.c main/chaon_inspect.c main/chaon_script.c main/chaon_inspect_mailbox.c main/chaon_program_stage.c main/chaon_sd_sector.c tests/test_sd_probe_inspection.c
 SD_PROBE_BIN := tests/chaon_sd_probe_inspection_tests
 SD_PROBE_CPPFLAGS := -Itests/sd_probe_stubs
 
