@@ -157,6 +157,29 @@ bool chaon_sd_probe_staged_program_copy(uint8_t index,
     return ok;
 }
 
+bool chaon_sd_probe_staged_program_copy_hashed(uint8_t index,
+    const chaon_fat_entry_t *expected, uint32_t *generation,
+    chaon_program_t *out, uint8_t digest[32])
+{
+    if (generation) *generation=0;
+    if (out) memset(out,0,sizeof *out);
+    if (digest) memset(digest,0,CHAON_SHA256_SIZE);
+    if (!expected || !generation || !out || !digest) return false;
+    portENTER_CRITICAL(&diagnostic_lock);
+    const bool ok = catalogue_valid &&
+        diagnostic == CHAON_SD_CATALOG_OK &&
+        index < catalogue.count &&
+        catalogue.count <= CHAON_FAT_MAX_FILES &&
+        memcmp(catalogue.entries[index].raw_name,expected->raw_name,11)==0 &&
+        catalogue.entries[index].first_cluster==expected->first_cluster &&
+        catalogue.entries[index].file_size==expected->file_size &&
+        catalogue.entries[index].is_directory==expected->is_directory &&
+        chaon_program_stage_copy_hashed(&program_stage,index,expected,
+                                        generation,out,digest);
+    portEXIT_CRITICAL(&diagnostic_lock);
+    return ok;
+}
+
 static bool read_sector_only(void *ctx, uint32_t lba, uint8_t dest[512])
 {
     return sdmmc_read_sectors((sdmmc_card_t *)ctx, dest, lba, 1) == ESP_OK;
