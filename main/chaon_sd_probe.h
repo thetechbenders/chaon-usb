@@ -33,6 +33,21 @@ bool chaon_sd_probe_staged_program_copy_hashed(uint8_t index,
     const chaon_fat_entry_t *expected, uint32_t *generation,
     chaon_program_t *out, uint8_t digest[32]);
 
+/* Nonblocking last-moment source verification, exclusively performed in the
+ * SD task. Result is one-use and scoped to a strictly increasing request ID.
+ * A true result certifies the exact source bytes at the completed read,
+ * not indefinite card presence. No API here performs HID/VM operations. */
+typedef enum {
+    CHAON_SD_VERIFY_WAIT,
+    CHAON_SD_VERIFY_PASS,
+    CHAON_SD_VERIFY_FAIL
+} chaon_sd_verify_result_t;
+uint32_t chaon_sd_probe_verify_request(uint8_t index,
+    const chaon_fat_entry_t *expected, uint32_t generation,
+    const uint8_t digest[32]);
+chaon_sd_verify_result_t chaon_sd_probe_verify_poll(uint32_t request_id);
+void chaon_sd_probe_verify_cancel(void);
+
 /* Bounded copy-out interface for a future, separately authorized control
  * feature. A successful copy is validation evidence, NOT execution authority.
  * Current app_main intentionally has no caller and still runs only its
