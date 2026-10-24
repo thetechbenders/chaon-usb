@@ -1,0 +1,6 @@
+# Phase 2E.2 benign execution fixture
+DELAY 500
+TYPE "ChaoN 2E2 A"
+TAB
+TYPE "B"
+ENTER

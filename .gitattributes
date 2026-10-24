@@ -1,0 +1,2 @@
+# Preserve byte-exact hardware fixtures across Windows and POSIX checkouts.
+tests/hardware/phase2e2/fixtures/* -text
