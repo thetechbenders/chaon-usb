@@ -182,6 +182,7 @@ static void clear_sector_scratch(void)
 static uint8_t inspection_source[CHAON_MAX_SOURCE];
 static chaon_inspect_workspace_t inspection_workspace;
 static chaon_program_t candidate_program;
+static uint8_t candidate_digest[CHAON_SHA256_SIZE];
 
 static chaon_inspection_t inspect_one(uint8_t index,
     const chaon_fat_entry_t *identity, chaon_program_t *candidate)
@@ -189,6 +190,7 @@ static chaon_inspection_t inspect_one(uint8_t index,
     size_t size = 0;
     chaon_inspection_t info = { .state = CHAON_INSPECT_BAD_MEDIA };
     memset(candidate, 0, sizeof *candidate);
+    memset(candidate_digest, 0, sizeof candidate_digest);
     memset(&inspection_workspace, 0, sizeof inspection_workspace);
     const chaon_fat_file_result_t status =
         chaon_fat_read_script(read_sector_only, &card,
@@ -198,6 +200,8 @@ static chaon_inspection_t inspect_one(uint8_t index,
         case CHAON_FAT_FILE_OK:
             info = chaon_inspect_compile_bytes(inspection_source, size,
                 &inspection_workspace, candidate);
+            if (info.state == CHAON_INSPECT_VALID)
+                chaon_source_sha256(inspection_source, size, candidate_digest);
             break;
         case CHAON_FAT_FILE_UNSUPPORTED:
             info.state = CHAON_INSPECT_NOT_SCRIPT; break;
@@ -213,8 +217,10 @@ static chaon_inspection_t inspect_one(uint8_t index,
     clear_sector_scratch();
     memset(inspection_source, 0, sizeof inspection_source);
     memset(&inspection_workspace, 0, sizeof inspection_workspace);
-    if (info.state != CHAON_INSPECT_VALID)
+    if (info.state != CHAON_INSPECT_VALID) {
         memset(candidate, 0, sizeof *candidate);
+        memset(candidate_digest, 0, sizeof candidate_digest);
+    }
     return info;
 }
 
@@ -249,8 +255,8 @@ static bool process_inspection(void)
     portENTER_CRITICAL(&diagnostic_lock);
     if (catalogue_valid && diagnostic == CHAON_SD_CATALOG_OK) {
         if (summary.state == CHAON_INSPECT_VALID &&
-            !chaon_program_stage_publish(&program_stage, stage_epoch,
-                stage_index, &stage_entry, &candidate_program)) {
+            !chaon_program_stage_publish_hashed(&program_stage, stage_epoch,
+                stage_index, &stage_entry, &candidate_program, candidate_digest)) {
             summary = (chaon_inspection_t){
                 .state = CHAON_INSPECT_BAD_MEDIA
             };
@@ -262,6 +268,7 @@ static bool process_inspection(void)
     }
     portEXIT_CRITICAL(&diagnostic_lock);
     memset(&candidate_program, 0, sizeof candidate_program);
+    memset(candidate_digest, 0, sizeof candidate_digest);
     ESP_LOGI(TAG, "INSPECT state=%u count=%u line=%u (READ ONLY)",
              (unsigned)summary.state, (unsigned)summary.step_count,
              (unsigned)summary.error_line);
