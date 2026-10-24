@@ -400,7 +400,7 @@ void app_main(void)
         /* This is the sole production producer of a selected-program
          * grant: the real debounced physical controller's ARM/RUN events. */
         (void)chaon_run_authority_step(&selected_authority,event,now_ms,
-            connected,catalog_valid && selected_program.valid,
+            connected,catalog_valid && lcd_ok && selected_program.valid,
             &selected_program,&selected_grant);
         if (event == CHAON_CONTROL_PICK_READY) {
             uint32_t generation=0;
@@ -453,7 +453,7 @@ void app_main(void)
             ESP_LOGI(TAG, "armed for 30 seconds");
         } else if (event == CHAON_CONTROL_EXECUTE) {
             if (selected_program.valid) {
-                if (selected_grant.issued && connected && !pressed) {
+                if (selected_grant.issued && connected && lcd_ok && !pressed) {
                     verification_ticket=chaon_sd_probe_verify_request(
                         selected_index,&selected_program.identity,
                         selected_program.staging_generation,
@@ -486,7 +486,7 @@ void app_main(void)
         /* Complete the verified one-shot transaction on the controller task.
          * There is no HID call on a stale/missing/mismatched reply. */
         if (verification_ticket) {
-            const bool eligible = connected && !pressed &&
+            const bool eligible = connected && lcd_ok && !pressed &&
                 selected_program.valid &&
                 control.state == CHAON_STATUS_RUNNING &&
                 now_ms >= verification_started_ms &&
@@ -533,7 +533,7 @@ void app_main(void)
          * in-flight result. The SD task checks its generation before
          * publishing, even if a slow card read completes afterward. */
         if (selected_program.valid) {
-            const bool available = connected && catalog_valid &&
+            const bool available = connected && lcd_ok && catalog_valid &&
                 chaon_sd_probe_snapshot() == CHAON_SD_CATALOG_OK;
             chaon_selection_refresh(&selected_program, usb_epoch, available);
         }
