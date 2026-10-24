@@ -10,11 +10,18 @@ bool chaon_run_authority_step(chaon_run_authority_t *a,
     bool source_available, const chaon_selection_t *s,
     chaon_execution_grant_t *out)
 {
-    chaon_execution_grant_clear(out);
-    if(!a) return false;
+    /* Preserve a one-use RUN grant across NONE polls while the SD worker
+     * performs the asynchronous re-read; app_main consumes/clears it within
+     * its bounded verification ticket window. Any other event revokes it. */
+    if(event != CHAON_CONTROL_NONE) chaon_execution_grant_clear(out);
+    if(!a) { chaon_execution_grant_clear(out); return false; }
     const bool eligible=usb_mounted && source_available && s && s->valid &&
         s->staging_generation && s->usb_epoch && now_ms>=0;
-    if(!eligible) { chaon_run_authority_cancel(a); return false; }
+    if(!eligible) {
+        chaon_execution_grant_clear(out);
+        chaon_run_authority_cancel(a);
+        return false;
+    }
     if(a->armed && (now_ms<a->armed_ms ||
         now_ms-a->armed_ms>=CHAON_CONTROL_ARM_TTL_MS ||
         a->generation!=s->staging_generation || a->usb_epoch!=s->usb_epoch ||
@@ -35,7 +42,9 @@ bool chaon_run_authority_step(chaon_run_authority_t *a,
         chaon_run_authority_cancel(a);
         return chaon_execution_grant_issue(out,s,true);
     }
-    if(event!=CHAON_CONTROL_NONE)
+    if(event!=CHAON_CONTROL_NONE) {
+        chaon_execution_grant_clear(out);
         chaon_run_authority_cancel(a);
+    }
     return false;
 }
