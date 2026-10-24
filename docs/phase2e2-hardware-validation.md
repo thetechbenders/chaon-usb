@@ -122,11 +122,13 @@ PASS/FAIL/BLOCKED status, and the supporting log or screenshot name.
    does **not** isolate the SHA-256 freshness check; record the stronger case
    BLOCKED unless identity preservation and the verification attempt are
    evidenced.
-8. **SD removal.** In separate clean trials remove the accessible test card
-   during READY, ARMED, and source verification. Require selection/grant
-   revocation, no typing, no automatic resume after reinsertion, and a new
-   deliberate PICK before any selected run. Verification is normally too
-   brief for unaided timing; mark that subcase BLOCKED if not actually caught.
+8. **SD presence and recovery (cold-card substitution).** Because the
+   microSD slot cannot be accessed while USB is connected on this board,
+   powered-card removal is not a physical acceptance test. Instead, test
+   booting without the card, normal reconnection, and USB disconnect while
+   selected/ARMED (test 10). Record only the behaviors actually observed.
+   Mid-read invalidation remains a native regression concern, not a blocked
+   manual hardware test.
 9. **BOOT cancellation.** Attempt BOOT cancellation during verification and,
    separately, after `SLOWRUN.CHN` has typed `START` and entered its delay.
    Require no continuation, no demo fallback, released keys and safe return.
