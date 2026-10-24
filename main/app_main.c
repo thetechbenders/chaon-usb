@@ -6,6 +6,7 @@
  */
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "driver/gpio.h"
 #include "esp_err.h"
@@ -24,6 +25,8 @@
 #include "chaon_control.h"
 #include "chaon_sd_probe.h"
 #include "chaon_screen.h"
+#include "chaon_selection.h"
+#include "chaon_run_authority.h"
 
 #define BUTTON_PIN GPIO_NUM_0
 #define APA102_DATA GPIO_NUM_40
@@ -34,6 +37,10 @@ static const char *TAG = "chaon";
 static const char demo_source[] = "DELAY 500\nTYPE \"ChaoN USB HID smoke test\"\n";
 /* Avoid allocating ~3 KB program objects on FreeRTOS app_main stack. */
 static chaon_program_t demo;
+static chaon_program_t staged_copy;
+static chaon_selection_t selected_program;
+static chaon_run_authority_t selected_authority;
+static chaon_execution_grant_t selected_grant;
 
 static const uint8_t hid_report_descriptor[] = {
     TUD_HID_REPORT_DESC_KEYBOARD()
@@ -298,6 +305,12 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
             }
             last_catalog_index = index;
         }
+        if (status == CHAON_STATUS_READY && selected_program.valid) {
+            chaon_fat_catalog_t one = {0};
+            one.count = 1;
+            one.entries[0] = selected_program.identity;
+            if (!chaon_lcd_show_catalog(&one, 0)) *lcd_ok = false;
+        }
         showed_catalog = browsing;
     }
     previous_frame = frame;
@@ -332,9 +345,18 @@ void app_main(void)
      * Hardware I/O, LEDs, LCD and VM execution remain in this shell.
      */
     chaon_control_t control = {0};
+    bool previous_connected = false;
+    uint32_t usb_epoch = 1;
 
     for (;;) {
         const bool connected = tud_mounted();
+        if (connected != previous_connected) {
+            previous_connected = connected;
+            if (++usb_epoch == 0) usb_epoch = 1;
+            chaon_selection_clear(&selected_program);
+            chaon_run_authority_cancel(&selected_authority);
+            chaon_execution_grant_clear(&selected_grant);
+        }
         const bool pressed = gpio_get_level(BUTTON_PIN) == 0;
         const int64_t now_ms = esp_timer_get_time() / 1000;
 
@@ -352,11 +374,29 @@ void app_main(void)
                 &current_catalog.entries[control.browser_index],
                 &current_inspection) &&
             current_inspection.state == CHAON_INSPECT_VALID;
+        const uint8_t picked_index = control.browser_index;
         const chaon_control_event_t event =
             chaon_control_step_confirmation(&control, connected, pressed, now_ms,
                 catalog_valid, catalog_valid ? current_catalog.count : 0,
                 valid_selected_inspection);
-        if (event == CHAON_CONTROL_DISARM) {
+        if (event == CHAON_CONTROL_PICK_READY) {
+            uint32_t generation=0;
+            uint8_t digest[CHAON_SOURCE_SHA256_BYTES]={0};
+            chaon_selection_clear(&selected_program);
+            if (connected && catalog_valid && picked_index < current_catalog.count &&
+                chaon_sd_probe_staged_program_copy_hashed(picked_index,
+                    &current_catalog.entries[picked_index], &generation,
+                    &staged_copy, digest) &&
+                chaon_selection_load(&selected_program,
+                    &current_catalog.entries[picked_index], &staged_copy,
+                    generation, usb_epoch, digest)) {
+                ESP_LOGI(TAG, "PICK READY: %s (NO SD HID YET)",
+                         selected_program.identity.name);
+            } else {
+                ESP_LOGW(TAG, "PICK failed: no valid immutable program");
+            }
+            memset(&staged_copy,0,sizeof staged_copy);
+        } else if (event == CHAON_CONTROL_DISARM) {
             ESP_LOGI(TAG, "long hold disarmed; no HID execution");
         } else if (event == CHAON_CONTROL_BROWSER_ENTER) {
             ESP_LOGI(TAG, "read-only browser entered");
@@ -383,6 +423,12 @@ void app_main(void)
         } else if (event == CHAON_CONTROL_ARM) {
             ESP_LOGI(TAG, "armed for 30 seconds");
         } else if (event == CHAON_CONTROL_EXECUTE) {
+            if (selected_program.valid) {
+                ESP_LOGW(TAG, "selected SD RUN remains disabled until freshness transaction is wired");
+                chaon_control_complete(&control, CHAON_RUN_CANCELLED,
+                                       connected, pressed, now_ms);
+                continue;
+            }
             paint_status(&control, now_ms, &lcd_ok);
             const chaon_transport_t io = {
                 .report = send_hid_report,
@@ -400,7 +446,12 @@ void app_main(void)
         /* Any deselection, navigation, USB loss or timeout invalidates an
          * in-flight result. The SD task checks its generation before
          * publishing, even if a slow card read completes afterward. */
-        if (!control.browser_active || !control.browser_selected)
+        if (selected_program.valid) {
+            const bool available = connected && catalog_valid &&
+                chaon_sd_probe_snapshot() == CHAON_SD_CATALOG_OK;
+            chaon_selection_refresh(&selected_program, usb_epoch, available);
+        }
+        if (!control.browser_active && !selected_program.valid)
             chaon_sd_probe_inspect_clear();
         paint_status(&control, esp_timer_get_time() / 1000, &lcd_ok);
         vTaskDelay(pdMS_TO_TICKS(CHAON_CONTROL_POLL_MS));
