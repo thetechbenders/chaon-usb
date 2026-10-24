@@ -26,6 +26,9 @@ chaon_control_event_t chaon_control_step_confirmation(chaon_control_t *c,
 
     chaon_control_event_t event = CHAON_CONTROL_NONE;
     if (c->confirm_active && (!usb_mounted || !eligible ||
+        !catalogue_available || !catalogue_count ||
+        catalogue_count != c->browser_count ||
+        now_ms < c->confirm_entered_ms ||
         now_ms - c->confirm_entered_ms >= CHAON_CONTROL_CONFIRM_TTL_MS)) {
         close_browser(c, pressed);
         return CHAON_CONTROL_CONFIRM_CANCEL;
@@ -36,6 +39,9 @@ chaon_control_event_t chaon_control_step_confirmation(chaon_control_t *c,
         c->suppress_release = pressed;
         c->browser_active = false;
         c->browser_selected = false;
+        c->confirm_active = false;
+        c->confirm_release_ready = false;
+        c->confirm_press_seen = false;
         c->browser_index = 0;
         c->browser_count = 0;
     } else if (c->state == CHAON_STATUS_WAIT_USB) {
@@ -201,6 +207,9 @@ void chaon_control_complete(chaon_control_t *c,
 
     c->browser_active = false;
     c->browser_selected = false;
+    c->confirm_active = false;
+    c->confirm_release_ready = false;
+    c->confirm_press_seen = false;
     c->browser_count = 0;
     c->browser_index = 0;
     c->saw_press = false;
