@@ -35,6 +35,12 @@ bool chaon_screen_render_browser_inspect(const chaon_fat_catalog_t *catalog,
     uint8_t index, bool picked, const chaon_inspection_t *info,
     uint8_t *buffer, size_t size);
 
+/* Non-executing hold progress screen. elapsed_ms clamped to 5 seconds. */
+bool chaon_screen_render_hold(uint32_t elapsed_ms, uint8_t *buffer, size_t size);
+/* Non-executing confirmation screen: no program data or host output. */
+bool chaon_screen_render_confirmation(uint32_t remaining_seconds,
+    uint8_t *buffer, size_t size);
+
 typedef struct {
     chaon_status_t status;
     uint32_t seconds;

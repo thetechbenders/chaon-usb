@@ -7,6 +7,10 @@ NATIVE_BIN := tests/chaon_tests
 VISUAL_BIN := tests/chaon_visual_tests
 CONTROL_SRCS := main/chaon_control.c tests/test_control.c
 CONTROL_BIN := tests/chaon_control_tests
+CONFIRM_SRCS := main/chaon_control.c tests/test_confirm_control.c
+CONFIRM_BIN := tests/chaon_confirm_control_tests
+AUTH_SRCS := main/chaon_exec_auth.c tests/test_exec_auth.c
+AUTH_BIN := tests/chaon_exec_auth_tests
 SD_SECTOR_SRCS := main/chaon_sd_sector.c tests/test_sd_sector.c
 SD_SECTOR_BIN := tests/chaon_sd_sector_tests
 
@@ -27,10 +31,12 @@ SD_PROBE_BIN := tests/chaon_sd_probe_inspection_tests
 SD_PROBE_CPPFLAGS := -Itests/sd_probe_stubs
 
 .PHONY: test clean
-test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
+test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(CONFIRM_BIN) $(AUTH_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
 	./$(NATIVE_BIN)
 	./$(VISUAL_BIN)
 	./$(CONTROL_BIN)
+	./$(CONFIRM_BIN)
+	./$(AUTH_BIN)
 	./$(SD_SECTOR_BIN)
 	./$(SD_DIAG_BIN)
 	./$(FAT_ROOT_BIN)
@@ -48,6 +54,12 @@ $(VISUAL_BIN): $(VISUAL_SRCS) main/chaon_status.h main/chaon_screen.h main/chaon
 
 $(CONTROL_BIN): $(CONTROL_SRCS) main/chaon_control.h main/chaon_status.h main/chaon_vm.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(CONTROL_SRCS) -o $(CONTROL_BIN)
+
+$(CONFIRM_BIN): $(CONFIRM_SRCS) main/chaon_control.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(CONFIRM_SRCS) -o $(CONFIRM_BIN)
+
+$(AUTH_BIN): $(AUTH_SRCS) main/chaon_exec_auth.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(AUTH_SRCS) -o $(AUTH_BIN)
 
 $(SD_SECTOR_BIN): $(SD_SECTOR_SRCS) main/chaon_sd_sector.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(SD_SECTOR_SRCS) -o $(SD_SECTOR_BIN)
@@ -76,4 +88,4 @@ $(SD_PROBE_BIN): $(SD_PROBE_SRCS) main/chaon_sd_probe.c main/chaon_sd_probe.h ma
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(SD_PROBE_CPPFLAGS) $(SD_PROBE_SRCS) -o $(SD_PROBE_BIN)
 
 clean:
-	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
+	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(CONFIRM_BIN) $(AUTH_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)

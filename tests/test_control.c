@@ -164,7 +164,9 @@ static void test_browse_selection_never_executes(void)
     assert(c.browser_index == 1 && !c.browser_selected);
     assert(gesture(&c, true, 3, 1040, &t) == CHAON_CONTROL_BROWSER_SELECT);
     assert(c.browser_index == 1 && c.browser_selected);
-    assert(gesture(&c, true, 3, 1060, &t) == CHAON_CONTROL_BROWSER_SELECT);
+    assert(gesture(&c, true, 3, 1060, &t) == CHAON_CONTROL_NONE);
+    assert(c.browser_selected);
+    assert(gesture(&c, true, 3, 80, &t) == CHAON_CONTROL_BROWSER_SELECT);
     assert(!c.browser_selected);
     assert(gesture(&c, true, 3, 80, &t) == CHAON_CONTROL_BROWSER_NEXT);
     assert(c.browser_index == 2);
@@ -267,7 +269,9 @@ static void test_browser_exact_hold_boundaries(void)
     assert(c.browser_index==1 && !c.browser_selected);
     assert(gesture(&c,true,2,900,&t)==CHAON_CONTROL_BROWSER_SELECT);
     assert(c.browser_selected);
-    assert(gesture(&c,true,2,2980,&t)==CHAON_CONTROL_BROWSER_SELECT);
+    assert(gesture(&c,true,2,2980,&t)==CHAON_CONTROL_NONE);
+    assert(c.browser_selected && c.browser_active);
+    assert(gesture(&c,true,2,80,&t)==CHAON_CONTROL_BROWSER_SELECT);
     assert(!c.browser_selected && c.browser_active);
     assert(gesture(&c,true,2,3000,&t)==CHAON_CONTROL_BROWSER_CLOSE);
     assert(!c.browser_active && c.state==CHAON_STATUS_READY);
