@@ -254,7 +254,8 @@ bool chaon_screen_render_browser_inspect(const chaon_fat_catalog_t *cat,
         print_text(frame, 9, 62, diagnostic, 1,
                    state == CHAON_INSPECT_VALID ? green : 0xFFE0);
     }
-    print_text(frame, 9, CHAON_SCREEN_SD_Y, "3S EXIT", 1, 0xB7AD);
+    print_text(frame, 9, CHAON_SCREEN_SD_Y,
+               picked ? "TAP UNPICK" : "3S EXIT", 1, 0xB7AD);
     return true;
 }
 
