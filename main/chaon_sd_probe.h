@@ -8,7 +8,8 @@
 #include <stdbool.h>
 
 /* Starts an optional, low-priority SDMMC observation task.
- * No filesystem mount, disk writes or SD-sourced script execution.
+ * No filesystem mount or disk writes. This task never calls the VM or HID;
+ * it publishes only bounded staged data and fresh-source verification.
  * Optional bounded read-only .CHN validation runs in this task only.
  * Failure to start is advisory and must not prevent USB HID operation.
  */

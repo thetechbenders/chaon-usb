@@ -471,7 +471,8 @@ static void probe_task(void *ctx)
                          kind == CHAON_SD_SECTOR_MBR ? "MBR" : "UNKNOWN");
 
                 /* A second read-only scan lists ONLY bounded root metadata.
-                 * No FAT/VFS mount, no SD writes, no card-sourced HID path.
+                 * No FAT/VFS mount or SD writes. The SD task never calls
+                 * the VM or emits HID reports.
                  * Never show names without BPB and LBA validation. */
                 chaon_fat_catalog_t found = {0};
                 chaon_fat_result_t result = CHAON_FAT_INVALID;
