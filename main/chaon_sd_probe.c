@@ -20,6 +20,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 #include "sdmmc_cmd.h"
 
 enum {
@@ -31,7 +32,13 @@ static const char *TAG = "chaon_sd";
 
 /* Only a scalar copy occurs under the SMP lock; never SD, LCD or log I/O.
  * Main UI is the sole display owner. No volatile-only cross-core sharing. */
-static portMUX_TYPE diagnostic_lock = portMUX_INITIALIZER_UNLOCKED;
+/* Task-context mutex: FAT I/O remains outside the lock, and ~3 KB
+ * program publish/copy/clear no longer disables interrupts. */
+static StaticSemaphore_t diagnostic_mutex_storage;
+static SemaphoreHandle_t diagnostic_lock;
+static bool lock_ready(void) { return diagnostic_lock != NULL; }
+#define STATE_LOCK() do { (void)xSemaphoreTake(diagnostic_lock, portMAX_DELAY); } while (0)
+#define STATE_UNLOCK() do { (void)xSemaphoreGive(diagnostic_lock); } while (0)
 static chaon_sd_diag_t diagnostic = CHAON_SD_INIT;
 static chaon_fat_catalog_t catalogue;
 static bool catalogue_valid;
@@ -42,41 +49,41 @@ static chaon_program_stage_t program_stage;
 
 static void publish(chaon_sd_diag_t next)
 {
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     diagnostic = next;
     catalogue_valid = false;
     chaon_inspect_mailbox_clear(&mailbox);
     chaon_program_stage_clear(&program_stage);
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
 }
 
 chaon_sd_diag_t chaon_sd_probe_snapshot(void)
 {
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     const chaon_sd_diag_t copy = diagnostic;
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     return copy;
 }
 
 static void publish_catalog(const chaon_fat_catalog_t *found)
 {
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     catalogue = *found;
     catalogue_valid = true;
     diagnostic = CHAON_SD_CATALOG_OK;
     chaon_inspect_mailbox_clear(&mailbox);
     chaon_program_stage_clear(&program_stage);
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
 }
 
 bool chaon_sd_probe_catalog_snapshot(chaon_fat_catalog_t *result)
 {
     if (!result) return false;
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     const bool valid = catalogue_valid &&
                        diagnostic == CHAON_SD_CATALOG_OK;
     if (valid) *result = catalogue;
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     return valid;
 }
 
@@ -86,7 +93,7 @@ bool chaon_sd_probe_inspect_request(uint8_t index,
                                     const chaon_fat_entry_t *expected)
 {
     if (!expected) return false;
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     bool ok = catalogue_valid && diagnostic == CHAON_SD_CATALOG_OK;
     if (ok) {
         const bool inspect_ok = chaon_inspect_mailbox_request(&mailbox,
@@ -99,7 +106,7 @@ bool chaon_sd_probe_inspect_request(uint8_t index,
             chaon_program_stage_clear(&program_stage);
         }
     }
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     return ok;
 }
 
@@ -108,7 +115,7 @@ bool chaon_sd_probe_inspect_snapshot(uint8_t index,
 {
     if (!expected || !out) return false;
     *out = (chaon_inspection_t){ .state = CHAON_INSPECT_NONE };
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     /* Validate catalogue identity BEFORE touching the caller's summary.
      * Otherwise a stale mailbox value could be copied on a false result. */
     const bool ok = catalogue_valid &&
@@ -120,19 +127,19 @@ bool chaon_sd_probe_inspect_snapshot(uint8_t index,
         catalogue.entries[index].file_size == expected->file_size &&
         catalogue.entries[index].is_directory == expected->is_directory &&
         chaon_inspect_mailbox_snapshot(&mailbox, index, expected, out);
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     return ok;
 }
 
 void chaon_sd_probe_inspect_clear(void)
 {
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     if (mailbox.queued || mailbox.report.state != CHAON_INSPECT_NONE ||
         program_stage.state != CHAON_PROGRAM_STAGE_EMPTY) {
         chaon_inspect_mailbox_clear(&mailbox);
         chaon_program_stage_clear(&program_stage);
     }
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
 }
 
 bool chaon_sd_probe_staged_program_copy(uint8_t index,
@@ -143,7 +150,7 @@ bool chaon_sd_probe_staged_program_copy(uint8_t index,
     if (!generation || !out) return false;
     memset(out, 0, sizeof *out);
     if (!expected) return false;
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     const bool ok = catalogue_valid &&
         diagnostic == CHAON_SD_CATALOG_OK && index < catalogue.count &&
         catalogue.count <= CHAON_FAT_MAX_FILES &&
@@ -153,7 +160,7 @@ bool chaon_sd_probe_staged_program_copy(uint8_t index,
         catalogue.entries[index].is_directory == expected->is_directory &&
         chaon_program_stage_copy(&program_stage, index, expected,
                                  generation, out);
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     return ok;
 }
 
@@ -165,7 +172,7 @@ bool chaon_sd_probe_staged_program_copy_hashed(uint8_t index,
     if (out) memset(out,0,sizeof *out);
     if (digest) memset(digest,0,CHAON_SHA256_SIZE);
     if (!expected || !generation || !out || !digest) return false;
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     const bool ok = catalogue_valid &&
         diagnostic == CHAON_SD_CATALOG_OK &&
         index < catalogue.count &&
@@ -176,7 +183,7 @@ bool chaon_sd_probe_staged_program_copy_hashed(uint8_t index,
         catalogue.entries[index].is_directory==expected->is_directory &&
         chaon_program_stage_copy_hashed(&program_stage,index,expected,
                                         generation,out,digest);
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     return ok;
 }
 
@@ -255,7 +262,7 @@ static bool process_inspection(void)
     uint8_t stage_index = 0;
     chaon_fat_entry_t entry = {0};
     chaon_fat_entry_t stage_entry = {0};
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     const bool inspect_pending = catalogue_valid &&
         chaon_inspect_mailbox_take(&mailbox, &epoch, &index, &entry);
     const bool stage_pending = catalogue_valid &&
@@ -270,12 +277,12 @@ static bool process_inspection(void)
         chaon_inspect_mailbox_clear(&mailbox);
         chaon_program_stage_clear(&program_stage);
     }
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     if (!pending) return false;
 
     chaon_inspection_t summary = inspect_one(index, &entry,
                                              &candidate_program);
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     if (catalogue_valid && diagnostic == CHAON_SD_CATALOG_OK) {
         if (summary.state == CHAON_INSPECT_VALID &&
             !chaon_program_stage_publish_hashed(&program_stage, stage_epoch,
@@ -289,7 +296,7 @@ static bool process_inspection(void)
         }
         chaon_inspect_mailbox_publish(&mailbox, epoch, index, summary);
     }
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     memset(&candidate_program, 0, sizeof candidate_program);
     memset(candidate_digest, 0, sizeof candidate_digest);
     ESP_LOGI(TAG, "INSPECT state=%u count=%u line=%u (READ ONLY)",
@@ -413,6 +420,11 @@ static void probe_task(void *ctx)
 
 void chaon_sd_probe_start(void)
 {
+    diagnostic_lock=xSemaphoreCreateMutexStatic(&diagnostic_mutex_storage);
+    if (!lock_ready()) {
+        ESP_LOGE(TAG, "SD_MUTEX_UNAVAILABLE; read-only SD task disabled");
+        return;
+    }
     if (xTaskCreate(probe_task, "chaon_sd_probe", CHAON_SD_TASK_STACK,
                     NULL, tskIDLE_PRIORITY + 1, NULL) != pdPASS) {
         publish(CHAON_SD_TASK_ERROR);
