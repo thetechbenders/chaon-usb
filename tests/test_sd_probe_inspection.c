@@ -31,7 +31,7 @@ esp_err_t sdmmc_read_sectors(sdmmc_card_t *unused_card, void *destination,
 {
     (void)unused_card;
     assert(count == 1);
-    assert(diagnostic_lock.depth == 0);
+    assert(diagnostic_lock->depth == 0);
     if (start == hook_lba && read_hook) {
         void (*hook)(void) = read_hook;
         read_hook = NULL;
@@ -70,7 +70,7 @@ static void reset_state(void)
     memset(&candidate_program, 0, sizeof candidate_program);
     diagnostic = CHAON_SD_INIT;
     catalogue_valid = false;
-    diagnostic_lock.depth = 0;
+    diagnostic_lock=xSemaphoreCreateMutexStatic(&diagnostic_mutex_storage);
     fail_lba = UINT32_MAX;
     hook_lba = UINT32_MAX;
     read_hook = NULL;
