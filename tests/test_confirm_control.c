@@ -37,6 +37,8 @@ int main(void)
     chaon_control_t c={0};
     int64_t t=0;
     prepare(&c,&t);
+    assert(gesture(&c,&t,4800,true)==CHAON_CONTROL_NONE);
+    assert(c.browser_selected && !c.confirm_active);
     assert(gesture(&c,&t,5100,true)==CHAON_CONTROL_CONFIRM_ENTER);
     assert(c.confirm_active);
     for(int i=0;i<30;i++)assert(poll(&c,&t,false,true,true,true)==CHAON_CONTROL_NONE);
@@ -45,8 +47,11 @@ int main(void)
     assert(!c.confirm_active && !c.browser_active);
     assert(gesture(&c,&t,80,false)==CHAON_CONTROL_ARM);
     c=(chaon_control_t){0};t=0;prepare(&c,&t);
-    assert(gesture(&c,&t,5200,false)==CHAON_CONTROL_BROWSER_CLOSE);
-    assert(!c.confirm_active);
+    assert(gesture(&c,&t,5200,false)==CHAON_CONTROL_NONE);
+    assert(!c.confirm_active && c.browser_selected);
+    assert(gesture(&c,&t,80,false)==CHAON_CONTROL_BROWSER_SELECT);
+    assert(!c.browser_selected);
+    assert(gesture(&c,&t,3100,false)==CHAON_CONTROL_BROWSER_CLOSE);
     c=(chaon_control_t){0};t=0;prepare(&c,&t);
     assert(gesture(&c,&t,5100,true)==CHAON_CONTROL_CONFIRM_ENTER);
     /* Source validity may disappear any moment. No old gesture can arm. */
