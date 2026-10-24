@@ -8,7 +8,8 @@
 #include "chaon_inspect.h"
 
 /* ST7735 on original T-Dongle-S3. Experimental until physically inspected.
- * Failure never blocks USB HID, and backlight remains off on init errors.
+ * Failure never blocks the embedded demo; selected SD execution fails closed.
+ * The backlight remains off on initialization errors.
  */
 bool chaon_lcd_open(void);
 bool chaon_lcd_show(chaon_status_t status, uint32_t remaining_s,
@@ -22,6 +23,4 @@ bool chaon_lcd_show_browser(const chaon_fat_catalog_t *cat,
                             uint8_t index, bool picked);
 bool chaon_lcd_show_browser_inspect(const chaon_fat_catalog_t *cat,
     uint8_t index, bool picked, const chaon_inspection_t *info);
-bool chaon_lcd_show_hold(uint32_t elapsed_ms);
-bool chaon_lcd_show_confirmation(uint32_t remaining_seconds);
 #endif

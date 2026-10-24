@@ -12,7 +12,7 @@ static void close_browser(chaon_control_t *c, bool pressed)
                           c->candidate_pressed;
 }
 
-chaon_control_event_t chaon_control_step_confirmation(chaon_control_t *c,
+chaon_control_event_t chaon_control_step_selection(chaon_control_t *c,
     bool usb_mounted, bool pressed, int64_t now_ms,
     bool catalogue_available, uint8_t catalogue_count,
     bool eligible)
@@ -37,9 +37,6 @@ chaon_control_event_t chaon_control_step_confirmation(chaon_control_t *c,
         c->suppress_release = pressed;
         c->browser_active = false;
         c->browser_selected = false;
-        c->confirm_active = false;
-        c->confirm_release_ready = false;
-        c->confirm_press_seen = false;
         c->browser_index = 0;
         c->browser_count = 0;
     } else if (c->state == CHAON_STATUS_WAIT_USB) {
@@ -90,8 +87,8 @@ chaon_control_event_t chaon_control_step_confirmation(chaon_control_t *c,
                 if (duration >= 0 && c->browser_active) {
                     c->browser_activity_ms = now_ms;
                     if (c->browser_selected) {
-                        /* When PICKED, an incomplete confirmation hold must not
-                         * alias the 3s EXIT gesture or discard selection.
+                        /* When PICKED, a continued hold must not alias the 3s
+                         * EXIT gesture or discard selection.
                          * A deliberate short tap unpicks; EXIT is available
                          * after unpicking, preserving a one-button escape. */
                         if (duration < CHAON_CONTROL_BROWSER_HOLD_MS) {
@@ -149,7 +146,7 @@ chaon_control_event_t chaon_control_step_browser(chaon_control_t *c,
     bool usb_mounted, bool pressed, int64_t now_ms,
     bool catalogue_available, uint8_t catalogue_count)
 {
-    return chaon_control_step_confirmation(c, usb_mounted, pressed, now_ms,
+    return chaon_control_step_selection(c, usb_mounted, pressed, now_ms,
         catalogue_available, catalogue_count, false);
 }
 

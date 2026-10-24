@@ -4,8 +4,7 @@
 #include "chaon_control.h"
 #include "chaon_execution_slot.h"
 /* Portable adapter between debounced controller events and selected-program
- * grant issuance. The main control task is the sole event owner.
- * This adapter is NOT wired into app_main or the VM yet. */
+ * grant issuance. The main control task is the sole event owner. */
 typedef struct {
     bool armed;
     int64_t armed_ms;
