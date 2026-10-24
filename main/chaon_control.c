@@ -25,6 +25,14 @@ chaon_control_event_t chaon_control_step_confirmation(chaon_control_t *c,
         catalogue_available = false;
 
     chaon_control_event_t event = CHAON_CONTROL_NONE;
+    /* PICK completes only after the asynchronous SD inspection is VALID.
+     * Never alias the same held button with ARM or another gesture. */
+    if (c->browser_active && c->browser_selected && eligible &&
+        !pressed && !c->stable_pressed && !c->candidate_pressed &&
+        c->state == CHAON_STATUS_READY) {
+        close_browser(c, false);
+        return CHAON_CONTROL_PICK_READY;
+    }
     if (c->confirm_active && (!usb_mounted || !eligible ||
         !catalogue_available || !catalogue_count ||
         catalogue_count != c->browser_count ||
