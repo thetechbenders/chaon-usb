@@ -1,8 +1,9 @@
 # Phase 2E.2 hardware evidence ledger
 
-Status: **PREFLIGHT COMPLETE; AWAITING EXPLICIT FLASH APPROVAL**. No candidate
-flash, SD-card write, or physical acceptance test was performed while creating
-this ledger.
+Status: **HARDWARE ACCEPTED WITH DOCUMENTED PHYSICAL LIMITATIONS**. The exact
+frozen candidate was flashed and independently read back; all feasible
+original-board checks passed, while fault-injection cases requiring powered
+media access or an interposer remain explicitly BLOCKED.
 
 ## Session identity
 
@@ -79,16 +80,16 @@ uploaded.
 
 | Field | Observation |
 | --- | --- |
-| Explicit approval text/time | NOT YET RECEIVED |
-| Rediscovered ROM port | COM4 during preparation; must rediscover again |
-| Pre-write image hash recheck | NOT RUN for flash session |
-| Write command/log | NOT RUN |
-| Separate verify-flash/log | NOT RUN |
-| Bootloader readback/hash | NOT RUN |
-| Partition readback/hash | NOT RUN |
-| Application readback/hash | NOT RUN |
-| Normal-mode enumeration | NOT RUN |
-| Flash disposition | NOT FLASHED |
+| Explicit approval text/time | `Flash it it's in rom`; recorded `2026-10-24T17:33:16.531-04:00` |
+| Rediscovered ROM port | PASS — exact `303A:1001` parent and interface rediscovered on COM4 immediately before write |
+| Pre-write image hash recheck | PASS — artifact, three candidate images, accepted rollback ZIP and both private factory backups matched their recorded SHA-256 values |
+| Write command/log | PASS — manifest regions only, no full-chip erase, `--before no-reset --after no-reset --no-stub`; local `flash-write.log` |
+| Separate verify-flash/log | PASS — all three regions independently verified; local `flash-verify.log` |
+| Bootloader readback/hash | PASS — 20,832 bytes, byte-identical, `82c19ce825793da7df337ebe59e4cbef057ab76d112316552349094044bd05e2` |
+| Partition readback/hash | PASS — 3,072 bytes, byte-identical, `7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820` |
+| Application readback/hash | PASS — 325,008 bytes, byte-identical, `2ee7a7972b23783e394ace8aef65377781fca9cece434156e3b775533e6abba6` |
+| Normal-mode enumeration | PASS — `303A:4004` / `CHN-S3-DEV`, healthy HID input and keyboard interfaces, no ROM device and no ChaoN COM port |
+| Flash disposition | FLASH VERIFIED; final board state is healthy normal HID mode |
 
 ## Physical acceptance results
 
@@ -98,29 +99,29 @@ RUN when no attempt occurred.
 
 | ID | Test | Setup / expected result | Observed result | Status | Evidence |
 | ---: | --- | --- | --- | --- | --- |
-| 1 | Clean boot / enumeration / inertness | BOOT released; `303A:4004` / `CHN-S3-DEV`, READY, normal LCD/LED, empty editor | Not run | NOT RUN | — |
-| 2 | Embedded demo | No selection; two distinct short gestures; exact fixed demo once | Not run | NOT RUN | — |
-| 3 | Browser and valid PICK | Navigate to `BENIGN.CHN`; valid PICK; no typing | Not run | NOT RUN | — |
-| 4 | Selected filename persistence | `BENIGN.CHN` remains visible in READY and ARMED; no catalogue overwrite | Not run | NOT RUN | — |
-| 5 | Separate ARM / RUN | First gesture arms only; full release; later gesture runs | Not run | NOT RUN | — |
-| 6 | Benign SD execution | Fresh verify; exact fixture text/TAB/ENTER once; no demo | Not run | NOT RUN | — |
-| 7 | Same-size source mutation | Preserve raw identity, change A bytes to B; reject with no output | Not run; specialized access may be required | NOT RUN | — |
-| 8a | SD removal in READY | Revoke selection; no output/resume | Not run | NOT RUN | — |
-| 8b | SD removal in ARMED | Revoke grant; no output/resume | Not run | NOT RUN | — |
-| 8c | SD removal during verification | Catch active verification; fail closed | Not run; short timing window | NOT RUN | — |
-| 9a | BOOT during verification | Catch active verification; cancel with no output/fallback | Not run; short timing window | NOT RUN | — |
-| 9b | BOOT during execution | Cancel `SLOWRUN.CHN`; no continuation or held key | Not run | NOT RUN | — |
-| 10 | USB epoch invalidation | Disconnect while authorized; reconnect inert and unselected | Not run | NOT RUN | — |
-| 11 | 30-second ARM expiry | Wait at least 35 s; READY and no output | Not run | NOT RUN | — |
-| 12a | Verification timeout | Hold read beyond five seconds; fail closed | Not run; fault fixture required | NOT RUN | — |
-| 12b | SD I/O failure | Inject read failure; fail closed | Not run; fault fixture required | NOT RUN | — |
-| 13 | Invalid / empty / oversized / non-CHN | All reject; no selected ARM or HID | Not run | NOT RUN | — |
-| 14 | No demo fallback | Rejected selected RUN emits neither selected nor demo text | Not run | NOT RUN | — |
-| 15 | Single-use authority | No automatic repeat; reselection required for selected rerun | Not run | NOT RUN | — |
-| 16a | BOOT cancel / key release | Cancel active `KEYREL.CHN`; no sticky modifier | Not run | NOT RUN | — |
-| 16b | Transport loss | Disconnect during active typing; no resume/held-key symptom | Not run | NOT RUN | — |
-| 17a | BOOT-held ROM recovery | Rediscover expected ROM identity after candidate tests | Not run | NOT RUN | — |
-| 17b | Accepted-firmware restoration | If separately authorized, restore/readback Phase 2E.1 and return inert READY | Not run | NOT RUN | — |
+| 1 | Clean boot / enumeration / inertness | BOOT released; `303A:4004` / `CHN-S3-DEV`, READY, normal LCD/LED, empty editor | Dan reported READY and no unsolicited typing; Windows independently confirmed healthy HID identity and no COM port | PASS | Local enumeration log; operator report |
+| 2 | Embedded demo | No selection; two distinct short gestures; exact fixed demo once | First gesture armed without output; second typed exactly `ChaoN USB HID smoke test`; READY returned with no stuck key | PASS | Operator report |
+| 3 | Browser and valid PICK | Navigate to `BENIGN.CHN`; valid PICK; no typing | Browsed to and selected `BENIGN.CHN`; output occurred only after later deliberate ARM/RUN | PASS | Operator report |
+| 4 | Selected filename persistence | `BENIGN.CHN` remains visible in READY and ARMED; no catalogue overwrite | Filename remained through two catalogue intervals and in ARMED | PASS | Operator report |
+| 5 | Separate ARM / RUN | First gesture arms only; full release; later gesture runs | Deliberate separate ARM then RUN confirmed | PASS | Operator report |
+| 6 | Benign SD execution | Fresh verify; exact fixture text/TAB/ENTER once; no demo | Emitted exact `ChaoN 2E2 A<TAB>B` fixture output; no unsolicited run | PASS | Operator report; fixture hash |
+| 7 | Same-size source mutation | Preserve raw identity, change A bytes to B; reject with no output | Live raw identity cannot be preserved while modifying the inaccessible powered card; no approved interposer | BLOCKED | Hardware geometry; native regression only |
+| 8a | SD removal in READY | Revoke selection; no output/resume | Powered removal inaccessible. Cold substitute passed: expected SD error/no typing; restoration returned READY/catalogue inertly | NOT APPLICABLE (hot); COLD PASS | Operator report |
+| 8b | SD removal in ARMED | Revoke grant; no output/resume | Powered slot inaccessible; USB-disconnect-while-ARMED revocation passed in test 10 | NOT APPLICABLE | Hardware geometry; test 10 |
+| 8c | SD removal during verification | Catch active verification; fail closed | Powered slot inaccessible; no approved timing/interposer fixture | BLOCKED | Hardware geometry |
+| 9a | BOOT during verification | Catch active verification; cancel with no output/fallback | Verification completes too quickly for reproducible unaided intervention | BLOCKED | Native regression only |
+| 9b | BOOT during execution | Cancel selected execution; no continuation or held key | Cancelled `KEYREL.CHN` during delay; `END` suppressed, READY returned, manual typing normal | PASS | Operator report |
+| 10 | USB epoch invalidation | Disconnect while authorized; reconnect inert and unselected | Disconnect while selected/ARMED returned unselected READY with no resume or typing | PASS | Operator report |
+| 11 | 30-second ARM expiry | Wait at least 35 s; READY and no output | Returned READY after 35 s with no output | PASS | Operator report |
+| 12a | Verification timeout | Hold read beyond five seconds; fail closed | No approved fault fixture can hold a live read beyond five seconds | BLOCKED | Native regression only |
+| 12b | SD I/O failure | Inject read failure; fail closed | Cold loss passed, but live verification I/O failure cannot be injected | BLOCKED | Native regression; cold substitute |
+| 13 | Invalid / empty / oversized / non-CHN | All reject; no selected ARM or HID | Malformed file: `SYNTAX LINE 2`; zero-byte and 2,048-byte files: intentional `TOO LARGE`; TXT: `NOT CHN`; no HID | PASS | Operator report; card hashes; native zero-size assertion |
+| 14 | No demo fallback | Rejected selected RUN emits neither selected nor demo text | USB invalidation paths and rejected PICK paths emitted no selected continuation or demo; dedicated last-moment verification rejection cannot be injected | PARTIAL; STRONG CASE BLOCKED | Tests 10, 13, 16b; native regression |
+| 15 | Single-use authority | No automatic repeat; one tap only arms; a new ARM/RUN may reuse persistent selection with new authority | Completed run did not repeat; one later tap only armed; deliberate disarm emitted nothing; separate two-gesture reruns succeeded | PASS | Operator report |
+| 16a | BOOT cancel / key release | Cancel active `KEYREL.CHN`; no sticky modifier | Cancellation suppressed delayed `END`; READY returned; manual typing showed no stuck key | PASS | Operator report |
+| 16b | Transport loss | Disconnect during active typing; no resume/held-key symptom | Unplug after `START` suppressed `END`; reconnect emitted nothing, returned READY and had no stuck key | PASS | Operator report; host enumeration |
+| 17a | BOOT-held ROM recovery | Rediscover expected ROM identity after candidate tests | `303A:1001` / COM4; ESP32-S3 QFN56 rev v0.2, expected MAC and 16 MB; final reconnect returned healthy HID/READY inertly | PASS | Local ROM and enumeration logs; operator report |
+| 17b | Accepted-firmware restoration | If separately authorized, restore/readback Phase 2E.1 and return inert READY | No rollback-triggering failure; accepted artifact remains hash-verified and local | NOT REQUIRED | Preflight rollback evidence |
 
 ## Evidence locations
 
@@ -132,8 +133,14 @@ recovery directory.
 
 ## Current disposition
 
-**PREFLIGHT COMPLETE; AWAITING EXPLICIT FLASH APPROVAL.**
+**HARDWARE ACCEPTED WITH DOCUMENTED PHYSICAL LIMITATIONS.**
 
-The device remains in ROM download mode after read-only checks. No flash write,
-erase, eFuse operation, SD-card change, normal-mode execution, rollback, merge,
-tag, or release occurred. Physical tests remain NOT RUN.
+The exact frozen candidate was flashed only at manifest offsets and independent
+ROM readback matched all three approved source images byte-for-byte. Physical
+counts are 14 PASS, 0 FAIL, 5 BLOCKED, 1 PARTIAL/strong-case BLOCKED, 2 NOT
+APPLICABLE and 1 NOT REQUIRED, plus a passing cold-card substitute. Blocked
+cases require powered media access or a controlled SD fault/interposer and
+retain separate native evidence. Controlled fixture-only SD changes were
+backed up and hash-verified. Final state is normal `303A:4004` /
+`CHN-S3-DEV`, READY/catalogue, with no automatic typing. No full-chip erase,
+eFuse change, rollback, merge, tag or release occurred; PR #18 remains draft.

@@ -150,9 +150,11 @@ PASS/FAIL/BLOCKED status, and the supporting log or screenshot name.
     change, SD loss, verification failure or timeout, require that the same RUN
     transaction emits neither selected text nor fixed-demo text.
 15. **Single-use authority.** After one successful `BENIGN.CHN` run, require
-    no automatic repeat. A lone subsequent short gesture must not rerun it.
-    Reselect and perform a fresh two-gesture transaction for a second selected
-    run; record both outputs separately.
+    no automatic repeat. A lone subsequent short gesture may only ARM and must
+    not rerun it. The selected file may remain selected; a second execution
+    requires a new, distinct ARM then RUN transaction, which issues a new
+    one-use grant and requests fresh source verification. Record both outputs
+    separately.
 16. **Key release and transport loss.** Cancel `KEYREL.CHN` while it is
     typing, then manually enter lowercase text and verify no sticky modifier.
     In a separate trial disconnect USB during active typing, reconnect with
