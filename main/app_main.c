@@ -300,7 +300,7 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
     }
     if (*lcd_ok) {
         chaon_fat_catalog_t cat;
-        const bool browsing = status == CHAON_STATUS_READY &&
+        const bool browsing = !selected_program.valid && status == CHAON_STATUS_READY &&
                               frame.sd == CHAON_SD_CATALOG_OK &&
                               chaon_sd_probe_catalog_snapshot(&cat);
         if (browsing) {
@@ -315,7 +315,7 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
             }
             last_catalog_index = index;
         }
-        if (status == CHAON_STATUS_READY && selected_program.valid) {
+        if ((status == CHAON_STATUS_READY || status == CHAON_STATUS_ARMED) && selected_program.valid) {
             chaon_fat_catalog_t one = {0};
             one.count = 1;
             one.entries[0] = selected_program.identity;
@@ -501,10 +501,10 @@ void app_main(void)
                     chaon_execution_slot_prepare(&execution_slot,
                         &selected_grant,&selected_program,
                         selected_program.staging_generation,usb_epoch,
-                        selected_program.source_sha256,true) &&
+                        selected_program.source_sha256,fresh) &&
                     chaon_execution_slot_take(&execution_slot,
                         &selected_program,selected_program.staging_generation,
-                        usb_epoch,selected_program.source_sha256,true,
+                        usb_epoch,selected_program.source_sha256,fresh,
                         &execution_program);
                 if (authorized && tud_mounted() &&
                     gpio_get_level(BUTTON_PIN) != 0) {
