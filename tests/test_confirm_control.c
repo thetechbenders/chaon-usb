@@ -37,38 +37,25 @@ int main(void)
     chaon_control_t c={0};
     int64_t t=0;
     prepare(&c,&t);
-    assert(gesture(&c,&t,4800,true)==CHAON_CONTROL_NONE);
-    assert(c.browser_selected && !c.confirm_active);
-    assert(gesture(&c,&t,5100,true)==CHAON_CONTROL_CONFIRM_ENTER);
-    assert(c.confirm_active);
-    for(int i=0;i<30;i++)assert(poll(&c,&t,false,true,true,true)==CHAON_CONTROL_NONE);
-    assert(c.confirm_release_ready);
-    assert(gesture(&c,&t,1600,true)==CHAON_CONTROL_CONFIRM_ACK);
-    assert(!c.confirm_active && !c.browser_active);
+    /* Inspection finishes after a deliberate PICK. */
+    assert(poll(&c,&t,false,true,true,true)==CHAON_CONTROL_PICK_READY);
+    assert(!c.browser_active && !c.browser_selected &&
+           c.state==CHAON_STATUS_READY);
+    assert(poll(&c,&t,false,true,true,true)==CHAON_CONTROL_NONE);
     assert(gesture(&c,&t,80,false)==CHAON_CONTROL_ARM);
-    c=(chaon_control_t){0};t=0;prepare(&c,&t);
-    assert(gesture(&c,&t,5200,false)==CHAON_CONTROL_NONE);
-    assert(!c.confirm_active && c.browser_selected);
+    assert(gesture(&c,&t,80,false)==CHAON_CONTROL_EXECUTE);
+    c=(chaon_control_t){0}; t=0; prepare(&c,&t);
+    assert(poll(&c,&t,false,false,true,true)==CHAON_CONTROL_NONE);
+    assert(c.browser_selected && c.browser_active);
     assert(gesture(&c,&t,80,false)==CHAON_CONTROL_BROWSER_SELECT);
     assert(!c.browser_selected);
     assert(gesture(&c,&t,3100,false)==CHAON_CONTROL_BROWSER_CLOSE);
-    c=(chaon_control_t){0};t=0;prepare(&c,&t);
-    assert(gesture(&c,&t,5100,true)==CHAON_CONTROL_CONFIRM_ENTER);
-    /* Source validity may disappear any moment. No old gesture can arm. */
-    assert(poll(&c,&t,false,false,true,true)==CHAON_CONTROL_CONFIRM_CANCEL);
-    assert(!c.confirm_active && !c.browser_active);
-    c=(chaon_control_t){0};t=0;prepare(&c,&t);
-    assert(gesture(&c,&t,5100,true)==CHAON_CONTROL_CONFIRM_ENTER);
-    assert(poll(&c,&t,false,true,false,true)==CHAON_CONTROL_CONFIRM_CANCEL);
-    c=(chaon_control_t){0};t=0;prepare(&c,&t);
-    assert(gesture(&c,&t,5100,true)==CHAON_CONTROL_CONFIRM_ENTER);
-    t+=CHAON_CONTROL_CONFIRM_TTL_MS;
-    assert(poll(&c,&t,false,true,true,true)==CHAON_CONTROL_CONFIRM_CANCEL);
-    c=(chaon_control_t){0};t=0;prepare(&c,&t);
-    assert(gesture(&c,&t,5100,true)==CHAON_CONTROL_CONFIRM_ENTER);
-    for(int i=0;i<30;i++)(void)poll(&c,&t,false,true,true,true);
-    assert(gesture(&c,&t,80,true)==CHAON_CONTROL_CONFIRM_CANCEL);
-    assert(!c.confirm_active);
-    puts("ChaoN inert confirmation gesture tests: PASS");
+    c=(chaon_control_t){0}; t=0; prepare(&c,&t);
+    assert(poll(&c,&t,true,true,true,true)==CHAON_CONTROL_NONE);
+    assert(c.browser_active && c.browser_selected);
+    /* USB loss must never complete PICK. */
+    assert(poll(&c,&t,false,true,false,true)!=CHAON_CONTROL_PICK_READY);
+    assert(!c.browser_active);
+    puts("ChaoN PICK READY gesture tests: PASS");
     return 0;
 }
