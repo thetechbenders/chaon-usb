@@ -19,6 +19,8 @@ EXEC_SLOT_SRCS := main/chaon_execution_slot.c main/chaon_selection.c tests/test_
 EXEC_SLOT_BIN := tests/chaon_execution_slot_tests
 RUN_AUTH_SRCS := main/chaon_run_authority.c main/chaon_execution_slot.c main/chaon_selection.c tests/test_run_authority.c
 RUN_AUTH_BIN := tests/chaon_run_authority_tests
+CONTROL_AUTH_SRCS := main/chaon_control.c main/chaon_run_authority.c main/chaon_execution_slot.c main/chaon_selection.c tests/test_control_authority.c
+CONTROL_AUTH_BIN := tests/chaon_control_authority_tests
 SD_SECTOR_SRCS := main/chaon_sd_sector.c tests/test_sd_sector.c
 SD_SECTOR_BIN := tests/chaon_sd_sector_tests
 
@@ -39,7 +41,7 @@ SD_PROBE_BIN := tests/chaon_sd_probe_inspection_tests
 SD_PROBE_CPPFLAGS := -Itests/sd_probe_stubs
 
 .PHONY: test clean
-test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(CONFIRM_BIN) $(AUTH_BIN) $(SELECTION_BIN) $(HASH_BIN) $(EXEC_SLOT_BIN) $(RUN_AUTH_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
+test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(CONFIRM_BIN) $(AUTH_BIN) $(SELECTION_BIN) $(HASH_BIN) $(EXEC_SLOT_BIN) $(RUN_AUTH_BIN) $(CONTROL_AUTH_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
 	./$(NATIVE_BIN)
 	./$(VISUAL_BIN)
 	./$(CONTROL_BIN)
@@ -49,6 +51,7 @@ test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(CONFIRM_BIN) $(AUTH_BIN) $(SE
 	./$(HASH_BIN)
 	./$(EXEC_SLOT_BIN)
 	./$(RUN_AUTH_BIN)
+	./$(CONTROL_AUTH_BIN)
 	./$(SD_SECTOR_BIN)
 	./$(SD_DIAG_BIN)
 	./$(FAT_ROOT_BIN)
@@ -85,6 +88,9 @@ $(EXEC_SLOT_BIN): $(EXEC_SLOT_SRCS) main/chaon_execution_slot.h
 $(RUN_AUTH_BIN): $(RUN_AUTH_SRCS) main/chaon_run_authority.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(RUN_AUTH_SRCS) -o $(RUN_AUTH_BIN)
 
+$(CONTROL_AUTH_BIN): $(CONTROL_AUTH_SRCS) main/chaon_run_authority.h main/chaon_control.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(CONTROL_AUTH_SRCS) -o $(CONTROL_AUTH_BIN)
+
 $(SD_SECTOR_BIN): $(SD_SECTOR_SRCS) main/chaon_sd_sector.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(SD_SECTOR_SRCS) -o $(SD_SECTOR_BIN)
 
@@ -112,4 +118,4 @@ $(SD_PROBE_BIN): $(SD_PROBE_SRCS) main/chaon_sd_probe.c main/chaon_sd_probe.h ma
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(SD_PROBE_CPPFLAGS) $(SD_PROBE_SRCS) -o $(SD_PROBE_BIN)
 
 clean:
-	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(CONFIRM_BIN) $(AUTH_BIN) $(SELECTION_BIN) $(HASH_BIN) $(EXEC_SLOT_BIN) $(RUN_AUTH_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
+	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(CONFIRM_BIN) $(AUTH_BIN) $(SELECTION_BIN) $(HASH_BIN) $(EXEC_SLOT_BIN) $(RUN_AUTH_BIN) $(CONTROL_AUTH_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
