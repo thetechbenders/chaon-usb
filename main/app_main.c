@@ -397,6 +397,11 @@ void app_main(void)
             chaon_control_step_confirmation(&control, connected, pressed, now_ms,
                 catalog_valid, catalog_valid ? current_catalog.count : 0,
                 valid_selected_inspection);
+        /* This is the sole production producer of a selected-program
+         * grant: the real debounced physical controller's ARM/RUN events. */
+        (void)chaon_run_authority_step(&selected_authority,event,now_ms,
+            connected,catalog_valid && selected_program.valid,
+            &selected_program,&selected_grant);
         if (event == CHAON_CONTROL_PICK_READY) {
             uint32_t generation=0;
             uint8_t digest[CHAON_SOURCE_SHA256_BYTES]={0};
