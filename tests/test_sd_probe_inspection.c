@@ -11,6 +11,7 @@ unsigned test_lock_entries;
 /* Including the production translation unit keeps static scratch ownership
  * intact while the lightweight headers replace only ESP-IDF host services. */
 #include "chaon_sd_probe.c"
+#include "chaon_source_verify.h"
 
 enum {
     IMAGE_SECTORS = 1024,
@@ -31,7 +32,7 @@ esp_err_t sdmmc_read_sectors(sdmmc_card_t *unused_card, void *destination,
 {
     (void)unused_card;
     assert(count == 1);
-    assert(diagnostic_lock.depth == 0);
+    assert(diagnostic_lock->depth == 0);
     if (start == hook_lba && read_hook) {
         void (*hook)(void) = read_hook;
         read_hook = NULL;
@@ -64,13 +65,14 @@ static void reset_state(void)
     memset(&catalogue, 0, sizeof catalogue);
     memset(&mailbox, 0, sizeof mailbox);
     memset(&program_stage, 0, sizeof program_stage);
+    memset(&verify_job,0,sizeof verify_job);
     memset(sector_zero, 0, sizeof sector_zero);
     memset(inspection_source, 0, sizeof inspection_source);
     memset(&inspection_workspace, 0, sizeof inspection_workspace);
     memset(&candidate_program, 0, sizeof candidate_program);
     diagnostic = CHAON_SD_INIT;
     catalogue_valid = false;
-    diagnostic_lock.depth = 0;
+    diagnostic_lock=xSemaphoreCreateMutexStatic(&diagnostic_mutex_storage);
     fail_lba = UINT32_MAX;
     hook_lba = UINT32_MAX;
     read_hook = NULL;
@@ -209,8 +211,73 @@ static void test_mid_read_cancellation(void)
     assert(program_stage.state == CHAON_PROGRAM_STAGE_EMPTY);
 }
 
+static void test_exact_source_freshness(void)
+{
+    static const uint8_t original[] = "TYPE \"SAFE\"\n";
+    static const uint8_t changed[]  = "TYPE \"EVIL\"\n";
+    uint8_t scratch[2048] = {0};
+    uint8_t hash[CHAON_SHA256_SIZE]={0};
+    reset_state();
+    build_single_file("FRESH   CHN",original,sizeof original-1);
+    chaon_fat_catalog_t found=list_catalogue();
+    chaon_source_sha256(original,sizeof original-1,hash);
+    assert(chaon_source_verify(read_sector_only,&card,CARD_SECTORS,
+        sector_zero,0,&found.entries[0],hash,scratch));
+    /* Same raw DOS filename, size, first cluster and catalogue entry. */
+    memcpy(image[FILE_LBA],changed,sizeof changed-1);
+    assert(!chaon_source_verify(read_sector_only,&card,CARD_SECTORS,
+        sector_zero,0,&found.entries[0],hash,scratch));
+    assert(all_zero(scratch,sizeof scratch));
+    fail_lba=FILE_LBA;
+    assert(!chaon_source_verify(read_sector_only,&card,CARD_SECTORS,
+        sector_zero,0,&found.entries[0],hash,scratch));
+}
+
+static void test_verify_transaction(void)
+{
+    static const uint8_t original[]="TYPE \"SAFE\"\n";
+    static const uint8_t changed[] ="TYPE \"EVIL\"\n";
+    reset_state();
+    build_single_file("VTRANS  CHN",original,sizeof original-1);
+    const chaon_fat_catalog_t found=list_catalogue();
+    publish_catalog(&found);
+    assert(chaon_sd_probe_inspect_request(0,&found.entries[0]));
+    assert(!process_inspection());
+    assert(program_stage.state==CHAON_PROGRAM_STAGE_READY);
+    uint32_t generation=program_stage.generation;
+    uint8_t digest[CHAON_SHA256_SIZE];
+    memcpy(digest,program_stage.source_sha256,sizeof digest);
+    uint32_t id=chaon_sd_probe_verify_request(0,&found.entries[0],
+                                             generation,digest);
+    assert(id);
+    assert(chaon_sd_probe_verify_poll(id)==CHAON_SD_VERIFY_WAIT);
+    assert(!process_verification());
+    assert(chaon_sd_probe_verify_poll(id)==CHAON_SD_VERIFY_PASS);
+    assert(chaon_sd_probe_verify_poll(id)==CHAON_SD_VERIFY_FAIL);
+    /* Rewrite in place, preserving FAT identity. */
+    memcpy(image[FILE_LBA],changed,sizeof changed-1);
+    id=chaon_sd_probe_verify_request(0,&found.entries[0],generation,digest);
+    assert(id);
+    assert(process_verification());
+    assert(chaon_sd_probe_verify_poll(id)==CHAON_SD_VERIFY_FAIL);
+    memcpy(image[FILE_LBA],original,sizeof original-1);
+    id=chaon_sd_probe_verify_request(0,&found.entries[0],generation,digest);
+    assert(id);
+    /* A cancellation during the actual card read invalidates the reply. */
+    hook_lba=FILE_LBA;
+    read_hook=chaon_sd_probe_verify_cancel;
+    (void)process_verification();
+    assert(chaon_sd_probe_verify_poll(id)==CHAON_SD_VERIFY_FAIL);
+    id=chaon_sd_probe_verify_request(0,&found.entries[0],generation,digest);
+    assert(id);
+    chaon_sd_probe_verify_cancel();
+    assert(chaon_sd_probe_verify_poll(id)==CHAON_SD_VERIFY_FAIL);
+}
+
 int main(void)
 {
+    test_exact_source_freshness();
+    test_verify_transaction();
     test_success_and_parser_rejection();
     test_reader_rejections();
     test_mid_read_cancellation();

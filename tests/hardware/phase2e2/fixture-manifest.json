@@ -1,0 +1,56 @@
+[
+  {
+    "filename": "BENIGN.CHN",
+    "bytes": 86,
+    "sha256": "db18258b1d9c744fa7f8582b81d56a18e23bfdbf610f8570d0ab714a0b54aae0",
+    "expectation": "valid, 5 instructions"
+  },
+  {
+    "filename": "SLOWRUN.CHN",
+    "bytes": 51,
+    "sha256": "f658f962b280f5297ea964ce7da9e2c39d8da00edb10e4c5cad364eb89282c0a",
+    "expectation": "valid, 5 instructions"
+  },
+  {
+    "filename": "KEYREL.CHN",
+    "bytes": 109,
+    "sha256": "b10831ad8aae2a8a579b70da4a67c1dfd688ffc2b6b0253f2eaf4fd2f9ee3f9e",
+    "expectation": "valid, 5 instructions"
+  },
+  {
+    "filename": "FRESHA.CHN",
+    "bytes": 31,
+    "sha256": "311ac62eabfd02c2f98a18587a538e7b3f6f865297f15393e0c53efa5e16d348",
+    "expectation": "valid, 3 instructions; equal length to FRESHB.CHN"
+  },
+  {
+    "filename": "FRESHB.CHN",
+    "bytes": 31,
+    "sha256": "1bac9dc4d746e71e52a3fbcabcfdac7550329bd036bdafda989c71c01b631268",
+    "expectation": "valid, 3 instructions; equal length to FRESHA.CHN"
+  },
+  {
+    "filename": "BADGRAM.CHN",
+    "bytes": 29,
+    "sha256": "198657c36e2e4a3db9da417d6127acdc2f836f5235927740d2ffb15485f58137",
+    "expectation": "syntax rejection on line 2"
+  },
+  {
+    "filename": "EMPTY.CHN",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "expectation": "empty-source rejection"
+  },
+  {
+    "filename": "OVER2048.CHN",
+    "bytes": 2048,
+    "sha256": "73b5f3ab2f561073532806be2ed55bac8bff29ac10123404fd8b6892d32d5e08",
+    "expectation": "source-ceiling rejection"
+  },
+  {
+    "filename": "CONTROL.TXT",
+    "bytes": 31,
+    "sha256": "c74eb0f8a416cdba0d10be039668c8c77f34e68b2698c566ad63cb660f5ffa6b",
+    "expectation": "parser-valid bytes; rejected by FAT extension boundary"
+  }
+]

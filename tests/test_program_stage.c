@@ -226,6 +226,32 @@ static void test_malformed_requests(void)
     assert(all_zero(&copied,sizeof copied));
 }
 
+static void test_hashed_stage(void)
+{
+    chaon_program_stage_t stage={0};
+    chaon_fat_catalog_t c=catalog();
+    uint32_t generation=0, copied_generation=0;
+    uint8_t index=0, digest[CHAON_SHA256_SIZE]={0}, copied_digest[CHAON_SHA256_SIZE]={0};
+    chaon_fat_entry_t identity={0};
+    assert(chaon_program_stage_request(&stage,&c,0,&c.entries[0]));
+    take(&stage,&generation,&index,&identity);
+    assert(compile("TAB\n").state==CHAON_INSPECT_VALID);
+    assert(!chaon_program_stage_publish_hashed(&stage,generation,index,
+                                                &identity,&candidate,digest));
+    assert(stage.state==CHAON_PROGRAM_STAGE_PENDING);
+    chaon_source_sha256((const uint8_t *)"TAB\n",4,digest);
+    assert(chaon_program_stage_publish_hashed(&stage,generation,index,
+                                               &identity,&candidate,digest));
+    assert(chaon_program_stage_copy_hashed(&stage,index,&identity,
+               &copied_generation,&copied,copied_digest));
+    assert(copied_generation==generation);
+    assert(memcmp(copied_digest,digest,sizeof digest)==0);
+    chaon_program_stage_clear(&stage);
+    assert(!chaon_program_stage_copy_hashed(&stage,index,&identity,
+               &copied_generation,&copied,copied_digest));
+    assert(all_zero(copied_digest,sizeof copied_digest));
+}
+
 int main(void)
 {
     test_valid_stage_and_clear();
@@ -233,6 +259,7 @@ int main(void)
     test_generation_replacement_and_identity();
     test_failed_and_partial_program_rejection();
     test_malformed_requests();
+    test_hashed_stage();
     printf("ChaoN bounded program staging tests: PASS (program=%zu stage=%zu)\n",
            sizeof(chaon_program_t),sizeof(chaon_program_stage_t));
     return 0;

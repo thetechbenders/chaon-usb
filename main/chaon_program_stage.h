@@ -7,6 +7,7 @@
 
 #include "chaon_fat_ro.h"
 #include "chaon_script.h"
+#include "chaon_source_sha256.h"
 
 /* One fixed-capacity staged program. The enclosing SD service owns this
  * object for firmware lifetime and MUST serialize every call. A request
@@ -27,6 +28,7 @@ typedef struct {
     uint8_t index;
     chaon_fat_entry_t identity;
     chaon_program_t program;
+    uint8_t source_sha256[CHAON_SHA256_SIZE];
 } chaon_program_stage_t;
 
 void chaon_program_stage_clear(chaon_program_stage_t *stage);
@@ -40,6 +42,11 @@ bool chaon_program_stage_publish(chaon_program_stage_t *stage,
     uint32_t generation, uint8_t index,
     const chaon_fat_entry_t *identity,
     const chaon_program_t *validated_program);
+/* Published hash MUST come from the same source bytes as validated_program. */
+bool chaon_program_stage_publish_hashed(chaon_program_stage_t *stage,
+    uint32_t generation, uint8_t index, const chaon_fat_entry_t *identity,
+    const chaon_program_t *validated_program,
+    const uint8_t digest[CHAON_SHA256_SIZE]);
 /* The caller owns `out`; firmware callers must use static/non-stack storage.
  * Success also returns the exact stage generation. Failure zeroes generation
  * and clears `out`. The stage remains owned by the SD service. */
@@ -47,4 +54,9 @@ bool chaon_program_stage_copy(const chaon_program_stage_t *stage,
     uint8_t index, const chaon_fat_entry_t *identity,
     uint32_t *generation, chaon_program_t *out);
 
+/* Copy a READY program and its digest coherently under the caller lock. */
+bool chaon_program_stage_copy_hashed(const chaon_program_stage_t *stage,
+    uint8_t index, const chaon_fat_entry_t *identity,
+    uint32_t *generation, chaon_program_t *out,
+    uint8_t digest[CHAON_SHA256_SIZE]);
 #endif

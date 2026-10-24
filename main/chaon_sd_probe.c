@@ -9,6 +9,7 @@
 #include "chaon_fat_ro.h"
 #include "chaon_inspect_mailbox.h"
 #include "chaon_program_stage.h"
+#include "chaon_source_verify.h"
 #include <string.h>
 
 #include <stdbool.h>
@@ -20,6 +21,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 #include "sdmmc_cmd.h"
 
 enum {
@@ -31,7 +33,13 @@ static const char *TAG = "chaon_sd";
 
 /* Only a scalar copy occurs under the SMP lock; never SD, LCD or log I/O.
  * Main UI is the sole display owner. No volatile-only cross-core sharing. */
-static portMUX_TYPE diagnostic_lock = portMUX_INITIALIZER_UNLOCKED;
+/* Task-context mutex: FAT I/O remains outside the lock, and ~3 KB
+ * program publish/copy/clear no longer disables interrupts. */
+static StaticSemaphore_t diagnostic_mutex_storage;
+static SemaphoreHandle_t diagnostic_lock;
+static bool lock_ready(void) { return diagnostic_lock != NULL; }
+#define STATE_LOCK() do { (void)xSemaphoreTake(diagnostic_lock, portMAX_DELAY); } while (0)
+#define STATE_UNLOCK() do { (void)xSemaphoreGive(diagnostic_lock); } while (0)
 static chaon_sd_diag_t diagnostic = CHAON_SD_INIT;
 static chaon_fat_catalog_t catalogue;
 static bool catalogue_valid;
@@ -39,44 +47,122 @@ static chaon_inspect_mailbox_t mailbox;
 /* One fixed-capacity program slot. The SD service owns it for the lifetime
  * of the firmware and all access is serialized by diagnostic_lock. */
 static chaon_program_stage_t program_stage;
+/* Single SD task owns physical reads. Requests/results are tiny metadata
+ * and are synchronized by diagnostic_lock. Nonzero IDs defeat stale replies.
+ * Each result can be consumed once. */
+static struct {
+    uint32_t sequence;
+    bool pending;
+    bool completed;
+    bool success;
+    uint8_t index;
+    uint32_t generation;
+    chaon_fat_entry_t entry;
+    uint8_t digest[CHAON_SHA256_SIZE];
+} verify_job;
+
+static void verify_invalidate_locked(void)
+{
+    if (++verify_job.sequence == 0) ++verify_job.sequence;
+    verify_job.pending = false;
+    verify_job.completed = false;
+    verify_job.success = false;
+    verify_job.generation = 0;
+    memset(&verify_job.entry,0,sizeof verify_job.entry);
+    memset(verify_job.digest,0,sizeof verify_job.digest);
+}
+
+void chaon_sd_probe_verify_cancel(void)
+{
+    if (!lock_ready()) return;
+    STATE_LOCK();
+    verify_invalidate_locked();
+    STATE_UNLOCK();
+}
+
+uint32_t chaon_sd_probe_verify_request(uint8_t index,
+    const chaon_fat_entry_t *expected, uint32_t generation,
+    const uint8_t digest[CHAON_SHA256_SIZE])
+{
+    if (!lock_ready() || !expected || !digest || !generation) return 0;
+    STATE_LOCK();
+    verify_invalidate_locked();
+    const bool ok = catalogue_valid && diagnostic == CHAON_SD_CATALOG_OK &&
+        index < catalogue.count && program_stage.state == CHAON_PROGRAM_STAGE_READY &&
+        program_stage.index == index && program_stage.generation == generation &&
+        memcmp(program_stage.source_sha256,digest,CHAON_SHA256_SIZE)==0 &&
+        memcmp(&program_stage.identity,expected,sizeof *expected)==0 &&
+        memcmp(&catalogue.entries[index],expected,sizeof *expected)==0;
+    uint32_t id=0;
+    if (ok) {
+        verify_job.index=index;
+        verify_job.entry=*expected;
+        verify_job.generation=generation;
+        memcpy(verify_job.digest,digest,CHAON_SHA256_SIZE);
+        verify_job.pending=true;
+        id=verify_job.sequence;
+    }
+    STATE_UNLOCK();
+    return id;
+}
+
+chaon_sd_verify_result_t chaon_sd_probe_verify_poll(uint32_t id)
+{
+    if (!lock_ready() || !id) return CHAON_SD_VERIFY_FAIL;
+    STATE_LOCK();
+    chaon_sd_verify_result_t result=CHAON_SD_VERIFY_FAIL;
+    if (verify_job.sequence==id) {
+        if (verify_job.pending || !verify_job.completed)
+            result=CHAON_SD_VERIFY_WAIT;
+        else {
+            result=verify_job.success ? CHAON_SD_VERIFY_PASS : CHAON_SD_VERIFY_FAIL;
+            verify_invalidate_locked();
+        }
+    }
+    STATE_UNLOCK();
+    return result;
+}
+
+
 
 static void publish(chaon_sd_diag_t next)
 {
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     diagnostic = next;
     catalogue_valid = false;
     chaon_inspect_mailbox_clear(&mailbox);
     chaon_program_stage_clear(&program_stage);
-    portEXIT_CRITICAL(&diagnostic_lock);
+    verify_invalidate_locked();
+    STATE_UNLOCK();
 }
 
 chaon_sd_diag_t chaon_sd_probe_snapshot(void)
 {
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     const chaon_sd_diag_t copy = diagnostic;
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     return copy;
 }
 
 static void publish_catalog(const chaon_fat_catalog_t *found)
 {
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     catalogue = *found;
     catalogue_valid = true;
     diagnostic = CHAON_SD_CATALOG_OK;
     chaon_inspect_mailbox_clear(&mailbox);
     chaon_program_stage_clear(&program_stage);
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
 }
 
 bool chaon_sd_probe_catalog_snapshot(chaon_fat_catalog_t *result)
 {
     if (!result) return false;
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     const bool valid = catalogue_valid &&
                        diagnostic == CHAON_SD_CATALOG_OK;
     if (valid) *result = catalogue;
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     return valid;
 }
 
@@ -86,7 +172,7 @@ bool chaon_sd_probe_inspect_request(uint8_t index,
                                     const chaon_fat_entry_t *expected)
 {
     if (!expected) return false;
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     bool ok = catalogue_valid && diagnostic == CHAON_SD_CATALOG_OK;
     if (ok) {
         const bool inspect_ok = chaon_inspect_mailbox_request(&mailbox,
@@ -99,7 +185,7 @@ bool chaon_sd_probe_inspect_request(uint8_t index,
             chaon_program_stage_clear(&program_stage);
         }
     }
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     return ok;
 }
 
@@ -108,7 +194,7 @@ bool chaon_sd_probe_inspect_snapshot(uint8_t index,
 {
     if (!expected || !out) return false;
     *out = (chaon_inspection_t){ .state = CHAON_INSPECT_NONE };
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     /* Validate catalogue identity BEFORE touching the caller's summary.
      * Otherwise a stale mailbox value could be copied on a false result. */
     const bool ok = catalogue_valid &&
@@ -120,19 +206,20 @@ bool chaon_sd_probe_inspect_snapshot(uint8_t index,
         catalogue.entries[index].file_size == expected->file_size &&
         catalogue.entries[index].is_directory == expected->is_directory &&
         chaon_inspect_mailbox_snapshot(&mailbox, index, expected, out);
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     return ok;
 }
 
 void chaon_sd_probe_inspect_clear(void)
 {
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     if (mailbox.queued || mailbox.report.state != CHAON_INSPECT_NONE ||
         program_stage.state != CHAON_PROGRAM_STAGE_EMPTY) {
         chaon_inspect_mailbox_clear(&mailbox);
         chaon_program_stage_clear(&program_stage);
+        verify_invalidate_locked();
     }
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
 }
 
 bool chaon_sd_probe_staged_program_copy(uint8_t index,
@@ -143,7 +230,7 @@ bool chaon_sd_probe_staged_program_copy(uint8_t index,
     if (!generation || !out) return false;
     memset(out, 0, sizeof *out);
     if (!expected) return false;
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     const bool ok = catalogue_valid &&
         diagnostic == CHAON_SD_CATALOG_OK && index < catalogue.count &&
         catalogue.count <= CHAON_FAT_MAX_FILES &&
@@ -153,7 +240,30 @@ bool chaon_sd_probe_staged_program_copy(uint8_t index,
         catalogue.entries[index].is_directory == expected->is_directory &&
         chaon_program_stage_copy(&program_stage, index, expected,
                                  generation, out);
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
+    return ok;
+}
+
+bool chaon_sd_probe_staged_program_copy_hashed(uint8_t index,
+    const chaon_fat_entry_t *expected, uint32_t *generation,
+    chaon_program_t *out, uint8_t digest[32])
+{
+    if (generation) *generation=0;
+    if (out) memset(out,0,sizeof *out);
+    if (digest) memset(digest,0,CHAON_SHA256_SIZE);
+    if (!expected || !generation || !out || !digest) return false;
+    STATE_LOCK();
+    const bool ok = catalogue_valid &&
+        diagnostic == CHAON_SD_CATALOG_OK &&
+        index < catalogue.count &&
+        catalogue.count <= CHAON_FAT_MAX_FILES &&
+        memcmp(catalogue.entries[index].raw_name,expected->raw_name,11)==0 &&
+        catalogue.entries[index].first_cluster==expected->first_cluster &&
+        catalogue.entries[index].file_size==expected->file_size &&
+        catalogue.entries[index].is_directory==expected->is_directory &&
+        chaon_program_stage_copy_hashed(&program_stage,index,expected,
+                                        generation,out,digest);
+    STATE_UNLOCK();
     return ok;
 }
 
@@ -182,6 +292,7 @@ static void clear_sector_scratch(void)
 static uint8_t inspection_source[CHAON_MAX_SOURCE];
 static chaon_inspect_workspace_t inspection_workspace;
 static chaon_program_t candidate_program;
+static uint8_t candidate_digest[CHAON_SHA256_SIZE];
 
 static chaon_inspection_t inspect_one(uint8_t index,
     const chaon_fat_entry_t *identity, chaon_program_t *candidate)
@@ -189,6 +300,7 @@ static chaon_inspection_t inspect_one(uint8_t index,
     size_t size = 0;
     chaon_inspection_t info = { .state = CHAON_INSPECT_BAD_MEDIA };
     memset(candidate, 0, sizeof *candidate);
+    memset(candidate_digest, 0, sizeof candidate_digest);
     memset(&inspection_workspace, 0, sizeof inspection_workspace);
     const chaon_fat_file_result_t status =
         chaon_fat_read_script(read_sector_only, &card,
@@ -198,6 +310,8 @@ static chaon_inspection_t inspect_one(uint8_t index,
         case CHAON_FAT_FILE_OK:
             info = chaon_inspect_compile_bytes(inspection_source, size,
                 &inspection_workspace, candidate);
+            if (info.state == CHAON_INSPECT_VALID)
+                chaon_source_sha256(inspection_source, size, candidate_digest);
             break;
         case CHAON_FAT_FILE_UNSUPPORTED:
             info.state = CHAON_INSPECT_NOT_SCRIPT; break;
@@ -213,9 +327,49 @@ static chaon_inspection_t inspect_one(uint8_t index,
     clear_sector_scratch();
     memset(inspection_source, 0, sizeof inspection_source);
     memset(&inspection_workspace, 0, sizeof inspection_workspace);
-    if (info.state != CHAON_INSPECT_VALID)
+    if (info.state != CHAON_INSPECT_VALID) {
         memset(candidate, 0, sizeof *candidate);
+        memset(candidate_digest, 0, sizeof candidate_digest);
+    }
     return info;
+}
+
+static bool process_verification(void)
+{
+    uint32_t id=0, generation=0;
+    uint8_t index=0, digest[CHAON_SHA256_SIZE]={0};
+    chaon_fat_entry_t entry={0};
+    STATE_LOCK();
+    if (verify_job.pending && catalogue_valid &&
+        diagnostic==CHAON_SD_CATALOG_OK) {
+        id=verify_job.sequence;
+        index=verify_job.index;
+        entry=verify_job.entry;
+        generation=verify_job.generation;
+        memcpy(digest,verify_job.digest,sizeof digest);
+        verify_job.pending=false;
+    }
+    STATE_UNLOCK();
+    if (!id) return false;
+    /* No mutex held across disk I/O, hash computation or scratch wiping. */
+    const bool fresh=chaon_source_verify(read_sector_only,&card,
+        (uint32_t)card.csd.capacity,sector_zero,index,&entry,digest,
+        inspection_source);
+    STATE_LOCK();
+    if (verify_job.sequence==id && !verify_job.pending &&
+        !verify_job.completed) {
+        verify_job.success=fresh && catalogue_valid &&
+            diagnostic==CHAON_SD_CATALOG_OK &&
+            program_stage.state==CHAON_PROGRAM_STAGE_READY &&
+            program_stage.generation==generation &&
+            program_stage.index==index &&
+            memcmp(program_stage.source_sha256,digest,sizeof digest)==0 &&
+            memcmp(&program_stage.identity,&entry,sizeof entry)==0;
+        verify_job.completed=true;
+    }
+    STATE_UNLOCK();
+    memset(digest,0,sizeof digest);
+    return !fresh; /* Forces reinitialization on IO/read failure, fail cold. */
 }
 
 static bool process_inspection(void)
@@ -226,7 +380,7 @@ static bool process_inspection(void)
     uint8_t stage_index = 0;
     chaon_fat_entry_t entry = {0};
     chaon_fat_entry_t stage_entry = {0};
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     const bool inspect_pending = catalogue_valid &&
         chaon_inspect_mailbox_take(&mailbox, &epoch, &index, &entry);
     const bool stage_pending = catalogue_valid &&
@@ -241,16 +395,16 @@ static bool process_inspection(void)
         chaon_inspect_mailbox_clear(&mailbox);
         chaon_program_stage_clear(&program_stage);
     }
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     if (!pending) return false;
 
     chaon_inspection_t summary = inspect_one(index, &entry,
                                              &candidate_program);
-    portENTER_CRITICAL(&diagnostic_lock);
+    STATE_LOCK();
     if (catalogue_valid && diagnostic == CHAON_SD_CATALOG_OK) {
         if (summary.state == CHAON_INSPECT_VALID &&
-            !chaon_program_stage_publish(&program_stage, stage_epoch,
-                stage_index, &stage_entry, &candidate_program)) {
+            !chaon_program_stage_publish_hashed(&program_stage, stage_epoch,
+                stage_index, &stage_entry, &candidate_program, candidate_digest)) {
             summary = (chaon_inspection_t){
                 .state = CHAON_INSPECT_BAD_MEDIA
             };
@@ -260,8 +414,9 @@ static bool process_inspection(void)
         }
         chaon_inspect_mailbox_publish(&mailbox, epoch, index, summary);
     }
-    portEXIT_CRITICAL(&diagnostic_lock);
+    STATE_UNLOCK();
     memset(&candidate_program, 0, sizeof candidate_program);
+    memset(candidate_digest, 0, sizeof candidate_digest);
     ESP_LOGI(TAG, "INSPECT state=%u count=%u line=%u (READ ONLY)",
              (unsigned)summary.state, (unsigned)summary.step_count,
              (unsigned)summary.error_line);
@@ -316,7 +471,8 @@ static void probe_task(void *ctx)
                          kind == CHAON_SD_SECTOR_MBR ? "MBR" : "UNKNOWN");
 
                 /* A second read-only scan lists ONLY bounded root metadata.
-                 * No FAT/VFS mount, no SD writes, no card-sourced HID path.
+                 * No FAT/VFS mount or SD writes. The SD task never calls
+                 * the VM or emits HID reports.
                  * Never show names without BPB and LBA validation. */
                 chaon_fat_catalog_t found = {0};
                 chaon_fat_result_t result = CHAON_FAT_INVALID;
@@ -342,7 +498,7 @@ static void probe_task(void *ctx)
                 unsigned time_to_status_ms = CHAON_SD_POLL_MS;
                 do {
                     vTaskDelay(pdMS_TO_TICKS(100));
-                    if (process_inspection()) {
+                    if (process_verification() || process_inspection()) {
                         err = ESP_FAIL; /* fail closed and reinitialize SD */
                         break;
                     }
@@ -383,6 +539,11 @@ static void probe_task(void *ctx)
 
 void chaon_sd_probe_start(void)
 {
+    diagnostic_lock=xSemaphoreCreateMutexStatic(&diagnostic_mutex_storage);
+    if (!lock_ready()) {
+        ESP_LOGW(TAG, "SD_MUTEX_UNAVAILABLE; read-only SD task disabled");
+        return;
+    }
     if (xTaskCreate(probe_task, "chaon_sd_probe", CHAON_SD_TASK_STACK,
                     NULL, tskIDLE_PRIORITY + 1, NULL) != pdPASS) {
         publish(CHAON_SD_TASK_ERROR);

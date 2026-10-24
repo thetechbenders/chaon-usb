@@ -8,7 +8,8 @@
 #include "chaon_vm.h"
 
 /* All BOOT gestures are classified in this controller, never in the UI.
- * The normal short-tap/short-tap fixed HID demo remains unchanged.
+ * The normal short-tap ARM/RUN timing remains unchanged; application policy
+ * decides whether RUN targets an explicit selection or the fixed demo.
  */
 enum {
     CHAON_CONTROL_POLL_MS = 20,
@@ -18,9 +19,7 @@ enum {
     CHAON_CONTROL_BROWSER_HOLD_MS = 900,
     CHAON_CONTROL_BROWSER_EXIT_MS = 3000,
     CHAON_CONTROL_BROWSER_IDLE_MS = 60000,
-    CHAON_CONTROL_BROWSER_MAX_ENTRIES = 8,
-    CHAON_CONTROL_CONFIRM_ENTER_MS = 5000,
-    CHAON_CONTROL_CONFIRM_TTL_MS = 10000
+    CHAON_CONTROL_BROWSER_MAX_ENTRIES = 8
 };
 
 typedef enum {
@@ -32,10 +31,8 @@ typedef enum {
     CHAON_CONTROL_BROWSER_ENTER,
     CHAON_CONTROL_BROWSER_NEXT,
     CHAON_CONTROL_BROWSER_SELECT,
-    CHAON_CONTROL_BROWSER_CLOSE,
-    CHAON_CONTROL_CONFIRM_ENTER,
-    CHAON_CONTROL_CONFIRM_CANCEL,
-    CHAON_CONTROL_CONFIRM_ACK /* Inert confirmation only, NEVER VM execution */
+    CHAON_CONTROL_PICK_READY,
+    CHAON_CONTROL_BROWSER_CLOSE
 } chaon_control_event_t;
 
 typedef struct {
@@ -48,13 +45,7 @@ typedef struct {
     int64_t armed_at_ms;
     int64_t cancelled_until_ms;
     int64_t pressed_at_ms;
-    /* Advisory browsing ONLY. Neither selection nor SD metadata is ever
-     * used to authorize a VM or USB HID report. */
-    bool confirm_active;
-    bool confirm_release_ready;
-    bool confirm_press_seen;
-    int64_t confirm_entered_ms;
-    int64_t confirm_pressed_ms;
+    /* Browsing and PICK never authorize a VM or USB HID report. */
     bool browser_active;
     bool browser_selected;
     uint8_t browser_index;
@@ -68,17 +59,17 @@ chaon_control_event_t chaon_control_step(chaon_control_t *control,
                                          bool boot_pressed,
                                          int64_t now_ms);
 
-/* Application entry point: catalogue presence/count control only the passive
- * browser. The only EXECUTE event is still the two-short-tap fixed demo.
- * Never accept SD file bytes or path strings in this controller.
- */
+/* Catalogue presence/count control only the passive browser. EXECUTE still
+ * requires the two distinct short-tap gestures. Never accept SD file bytes,
+ * authority grants or path strings in this controller. */
 chaon_control_event_t chaon_control_step_browser(chaon_control_t *control,
     bool usb_mounted, bool boot_pressed, int64_t now_ms,
     bool catalogue_available, uint8_t catalogue_count);
 
-/* The caller sets eligibility from the current VALID inspection and LCD state.
- * No confirmation event authorizes or triggers VM/HID. */
-chaon_control_event_t chaon_control_step_confirmation(chaon_control_t *control,
+/* The caller sets PICK readiness from the current VALID inspection and LCD
+ * state. PICK closes the browser only after a stable release; ARM and RUN
+ * remain later, distinct debounced gestures. */
+chaon_control_event_t chaon_control_step_selection(chaon_control_t *control,
     bool usb_mounted, bool boot_pressed, int64_t now_ms,
     bool catalogue_available, uint8_t catalogue_count,
     bool valid_inspection_and_display);
