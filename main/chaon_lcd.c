@@ -232,3 +232,16 @@ bool chaon_lcd_show_confirmation(uint32_t remaining_seconds)
     }
     return true;
 }
+
+bool chaon_lcd_show_hold(uint32_t elapsed_ms)
+{
+    if (!lcd_initialized) return false;
+    if (!chaon_screen_render_hold(elapsed_ms, framebuffer, sizeof framebuffer))
+        return false;
+    if (!flush_band(0, CHAON_SCREEN_HEIGHT)) return false;
+    if (!backlight_enabled) {
+        gpio_set_level(LCD_BL, 0);
+        backlight_enabled = true;
+    }
+    return true;
+}
