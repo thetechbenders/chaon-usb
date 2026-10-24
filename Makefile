@@ -13,6 +13,8 @@ AUTH_SRCS := main/chaon_exec_auth.c tests/test_exec_auth.c
 AUTH_BIN := tests/chaon_exec_auth_tests
 SELECTION_SRCS := main/chaon_selection.c tests/test_selection.c
 SELECTION_BIN := tests/chaon_selection_tests
+HASH_SRCS := main/chaon_source_sha256.c tests/test_source_sha256.c
+HASH_BIN := tests/chaon_source_sha256_tests
 EXEC_SLOT_SRCS := main/chaon_execution_slot.c main/chaon_selection.c tests/test_execution_slot.c
 EXEC_SLOT_BIN := tests/chaon_execution_slot_tests
 SD_SECTOR_SRCS := main/chaon_sd_sector.c tests/test_sd_sector.c
@@ -35,13 +37,14 @@ SD_PROBE_BIN := tests/chaon_sd_probe_inspection_tests
 SD_PROBE_CPPFLAGS := -Itests/sd_probe_stubs
 
 .PHONY: test clean
-test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(CONFIRM_BIN) $(AUTH_BIN) $(SELECTION_BIN) $(EXEC_SLOT_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
+test: $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(CONFIRM_BIN) $(AUTH_BIN) $(SELECTION_BIN) $(HASH_BIN) $(EXEC_SLOT_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
 	./$(NATIVE_BIN)
 	./$(VISUAL_BIN)
 	./$(CONTROL_BIN)
 	./$(CONFIRM_BIN)
 	./$(AUTH_BIN)
 	./$(SELECTION_BIN)
+	./$(HASH_BIN)
 	./$(EXEC_SLOT_BIN)
 	./$(SD_SECTOR_BIN)
 	./$(SD_DIAG_BIN)
@@ -69,6 +72,9 @@ $(AUTH_BIN): $(AUTH_SRCS) main/chaon_exec_auth.h
 
 $(SELECTION_BIN): $(SELECTION_SRCS) main/chaon_selection.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(SELECTION_SRCS) -o $(SELECTION_BIN)
+
+$(HASH_BIN): $(HASH_SRCS) main/chaon_source_sha256.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(HASH_SRCS) -o $(HASH_BIN)
 
 $(EXEC_SLOT_BIN): $(EXEC_SLOT_SRCS) main/chaon_execution_slot.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(EXEC_SLOT_SRCS) -o $(EXEC_SLOT_BIN)
@@ -100,4 +106,4 @@ $(SD_PROBE_BIN): $(SD_PROBE_SRCS) main/chaon_sd_probe.c main/chaon_sd_probe.h ma
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(SD_PROBE_CPPFLAGS) $(SD_PROBE_SRCS) -o $(SD_PROBE_BIN)
 
 clean:
-	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(CONFIRM_BIN) $(AUTH_BIN) $(SELECTION_BIN) $(EXEC_SLOT_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
+	rm -f $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(CONFIRM_BIN) $(AUTH_BIN) $(SELECTION_BIN) $(HASH_BIN) $(EXEC_SLOT_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
