@@ -65,6 +65,7 @@ static void reset_state(void)
     memset(&catalogue, 0, sizeof catalogue);
     memset(&mailbox, 0, sizeof mailbox);
     memset(&program_stage, 0, sizeof program_stage);
+    memset(&verify_job,0,sizeof verify_job);
     memset(sector_zero, 0, sizeof sector_zero);
     memset(inspection_source, 0, sizeof inspection_source);
     memset(&inspection_workspace, 0, sizeof inspection_workspace);
@@ -232,9 +233,51 @@ static void test_exact_source_freshness(void)
         sector_zero,0,&found.entries[0],hash,scratch));
 }
 
+static void test_verify_transaction(void)
+{
+    static const uint8_t original[]="TYPE \"SAFE\"\n";
+    static const uint8_t changed[] ="TYPE \"EVIL\"\n";
+    reset_state();
+    build_single_file("VTRANS  CHN",original,sizeof original-1);
+    const chaon_fat_catalog_t found=list_catalogue();
+    publish_catalog(&found);
+    assert(chaon_sd_probe_inspect_request(0,&found.entries[0]));
+    assert(!process_inspection());
+    assert(program_stage.state==CHAON_PROGRAM_STAGE_READY);
+    uint32_t generation=program_stage.generation;
+    uint8_t digest[CHAON_SHA256_SIZE];
+    memcpy(digest,program_stage.source_sha256,sizeof digest);
+    uint32_t id=chaon_sd_probe_verify_request(0,&found.entries[0],
+                                             generation,digest);
+    assert(id);
+    assert(chaon_sd_probe_verify_poll(id)==CHAON_SD_VERIFY_WAIT);
+    assert(!process_verification());
+    assert(chaon_sd_probe_verify_poll(id)==CHAON_SD_VERIFY_PASS);
+    assert(chaon_sd_probe_verify_poll(id)==CHAON_SD_VERIFY_FAIL);
+    /* Rewrite in place, preserving FAT identity. */
+    memcpy(image[FILE_LBA],changed,sizeof changed-1);
+    id=chaon_sd_probe_verify_request(0,&found.entries[0],generation,digest);
+    assert(id);
+    assert(process_verification());
+    assert(chaon_sd_probe_verify_poll(id)==CHAON_SD_VERIFY_FAIL);
+    memcpy(image[FILE_LBA],original,sizeof original-1);
+    id=chaon_sd_probe_verify_request(0,&found.entries[0],generation,digest);
+    assert(id);
+    /* A cancellation during the actual card read invalidates the reply. */
+    hook_lba=FILE_LBA;
+    read_hook=chaon_sd_probe_verify_cancel;
+    (void)process_verification();
+    assert(chaon_sd_probe_verify_poll(id)==CHAON_SD_VERIFY_FAIL);
+    id=chaon_sd_probe_verify_request(0,&found.entries[0],generation,digest);
+    assert(id);
+    chaon_sd_probe_verify_cancel();
+    assert(chaon_sd_probe_verify_poll(id)==CHAON_SD_VERIFY_FAIL);
+}
+
 int main(void)
 {
     test_exact_source_freshness();
+    test_verify_transaction();
     test_success_and_parser_rejection();
     test_reader_rejections();
     test_mid_read_cancellation();
