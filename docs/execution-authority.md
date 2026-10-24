@@ -97,3 +97,20 @@ authority. The one-shot `chaon_exec_auth` module remains separate from the
 runtime gesture classifier until Phase 2E.2 implements fresh source re-read,
 fingerprint, execution-owned program and USB epoch binding. No SD-program
 execution is approved or connected in Phase 2E.1.
+
+
+## Phase 2E.1 usability correction (draft, requires renewed hardware validation)
+
+The original 5-second blind hold was unreliable in physical testing (2/10
+successful attempts reported). In the revised draft, pressing BOOT while a
+VALID file is PICKED renders a progress bar updated in 200 ms increments.
+At five seconds it reads `RELEASE NOW`. The gesture still only enters an
+**inert** execution confirmation screen, and produces no SD-derived HID.
+
+Releasing after 900 ms but before five seconds **keeps the file selected**;
+it no longer accidentally invokes the three-second browser exit. To leave
+PICKED, make a short tap to unpick, then hold three seconds to exit browsing.
+The LCD bottom hint changes between `TAP UNPICK` and `3S EXIT` accordingly.
+Cancellation, source eligibility, USB disconnect, missing LCD, and ROM
+recovery remain fail-closed. Do not flash the UX revision until its exact-head
+native and target builds have passed, with an independent review.
