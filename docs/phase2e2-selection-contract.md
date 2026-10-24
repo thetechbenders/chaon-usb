@@ -74,3 +74,31 @@ The existing GitHub Actions CI pull-request trigger is limited to the `main`,
 Because PR #18 is stacked on draft PR #17, no automatic exact-head PR CI
 is expected until it is explicitly dispatched or separately validated.
 Do not label it software-validated on the basis of earlier Phase 2E.1 CI.
+
+
+## Independent Claude review remediation, slice 1
+
+- **S1:** `chaon_source_verify` is a bounded read-only FAT re-enumeration,
+  file re-read, SHA-256 recomputation, and exact digest comparator. It wipes
+  both scratch buffers. A host regression changes source bytes without
+  changing size, cluster or filename and requires verification to fail.
+  The helper must still be invoked from the SD task immediately before an
+  execution transaction; there is **no** such live transaction yet.
+- **S2:** A staged selection may issue a one-use grant on a caller-asserted
+  physical RUN edge. `prepare` consumes the grant, and `take` rechecks
+  live selection generation, USB epoch, SHA digest and a caller-provided
+  independent freshness result. Clearing selection makes a prepared slot
+  invalid and wipes it. Tests now assert this failure. **The physical
+  controller is NOT yet wired as the grant's sole issuer**, so this remains
+  an inert API, not a finished security boundary.
+- **M1:** Replaced `diagnostic_lock` spinlock with a task-context FreeRTOS
+  static mutex in the SD service, so multi-kilobyte stage copy/clear/publish
+  no longer disable interrupts. Heavy disk I/O still runs outside the mutex,
+  and the host harness asserts reads occur outside the lock.
+  Mutex initialization is in `chaon_sd_probe_start`. The target build
+  and contention behavior must be verified before accepting this change.
+
+No SD-to-HID VM routing, active selection UI or physical RUN integration has
+been added. The last-moment freshness check and physical token issuance
+remain **integration gates**. Do not flash the accepted 2E.1 device with this
+draft code or merge it as a completed execution bridge.
