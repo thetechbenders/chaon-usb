@@ -169,6 +169,21 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
                                   (now_ms - control->armed_at_ms);
         if (remaining > 0) seconds_left = (uint32_t)((remaining + 999) / 1000);
     }
+    if (control->confirm_active) {
+        /* UI is observational only. No confirmation event reaches the VM. */
+        const int64_t remaining = CHAON_CONTROL_CONFIRM_TTL_MS -
+            (now_ms - control->confirm_entered_ms);
+        const uint32_t seconds = remaining > 0 ?
+            (uint32_t)((remaining + 999) / 1000) : 0;
+        if (*lcd_ok && !chaon_lcd_show_confirmation(seconds)) {
+            ESP_LOGE(TAG, "LCD_CONFIRM_FAIL; confirmation will cancel");
+            *lcd_ok = false;
+        }
+        have_frame = false;
+        showed_browser = false;
+        showed_catalog = false;
+        return;
+    }
     if (control->browser_active) {
         /* Browser never affects HID control; only the main task owns LCD.
          * The controller checks media availability each poll and closes
@@ -284,9 +299,21 @@ void app_main(void)
         chaon_fat_catalog_t current_catalog;
         const bool catalog_valid =
             chaon_sd_probe_catalog_snapshot(&current_catalog);
+        chaon_inspection_t current_inspection = {
+            .state = CHAON_INSPECT_NONE
+        };
+        const bool valid_selected_inspection =
+            lcd_ok && connected && control.browser_active &&
+            control.browser_selected && catalog_valid &&
+            control.browser_index < current_catalog.count &&
+            chaon_sd_probe_inspect_snapshot(control.browser_index,
+                &current_catalog.entries[control.browser_index],
+                &current_inspection) &&
+            current_inspection.state == CHAON_INSPECT_VALID;
         const chaon_control_event_t event =
-            chaon_control_step_browser(&control, connected, pressed, now_ms,
-                catalog_valid, catalog_valid ? current_catalog.count : 0);
+            chaon_control_step_confirmation(&control, connected, pressed, now_ms,
+                catalog_valid, catalog_valid ? current_catalog.count : 0,
+                valid_selected_inspection);
         if (event == CHAON_CONTROL_DISARM) {
             ESP_LOGI(TAG, "long hold disarmed; no HID execution");
         } else if (event == CHAON_CONTROL_BROWSER_ENTER) {
@@ -303,6 +330,12 @@ void app_main(void)
             }
         } else if (event == CHAON_CONTROL_BROWSER_CLOSE) {
             ESP_LOGI(TAG, "read-only browser exited");
+        } else if (event == CHAON_CONTROL_CONFIRM_ENTER) {
+            ESP_LOGI(TAG, "physical confirmation screen entered (INERT)");
+        } else if (event == CHAON_CONTROL_CONFIRM_CANCEL) {
+            ESP_LOGI(TAG, "physical confirmation cancelled (NO HID)");
+        } else if (event == CHAON_CONTROL_CONFIRM_ACK) {
+            ESP_LOGI(TAG, "physical confirmation acknowledged (NO HID)");
         } else if (event == CHAON_CONTROL_EXPIRE) {
             ESP_LOGI(TAG, "armed window expired");
         } else if (event == CHAON_CONTROL_ARM) {
