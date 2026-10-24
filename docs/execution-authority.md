@@ -71,3 +71,29 @@ the legacy `EXECUTE` event.
 
 Implementation, flashing and physical validation of this design require a new
 explicitly authorized milestone.
+
+
+## Phase 2E.1 inert physical confirmation prototype (draft, not flashed)
+
+The initial Phase 2E development branch adds a **non-executing** confirmation
+screen and a BOOT gesture classifier. This does not authorize or perform HID.
+The existing fixed-demo two-tap path remains the only call to the VM.
+
+- While BROWSE contains a PICK with a **VALID** current inspection summary,
+  and the LCD is healthy, holding BOOT for 5 seconds and releasing may enter
+  the `EXEC CONFIRM` screen. Without those conditions, a long hold exits
+  browsing as before.
+- The transition release is consumed. At least 500 ms of released BOOT is
+  needed before another press. A distinct 1.5–3 second hold produces only
+  an **inert acknowledgment** and returns to READY.
+- Timeout at 10 seconds, USB loss, catalogue change, invalid inspection,
+  or LCD failure cancels confirmation. No event reaches `chaon_run`.
+- The 20 ms poll / 40 ms debounce controller continues to enforce button
+  semantics. The BOOT-held power-on ROM behavior is unchanged.
+
+The current VALID inspection summary is sufficient to display an *inert*
+confirmation prototype but is **not** proof of source freshness or execution
+authority. The one-shot `chaon_exec_auth` module remains separate from the
+runtime gesture classifier until Phase 2E.2 implements fresh source re-read,
+fingerprint, execution-owned program and USB epoch binding. No SD-program
+execution is approved or connected in Phase 2E.1.
