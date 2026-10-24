@@ -62,6 +62,7 @@ void chaon_program_stage_clear(chaon_program_stage_t *stage)
     stage->index = 0;
     memset(&stage->identity, 0, sizeof stage->identity);
     memset(&stage->program, 0, sizeof stage->program);
+    memset(stage->source_sha256, 0, sizeof stage->source_sha256);
 }
 
 bool chaon_program_stage_request(chaon_program_stage_t *stage,
@@ -130,5 +131,40 @@ bool chaon_program_stage_copy(const chaon_program_stage_t *stage,
         return false;
     *out = stage->program;
     *generation = stage->generation;
+    return true;
+}
+
+bool chaon_program_stage_publish_hashed(chaon_program_stage_t *stage,
+    uint32_t generation, uint8_t index, const chaon_fat_entry_t *identity,
+    const chaon_program_t *validated_program,
+    const uint8_t digest[CHAON_SHA256_SIZE])
+{
+    /* A failed or missing digest can NEVER mark a READY selection. */
+    uint8_t any = 0;
+    if (digest) for (unsigned i=0;i<CHAON_SHA256_SIZE;i++) any |= digest[i];
+    if (!digest || !any) return false;
+    if (!chaon_program_stage_publish(stage, generation, index,
+                                      identity, validated_program)) return false;
+    memcpy(stage->source_sha256, digest, CHAON_SHA256_SIZE);
+    return true;
+}
+
+bool chaon_program_stage_copy_hashed(const chaon_program_stage_t *stage,
+    uint8_t index, const chaon_fat_entry_t *identity,
+    uint32_t *generation, chaon_program_t *out,
+    uint8_t digest[CHAON_SHA256_SIZE])
+{
+    if (digest) memset(digest, 0, CHAON_SHA256_SIZE);
+    if (!digest) {
+        if (out) memset(out, 0, sizeof *out);
+        if (generation) *generation=0;
+        return false;
+    }
+    uint8_t any=0;
+    if (stage) for(unsigned i=0;i<CHAON_SHA256_SIZE;i++)
+        any |= stage->source_sha256[i];
+    if (!any || !chaon_program_stage_copy(stage, index, identity,
+                                           generation, out)) return false;
+    memcpy(digest, stage->source_sha256, CHAON_SHA256_SIZE);
     return true;
 }
