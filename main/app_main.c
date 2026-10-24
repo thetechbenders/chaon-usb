@@ -151,6 +151,8 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
     static bool showed_catalog;
     static uint8_t last_catalog_index;
     static bool showed_browser;
+    static bool showed_confirmation;
+    static uint32_t last_confirmation_seconds;
     static uint8_t last_browser_index;
     static bool last_browser_picked;
     static chaon_inspection_t last_browser_inspection;
@@ -175,15 +177,21 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
             (now_ms - control->confirm_entered_ms);
         const uint32_t seconds = remaining > 0 ?
             (uint32_t)((remaining + 999) / 1000) : 0;
-        if (*lcd_ok && !chaon_lcd_show_confirmation(seconds)) {
-            ESP_LOGE(TAG, "LCD_CONFIRM_FAIL; confirmation will cancel");
-            *lcd_ok = false;
+        if (*lcd_ok && (!showed_confirmation ||
+            seconds != last_confirmation_seconds)) {
+            if (!chaon_lcd_show_confirmation(seconds)) {
+                ESP_LOGE(TAG, "LCD_CONFIRM_FAIL; confirmation will cancel");
+                *lcd_ok = false;
+            }
         }
+        showed_confirmation = true;
+        last_confirmation_seconds = seconds;
         have_frame = false;
         showed_browser = false;
         showed_catalog = false;
         return;
     }
+    showed_confirmation = false;
     if (control->browser_active) {
         /* Browser never affects HID control; only the main task owns LCD.
          * The controller checks media availability each poll and closes
