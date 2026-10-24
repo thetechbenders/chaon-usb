@@ -1,16 +1,8 @@
 # Phase 2C inspection and Phase 2D bounded staging
 
-**Development candidate; both branches remain unmerged.** The earlier stacked
-Phase 2D candidate `e34e621` containing this Phase 2C inspection path was
-physically accepted on the original T-Dongle-S3 on 2026-10-23: **33 PASS,
-0 FAIL, 1 NOT TESTED, 2 NOT APPLICABLE**. The in-flight supersession race was
-not physically established, and internal staged bytes were deliberately not
-instrumented; native adversarial tests provide that evidence. The later F3
-sector-scratch clearing change has not been flashed or physically tested. No
-SD-derived HID program was executed. The embedded fixed demo remains the only
-executable path; Phase 2D staging grants no execution authority.
+**Historical implementation detail:** Phase 2C/2D inspection and staging are now merged. This page documents their underlying read-only SD parsing and staging boundaries as developed at that milestone. The current Phase 2E.2 firmware **does** allow selected SD programs to execute, but only after separate physical ARM/RUN gestures, source re-verification and one-use authority. See [current selection contract](phase2e2-selection-contract.md) and [hardware evidence](phase2e2-hardware-evidence.md). Historical assertions below that staging cannot execute describe Phase 2D in isolation, **not** the current complete system.
 
-## Implemented in the draft backend
+## Implemented in the Phase 2C/2D backend
 
 - Only regular FAT32 root **DOS 8.3** entries with raw extension `.CHN`.
   No subdirectory traversal, long filename reconstruction, mounting or writes.
