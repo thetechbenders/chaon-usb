@@ -152,6 +152,8 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
     static uint8_t last_catalog_index;
     static bool showed_browser;
     static bool showed_confirmation;
+    static bool showed_hold;
+    static uint32_t last_hold_tick;
     static uint32_t last_confirmation_seconds;
     static uint8_t last_browser_index;
     static bool last_browser_picked;
@@ -192,6 +194,38 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
         return;
     }
     showed_confirmation = false;
+    /* Only a valid selected file produces hold-progress feedback.
+     * The UI never grants execution authority or sends HID reports. */
+    if (control->browser_active && control->browser_selected &&
+        control->saw_press && control->stable_pressed &&
+        now_ms >= control->pressed_at_ms && *lcd_ok) {
+        chaon_fat_catalog_t cat;
+        chaon_inspection_t info = { .state = CHAON_INSPECT_NONE };
+        if (chaon_sd_probe_catalog_snapshot(&cat) &&
+            cat.count == control->browser_count &&
+            control->browser_index < cat.count &&
+            chaon_sd_probe_inspect_snapshot(control->browser_index,
+                &cat.entries[control->browser_index], &info) &&
+            info.state == CHAON_INSPECT_VALID) {
+            const int64_t elapsed = now_ms - control->pressed_at_ms;
+            const uint32_t held = elapsed >= CHAON_CONTROL_CONFIRM_ENTER_MS ?
+                CHAON_CONTROL_CONFIRM_ENTER_MS : (uint32_t)elapsed;
+            const uint32_t tick = held / 200U;
+            if (!showed_hold || tick != last_hold_tick) {
+                if (!chaon_lcd_show_hold(held)) {
+                    ESP_LOGE(TAG, "LCD_HOLD_FAIL; confirmation ineligible");
+                    *lcd_ok = false;
+                }
+            }
+            last_hold_tick = tick;
+            showed_hold = true;
+            showed_browser = false;
+            have_frame = false;
+            return;
+        }
+    }
+    if (showed_hold) showed_browser = false;
+    showed_hold = false;
     if (control->browser_active) {
         /* Browser never affects HID control; only the main task owns LCD.
          * The controller checks media availability each poll and closes
