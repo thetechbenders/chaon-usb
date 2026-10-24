@@ -102,3 +102,21 @@ No SD-to-HID VM routing, active selection UI or physical RUN integration has
 been added. The last-moment freshness check and physical token issuance
 remain **integration gates**. Do not flash the accepted 2E.1 device with this
 draft code or merge it as a completed execution bridge.
+
+
+## Controller event-bound authority adapter (inert)
+
+`chaon_run_authority.c` now accepts only the controller's explicit debounced
+`CHAON_CONTROL_ARM` followed by a separate `CHAON_CONTROL_EXECUTE` within
+30 seconds. The ARM snapshot binds the selected stage generation, connection
+epoch and full digest; USB loss, absent source, changed identity, expiry or
+other controller events revoke it. A successful EXECUTE can issue a one-use
+grant, but **nothing in app_main calls this adapter or sends the grant to a
+VM**. Tests prove expiry, disconnect, missing freshness, stale generation,
+changed digest, event interruption and single use.
+
+Remaining before live integration: an SD-task request/response with a fresh
+actual read result (not a caller-supplied truth value), USB epoch sourced from
+TinyUSB mount transitions, and careful binding to controller event ownership.
+A standalone callable adapter is not a security boundary until it is wired
+into the only application event loop and end-to-end negative-tested.
