@@ -159,6 +159,8 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
     static uint8_t last_catalog_index;
     static bool showed_browser;
     static bool showed_confirmation;
+    static bool showed_selected;
+    static uint32_t last_selected_generation;
     static bool showed_hold;
     static uint32_t last_hold_tick;
     static uint32_t last_confirmation_seconds;
@@ -198,6 +200,7 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
         have_frame = false;
         showed_browser = false;
         showed_catalog = false;
+        showed_selected = false;
         return;
     }
     showed_confirmation = false;
@@ -270,6 +273,7 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
         showed_browser = true;
         have_frame = false; /* redraw normal READY fully on browser exit */
         showed_catalog = false;
+        showed_selected = false;
         return;
     }
     showed_browser = false;
@@ -309,8 +313,13 @@ static void paint_status(const chaon_control_t *control, int64_t now_ms,
             chaon_fat_catalog_t one = {0};
             one.count = 1;
             one.entries[0] = selected_program.identity;
-            if (!chaon_lcd_show_catalog(&one, 0)) *lcd_ok = false;
+            if (!showed_selected || last_selected_generation != selected_program.staging_generation || update != CHAON_SCREEN_NO_UPDATE) {
+                if (!chaon_lcd_show_catalog(&one, 0)) *lcd_ok = false;
+            }
+            showed_selected = true;
+            last_selected_generation = selected_program.staging_generation;
         }
+        if (!selected_program.valid) showed_selected = false;
         showed_catalog = browsing;
     }
     previous_frame = frame;
@@ -399,6 +408,9 @@ void app_main(void)
         } else if (event == CHAON_CONTROL_DISARM) {
             ESP_LOGI(TAG, "long hold disarmed; no HID execution");
         } else if (event == CHAON_CONTROL_BROWSER_ENTER) {
+            chaon_selection_clear(&selected_program);
+            chaon_run_authority_cancel(&selected_authority);
+            chaon_execution_grant_clear(&selected_grant);
             ESP_LOGI(TAG, "read-only browser entered");
         } else if (event == CHAON_CONTROL_BROWSER_SELECT) {
             if (control.browser_selected && catalog_valid &&
