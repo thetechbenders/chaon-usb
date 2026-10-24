@@ -21,7 +21,17 @@ static void drive(bool down, bool mounted)
     const chaon_control_event_t event=chaon_control_step(
         &control,mounted,down,tick);
     if (chaon_run_authority_step(&authority,event,tick,mounted,mounted,
-        &selected,&grant)) issued++;
+        &selected,&grant)) {
+        issued++;
+        /* Real application consumes the grant on the EXECUTE event path;
+         * it is not allowed to survive unrelated controller polls. */
+        assert(chaon_execution_slot_prepare(&slot,&grant,&selected,
+            selected.staging_generation,selected.usb_epoch,
+            selected.source_sha256,true));
+        assert(chaon_execution_slot_take(&slot,&selected,
+            selected.staging_generation,selected.usb_epoch,
+            selected.source_sha256,true,&output));
+    }
     tick+=CHAON_CONTROL_POLL_MS;
 }
 static void gesture(unsigned hold_ms)
@@ -58,12 +68,7 @@ int main(void)
     assert(!grant.issued);
     gesture(100);
     assert(control.state==CHAON_STATUS_RUNNING);
-    assert(issued==1 && grant.issued);
-    assert(chaon_execution_slot_prepare(&slot,&grant,&selected,17,4,
-        selected.source_sha256,true));
-    assert(!grant.issued);
-    assert(chaon_execution_slot_take(&slot,&selected,17,4,
-        selected.source_sha256,true,&output));
+    assert(issued==1 && !grant.issued);
     assert(output.steps[0].delay_ms==50);
     assert(!chaon_execution_slot_take(&slot,&selected,17,4,
         selected.source_sha256,true,&output));
