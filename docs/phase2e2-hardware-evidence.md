@@ -12,6 +12,7 @@ this ledger.
 | Coordinator | Codex on Dan's Windows gaming rig |
 | Physical operator | Dan (required for visual, BOOT, card and host observations) |
 | Product PR | #18, draft, stacked on `feat/phase2e-execution-authority-gate` |
+| Validation-package branch state | Documentation/fixture-only descendant of the frozen firmware source |
 | Frozen firmware source | `ae70e489ccd7ca22e2dcbe466bc5f544940a55f7` |
 | Accepted baseline | `ba999824f1189747cdb465be56aab98bea58add3` |
 | CI evidence | run `40131847526`, both jobs successful |
@@ -30,8 +31,8 @@ frozen source content; no later PR artifact may be substituted.
 
 | Gate | Observed evidence | Status |
 | --- | --- | --- |
-| Branch | Local and remote feature branch at exact `ae70e489...`; worktree initially clean | PASS |
-| Product PR | #18 OPEN/DRAFT, head `ae70e489...`, base Phase 2E.1 | PASS |
+| Branch | Worktree began clean at `ae70e489...`; the later package commit changes only docs, fixtures and their byte-preservation attribute | PASS |
+| Product PR | #18 remains OPEN/DRAFT on Phase 2E.1; its frozen firmware ancestor is `ae70e489...` | PASS |
 | CI | Native and ESP-IDF v5.5.3 ESP32-S3 jobs completed successfully | PASS |
 | Artifact API | ID, name, run, head SHA, size and published digest match the handoff | PASS |
 | Independent ZIP hash | Downloaded archive SHA-256 equals `abe10ebf...` | PASS |
