@@ -22,4 +22,5 @@ bool chaon_lcd_show_browser(const chaon_fat_catalog_t *cat,
                             uint8_t index, bool picked);
 bool chaon_lcd_show_browser_inspect(const chaon_fat_catalog_t *cat,
     uint8_t index, bool picked, const chaon_inspection_t *info);
+bool chaon_lcd_show_confirmation(uint32_t remaining_seconds);
 #endif
