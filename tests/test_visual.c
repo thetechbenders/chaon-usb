@@ -49,6 +49,15 @@ int main(void)
     memcpy(ready_frame, frame, sizeof ready_frame);
     assert(chaon_screen_render(CHAON_STATUS_ARMED, 12, CHAON_SD_INIT, frame, CHAON_SCREEN_BYTES));
     assert(memcmp(ready_frame, frame, CHAON_SCREEN_BYTES) != 0);
+    assert(!chaon_screen_render_hold(3000, NULL, CHAON_SCREEN_BYTES));
+    assert(!chaon_screen_render_hold(3000, frame, CHAON_SCREEN_BYTES-1));
+    assert(chaon_screen_render_hold(0, frame, CHAON_SCREEN_BYTES));
+    uint8_t start_hold[CHAON_SCREEN_BYTES];
+    memcpy(start_hold, frame, CHAON_SCREEN_BYTES);
+    assert(chaon_screen_render_hold(5000, frame, CHAON_SCREEN_BYTES));
+    assert(memcmp(start_hold, frame, CHAON_SCREEN_BYTES) != 0);
+    assert(frame[CHAON_SCREEN_BYTES] == 0xA5);
+    assert(frame[CHAON_SCREEN_BYTES+1] == 0x5A);
     assert(!chaon_screen_render_confirmation(10, NULL, CHAON_SCREEN_BYTES));
     assert(!chaon_screen_render_confirmation(10, frame, CHAON_SCREEN_BYTES-1));
     assert(chaon_screen_render_confirmation(10, frame, CHAON_SCREEN_BYTES));
