@@ -1,6 +1,10 @@
 # Phase 2B: single-button read-only file selection
 
-**Hardware smoke-tested development feature on the original T-Dongle-S3/Windows/FAT32 setup (2026-10-20).** PR #13 was tested from source commit `bb715cf8d2bca18b406cb10727a1697ebeb54c81`. This is not production qualification or permission to execute SD files.
+**Historical Phase 2B record:** this page preserves the original
+T-Dongle-S3/Windows/FAT32 browser validation performed on 2026-10-20. PR #13
+was tested from source commit `bb715cf8d2bca18b406cb10727a1697ebeb54c81`.
+The table below describes that fixed-demo-only milestone, not current Phase
+2E.2 selected execution. See [the current selection contract](phase2e2-selection-contract.md).
 
 The original T-Dongle-S3 has one available control: BOOT / GPIO0.
 The button is also a ROM bootstrap pin, so BOOT-held power-on continues to
@@ -76,20 +80,20 @@ The pass disposition combines separate tool-verified flash/ROM enumeration and t
 See the [sixth chronological bring-up session](bringup.md#sixth-physical-session--phase-2b-button-browser-2026-10-20). The complete original report and logs remain in the operator's local `ChaoN-USB-Recovery/2026-10-20-110849-phase2b-browser/` folder, not checked into this public repository. No code or firmware was changed during the physical test. No production release, tag or deployment is implied.
 
 
-## Phase 2C/2D selected-file diagnostics and staging (draft)
+## Historical Phase 2C/2D selected-file diagnostics and staging
 
 Picking a file additionally requests **read-only inspection** of a
 root-level FAT32 `.CHN` file in the optional SD task. The LCD shows
 only validation status, instruction count/first opcode, or the first
 error-line number. Picking a non-script/directory gives a bounded
 diagnostic or no valid request. Navigating or exiting invalidates any
-outstanding result. No source text or staged instruction crosses into the
-browser, BOOT controller, HID VM or USB stack. The SD service owns the one
-staged program and the current application never copies it out.
+outstanding result. No source text or staged instruction crossed into the
+browser, BOOT controller, HID VM or USB stack at that milestone. The SD service
+owned the one staged program and the then-current application never copied it
+out.
 
-The timings and gesture meanings in the Phase 2B table are unchanged.
-Successful validation confers no execution permission. See
-[script-inspection.md](script-inspection.md) for the Phase 2C boundary.
-The staging ownership contract and future authority design are in
-[program-staging.md](program-staging.md) and
-[execution-authority.md](execution-authority.md).
+At that milestone, the timings and gesture meanings in the Phase 2B table were
+unchanged and successful validation conferred no execution permission. See
+[script-inspection.md](script-inspection.md) and
+[program-staging.md](program-staging.md) for those historical boundaries, and
+[execution-authority.md](execution-authority.md) for the later design history.

@@ -40,8 +40,9 @@ The SD worker performs read-only FAT access and hashing outside the SD state mut
 - PICK never authorizes HID by itself; ARM and RUN require separate debounced gestures within 30 seconds.
 - Each selected execution consumes a single-use grant bound to its selection/source digest and USB epoch.
 - A new SD re-read and SHA-256 match are required immediately before selected execution; stale, changed or unavailable sources deny output.
-- Invalidated selections do not fall back to the embedded demo.
-- BOOT press and USB loss request cancellation; the VM attempts an all-keys release. Failed release is a FAULT.
+- An invalidated selected RUN does not fall back to the embedded demo in the
+  same transaction.
+- BOOT press and USB loss request cancellation; the VM attempts an all-keys release. If USB remains mounted, a failed release is a FAULT; disconnect instead returns the controller to its unmounted state.
 - No automatic resume/retry; controller state and source authority do not survive reconnection.
 - A safe editor and explicit authorization are necessary: the device cannot know the host application's focus.
 

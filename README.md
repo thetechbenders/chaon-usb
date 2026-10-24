@@ -18,7 +18,7 @@
 - **Cancellation and recovery:** BOOT or USB loss cancels active execution; the VM attempts to release all keyboard keys. BOOT held during power-on enters the ESP32-S3 ROM download loader.
 - APA102 status indicator, ST7735 160×80 LCD, bounded C Script v0 parser and execution engine, native tests and ESP32-S3 CI.
 
-**Safety:** HID output goes to whichever application has keyboard focus. Use ChaoN only on systems you own or are explicitly authorized to test, with a harmless test script and text editor focused. A failed final HID release is treated as a fault, not proof of a clean cancellation.
+**Safety:** HID output goes to whichever application has keyboard focus. Use ChaoN only on systems you own or are explicitly authorized to test, with a harmless test script and text editor focused. If USB remains mounted, a failed final HID release is treated as a fault, not proof of a clean cancellation; USB loss instead returns the controller to its disconnected state.
 
 ## Supported hardware and software
 
@@ -60,7 +60,7 @@ The tested source is `ae70e489ccd7ca22e2dcbe466bc5f544940a55f7`; artifact `12573
 - [Hardware facts](docs/hardware.md)
 - [Script language v0](docs/script-language.md)
 - [Security and safe use](docs/security.md)
-- [BOOT browser and selection](docs/browser-controls.md)
+- [Historical Phase 2B browser validation](docs/browser-controls.md)
 - [Phase 2E.2 selection/authorization contract](docs/phase2e2-selection-contract.md)
 - [Execution-authority design history](docs/execution-authority.md)
 - [Hardware validation plan](docs/phase2e2-hardware-validation.md) and [physical evidence](docs/phase2e2-hardware-evidence.md)

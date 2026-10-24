@@ -55,11 +55,15 @@ No physical FAT12/FAT16 support is implied.
    results from earlier generations. An SD read I/O error causes the
    SD observation task to fail closed and reinitialize.
 
-The 20 ms button controller and its fixed HID demo remain unchanged. Even
-a *valid staged* file has **no executable authority**. `app_main` does not call
-the program copy interface; its existing `chaon_run(&demo, &io)` continues to
-use the original embedded fixed demo, never an SD program. See
-[program-staging.md](program-staging.md) for ownership and invalidation.
+## Historical Phase 2C/2D integration behavior
+
+At that milestone, the 20 ms button controller and its fixed HID demo remained
+unchanged. Even a *valid staged* file had **no executable authority**.
+`app_main` did not call the program copy interface; its existing
+`chaon_run(&demo, &io)` used the original embedded fixed demo, never an SD
+program. See [program-staging.md](program-staging.md) for the corresponding
+historical ownership and invalidation contract. Phase 2E.2 later added the
+separate selected-program authority described at the top of this page.
 
 The Phase 2C implementation intentionally does **not** display complete
 script lines or provide script execution, launch, trust grants, USB output
@@ -78,9 +82,9 @@ result suppression, identity mismatches, pending/complete snapshots, stage
 replacement, invalid/partial program rejection, buffer guards and the absence
 of VM/HID linkage from staging, plus summary-only LCD framebuffer bounds.
 
-Physical acceptance applies to the earlier stacked `e34e621` firmware and its
+The original Phase 2C/2D physical acceptance applies to the earlier stacked `e34e621` firmware and its
 observable behavior. A Phase 2C-only binary was not separately flashed, the
 in-flight read race was not reproduced physically, and staged program bytes
 were not observed on-device. ESP-IDF v5.5.3 ESP32-S3 builds remain required for
-the real target. A successful build is not hardware validation, and neither
-draft branch has been merged or released.
+the real target. A successful build is not hardware validation. The branches
+subsequently merged through PRs #14 and #15; no production release followed.

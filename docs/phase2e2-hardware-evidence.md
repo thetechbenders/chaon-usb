@@ -1,8 +1,9 @@
 # Phase 2E.2 hardware evidence ledger
 
 Status: **HARDWARE ACCEPTED WITH DOCUMENTED PHYSICAL LIMITATIONS**. The exact
-frozen candidate was flashed and independently read back; all feasible
-original-board checks passed, while feasible fault-injection cases requiring additional equipment remain
+frozen candidate was flashed and independently read back; all completed
+applicable original-board checks passed, while four specialized fault-injection
+cases requiring additional equipment remain
 explicitly BLOCKED. Powered SD-card removal is outside this board's physical
 test scope.
 
@@ -145,4 +146,5 @@ inaccessible while USB is inserted. No test result is claimed for that scenario;
 software-level invalidation remains covered by native regression tests. Controlled fixture-only SD changes were
 backed up and hash-verified. Final state is normal `303A:4004` /
 `CHN-S3-DEV`, READY/catalogue, with no automatic typing. No full-chip erase,
-eFuse change, rollback, merge, tag or release occurred; PR #18 remains draft.
+eFuse change or rollback occurred. PR #18 subsequently merged into `main`;
+no production tag or release has been authorized.

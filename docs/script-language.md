@@ -1,6 +1,6 @@
 # ChaoN Script v0
 
-A small original **C11 script grammar**, implemented for the built-in HID demo and bounded FAT32-root `.CHN` files on the original T-Dongle-S3. **Not DuckyScript-compatible.** SD programs require physical PICK → ARM → RUN and a passing last-moment freshness check.
+A small original script grammar implemented in **C11** for the built-in HID demo and bounded FAT32-root `.CHN` files on the original T-Dongle-S3. **Not DuckyScript-compatible.** SD programs require physical PICK → ARM → RUN and a passing last-moment freshness check.
 
 ## Grammar
 

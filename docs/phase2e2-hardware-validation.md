@@ -1,10 +1,13 @@
 # Phase 2E.2 hardware validation plan
 
-Status: prepared on 2026-10-24; **candidate not flashed and physical tests not
-run**. The firmware-under-test is frozen at
+Status: executed on 2026-10-24. The frozen candidate is **hardware accepted
+with documented physical limitations**: 14 PASS, 0 FAIL, 4 BLOCKED, 1 PARTIAL,
+2 NOT APPLICABLE and 1 NOT REQUIRED. This plan was prepared before the flash;
+its imperative preflight steps are retained as the reproducible procedure.
+The firmware-under-test remains
 `ae70e489ccd7ca22e2dcbe466bc5f544940a55f7`. Any later documentation-only
-commit does not replace that firmware revision or authorize a different
-artifact.
+commit does not replace that firmware revision or authorize another artifact.
+See [the evidence ledger](phase2e2-hardware-evidence.md) for observed results.
 
 ## Safety boundary
 
@@ -42,7 +45,8 @@ The workflow event was the intentionally separate CI-only draft PR #19 against
 `f500be1a1ae2cf13017847601676254a31f819a1`. Its Git tree
 `43f06b0d8987afad8877377071c19ed0cc3b8fd9` exactly equals the frozen
 source tree, so embedded app version `f500be1` has the authorized source
-content. Product PR #18 remains the stacked draft on Phase 2E.1.
+content. Product PR #18 subsequently merged into `main`; that merge did not
+replace the frozen tested artifact.
 
 The artifact-generated command uses `--before default-reset --after
 hard-reset`. Because the supervised procedure begins with a separately
@@ -61,7 +65,9 @@ an exact match to the three source-image hashes above before normal boot.
 
 ## Setup
 
-1. Recheck PR #18 is draft and its firmware ancestor is the frozen source.
+1. Recheck that the intended artifact still traces to the frozen source; do
+   not substitute a later documentation build or infer release authorization
+   from PR #18's subsequent merge.
 2. Recheck artifact ZIP and individual image hashes from the local candidate
    directory. Do not use an artifact from a later documentation build.
 3. Recheck both 16 MB factory backups and the accepted Phase 2E.1 rollback ZIP
@@ -71,9 +77,10 @@ an exact match to the three source-image hashes above before normal boot.
    and 16 MB. Stop on any mismatch.
 5. Prepare an ordinary editor containing only a unique session header. Keep
    hands away from the keyboard during inertness checks.
-6. Use a USB extension that leaves the SD slot safely accessible if powered
-   removal tests are attempted. If the slot cannot be accessed without
-   disturbing USB, mark those cases BLOCKED rather than improvising.
+6. Do not attempt powered SD removal on the original board: its slot is
+   physically inaccessible while the dongle is inserted in USB. Use the
+   documented cold-card substitute and USB-loss test instead; powered removal
+   is outside the acceptance scope, not BLOCKED.
 7. Prepare fixture batches from `tests/hardware/phase2e2/fixtures`. The
    catalogue exposes at most eight root entries; do not delete unrelated files
    or claim a fixture is visible when it is beyond that bound.
@@ -87,8 +94,8 @@ an exact match to the three source-image hashes above before normal boot.
 
 Record card root metadata, file byte counts, and SHA-256 before power-up.
 Whenever a card write is authorized, perform it in a reader, verify the copied
-bytes, eject cleanly, and insert the card while the dongle is unpowered unless
-the individual test explicitly requires powered removal.
+bytes, eject cleanly, and insert the card while the dongle is unpowered.
+Powered removal is not part of this board's acceptance procedure.
 
 ## Acceptance sequence
 

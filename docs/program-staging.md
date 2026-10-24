@@ -1,14 +1,18 @@
 # Phase 2D: bounded SD program staging
 
-**Stacked development candidate on the unmerged Phase 2C inspection branch.**
+**Historical Phase 2D milestone:** this page records the staging boundary as it
+existed before selected execution authority. The Phase 2C/2D branches later
+merged through PRs #14 and #15, and Phase 2E.2 subsequently added guarded
+selected execution. See [the current selection contract](phase2e2-selection-contract.md).
+
 The earlier `e34e621` firmware was physically accepted on the original
 T-Dongle-S3 on 2026-10-23 (**33 PASS, 0 FAIL, 1 NOT TESTED,
 2 NOT APPLICABLE**). The in-flight read supersession race remains physically
-untested, and private staged bytes were not instrumented. The current source
-adds the F3 sector-scratch clearing fix and has not been flashed or physically
-retested. This is not merged, production-qualified, or an SD execution
-feature. The embedded fixed text demo remains the only program passed to
-`chaon_run`.
+untested, and private staged bytes were not instrumented. The later F3
+sector-scratch clearing fix and Phase 2E work do not retroactively turn that
+earlier evidence into observation of internal staged bytes. At the Phase 2D
+milestone, staging was not an SD execution feature and the embedded fixed text
+demo remained the only program passed to `chaon_run`.
 
 ## Contract
 
@@ -83,10 +87,12 @@ when it took the request. A completion that arrives after any invalidation or
 replacement cannot publish into the newer slot. A failed publication cannot
 clear or overwrite a newer request.
 
-## Preserved trust boundary
+## Historical Phase 2D trust boundary
 
-There is still no SD write callback, writable mount, subdirectory traversal,
-long-filename reconstruction, network trigger, new USB interface, or call that
-executes an SD program. `app_main` retains the single existing
-`chaon_run(&demo, &io)` call whose input is the embedded harmless fixed demo.
-LCD behavior remains summary-only.
+At that milestone there was no SD write callback, writable mount, subdirectory
+traversal, long-filename reconstruction, network trigger, new USB interface,
+or call that executed an SD program. `app_main` retained the single existing
+`chaon_run(&demo, &io)` call whose input was the embedded harmless fixed demo.
+LCD behavior was summary-only. Current Phase 2E.2 selected execution preserves
+the read-only storage boundary but uses a separate, physically authorized and
+freshness-verified execution path.

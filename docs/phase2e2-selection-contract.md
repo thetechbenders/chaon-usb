@@ -1,8 +1,8 @@
 # Phase 2E.2: selected-program ownership contract
 
-Status: pre-flash remediation candidate, **not physically tested or hardware
-accepted**. Draft PR #18 remains stacked on the hardware-accepted Phase 2E.1
-PR #17 head `ba999824f1189747cdb465be56aab98bea58add3`.
+Status: implemented and merged through PR #18. Frozen firmware source
+`ae70e489ccd7ca22e2dcbe466bc5f544940a55f7` is **hardware accepted with
+documented physical limitations**. No production firmware release is authorized.
 
 ## Product interaction
 
@@ -41,9 +41,11 @@ authority. A selected-source failure enters a blocked state and clears the
 selection, so it cannot silently run the embedded demo. Re-entering BROWSE or
 starting a new USB epoch establishes a new deliberate context.
 
-During VM execution, BOOT or USB loss still requests cancellation. Every VM
-exit attempts all-keys release; release failure remains a FAULT. BOOT-held
-power-on remains the ESP32-S3 ROM recovery path.
+During VM execution, BOOT or USB loss still requests cancellation. Every
+accepted run's completion path attempts all-keys release. If USB remains
+mounted, release failure remains a FAULT; disconnect instead enters the
+unmounted controller state. BOOT-held power-on remains the ESP32-S3 ROM
+recovery path.
 
 ## Ownership and memory
 
@@ -57,9 +59,9 @@ The SD service is read-only.
 
 Host tests exercise the production controller-to-decision path for PICK,
 ARM/RUN, successful freshness, failed freshness, missing grants, USB loss, SD
-loss, cancellation, timeout and demo-fallback prevention. Full native
-warnings-as-errors plus UBSan/ASan and an exact ESP-IDF v5.5.3 ESP32-S3 build
-must pass on the final commit. Independent review remains a gate before any
-controlled physical test.
+loss, cancellation, timeout and demo-fallback prevention. For the accepted
+frozen source, native warnings-as-errors and sanitizer runs, independent
+review, and the exact ESP-IDF v5.5.3 ESP32-S3 build passed before controlled
+physical testing.
 
 The accepted candidate was flashed and verified under explicit operator approval, and PR #18 subsequently merged. This document does **not** authorize any subsequent flash, tag, or firmware release.

@@ -10,7 +10,7 @@ ChaoN is an experimental USB HID engineering device for **owned or explicitly au
 - The selected program's filename remains visible in READY and ARMED. ARM expires after 30 seconds; a second distinct short BOOT gesture requests RUN.
 - Selected RUN requires one-use authorization bound to selection generation, USB epoch and source SHA-256, an independent live SD re-read/hash PASS within the verification window, and an immutable execution-owned copy.
 - Missing or changed source, SD errors, invalid selection, LCD unavailability, USB loss, cancellation, stale authorization or verification timeout deny selected execution. Failed selected execution must not silently trigger the fixed demo.
-- BOOT or USB loss during execution requests cancellation. All VM exits attempt an all-keys HID release; failed release is a FAULT, not a successful cancellation.
+- BOOT or USB loss during execution requests cancellation. Every accepted run's completion path attempts an all-keys HID release. If USB remains mounted, failed release is a FAULT; disconnect instead returns the controller to its unmounted state.
 - BOOT held at power-on still enters the ESP32-S3 ROM loader.
 
 Script v0 is deliberately small: bounded `TYPE`, `DELAY`, `TAB` and `ENTER`, US layout only. This is **not** DuckyScript, host shell scripting or unattended network execution. FAT32 script storage and SD reads are read-only.
