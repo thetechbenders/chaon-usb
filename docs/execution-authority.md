@@ -1,10 +1,6 @@
 # Execution authority design and history
 
-The Phase 2E.1 confirmation material below records the hardware-accepted,
-inert baseline. On the Phase 2E.2 draft branch it is superseded by the bounded
-selected-program ownership and two-gesture ARM/RUN contract in
-[phase2e2-selection-contract.md](phase2e2-selection-contract.md). That branch
-does not change BOOT-held ROM recovery and is not yet physically tested.
+**Current disposition (2026-10-24):** Phase 2E.2 is merged into `main` and hardware accepted with documented physical limitations. The operative behavior is described in [the Phase 2E.2 selection contract](phase2e2-selection-contract.md). The 2E.1 material below is preserved as **historical design**, not currently active UI or control logic. See [physical evidence](phase2e2-hardware-evidence.md); no production release has been approved.
 
 ## Historical Phase 2E.1 separation
 
