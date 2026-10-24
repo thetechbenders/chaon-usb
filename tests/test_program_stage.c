@@ -235,11 +235,11 @@ static void test_hashed_stage(void)
     chaon_fat_entry_t identity={0};
     assert(chaon_program_stage_request(&stage,&c,0,&c.entries[0]));
     take(&stage,&generation,&index,&identity);
-    assert(compile("TAB\\n").state==CHAON_INSPECT_VALID);
+    assert(compile("TAB\n").state==CHAON_INSPECT_VALID);
     assert(!chaon_program_stage_publish_hashed(&stage,generation,index,
                                                 &identity,&candidate,digest));
     assert(stage.state==CHAON_PROGRAM_STAGE_PENDING);
-    chaon_source_sha256((const uint8_t *)"TAB\\n",4,digest);
+    chaon_source_sha256((const uint8_t *)"TAB\n",4,digest);
     assert(chaon_program_stage_publish_hashed(&stage,generation,index,
                                                &identity,&candidate,digest));
     assert(chaon_program_stage_copy_hashed(&stage,index,&identity,
