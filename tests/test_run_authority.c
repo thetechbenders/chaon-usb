@@ -32,7 +32,9 @@ int main(void)
     assert(!step(CHAON_CONTROL_NONE,200,true,true));
     assert(step(CHAON_CONTROL_EXECUTE,300,true,true));
     assert(grant.issued);
-    assert(!step(CHAON_CONTROL_EXECUTE,320,true,true));
+    assert(!step(CHAON_CONTROL_NONE,320,true,true));
+    assert(grant.issued); /* SD verification may be asynchronous. */
+    assert(!step(CHAON_CONTROL_EXECUTE,340,true,true));
     assert(!grant.issued);
     init();
     assert(!step(CHAON_CONTROL_ARM,100,true,true));
