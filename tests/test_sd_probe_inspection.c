@@ -209,8 +209,31 @@ static void test_mid_read_cancellation(void)
     assert(program_stage.state == CHAON_PROGRAM_STAGE_EMPTY);
 }
 
+static void test_exact_source_freshness(void)
+{
+    static const uint8_t original[] = "TYPE \"SAFE\"\n";
+    static const uint8_t changed[]  = "TYPE \"EVIL\"\n";
+    uint8_t scratch[2048] = {0};
+    uint8_t hash[CHAON_SHA256_SIZE]={0};
+    reset_state();
+    build_single_file("FRESH   CHN",original,sizeof original-1);
+    chaon_fat_catalog_t found=list_catalogue();
+    chaon_source_sha256(original,sizeof original-1,hash);
+    assert(chaon_source_verify(read_sector_only,&card,CARD_SECTORS,
+        sector_zero,0,&found.entries[0],hash,scratch));
+    /* Same raw DOS filename, size, first cluster and catalogue entry. */
+    memcpy(image[FILE_LBA],changed,sizeof changed-1);
+    assert(!chaon_source_verify(read_sector_only,&card,CARD_SECTORS,
+        sector_zero,0,&found.entries[0],hash,scratch));
+    assert(all_zero(scratch,sizeof scratch));
+    fail_lba=FILE_LBA;
+    assert(!chaon_source_verify(read_sector_only,&card,CARD_SECTORS,
+        sector_zero,0,&found.entries[0],hash,scratch));
+}
+
 int main(void)
 {
+    test_exact_source_freshness();
     test_success_and_parser_rejection();
     test_reader_rejections();
     test_mid_read_cancellation();
