@@ -266,6 +266,28 @@ bool chaon_screen_render_browser(const chaon_fat_catalog_t *cat,
                                                NULL, frame, length);
 }
 
+bool chaon_screen_render_confirmation(uint32_t remaining_seconds,
+                                      uint8_t *frame, size_t length)
+{
+    if (!frame || length < CHAON_SCREEN_BYTES) return false;
+    for (size_t i = 0; i < CHAON_SCREEN_BYTES; i += 2) {
+        frame[i] = 0x10;
+        frame[i + 1] = 0x82;
+    }
+    rect(frame, 0, 0, 3, CHAON_SCREEN_HEIGHT, 0xFFE0);
+    print_text(frame, 9, 6, "CHAON", 2, 0xB7AD);
+    rect(frame, 9, 24, 143, 1, 0x3166);
+    print_text(frame, 9, 32, "EXEC CONFIRM", 1, 0xFFE0);
+    char countdown[4] = {
+        (char)('0' + (remaining_seconds > 99 ? 9 : remaining_seconds / 10)),
+        (char)('0' + (remaining_seconds > 99 ? 9 : remaining_seconds % 10)),
+        'S', '\0'
+    };
+    print_text(frame, 9, 45, countdown, 1, 0xFFE0);
+    print_text(frame, 9, 64, "NO EXECUTION", 1, 0xBDF7);
+    return true;
+}
+
 chaon_screen_update_t chaon_screen_update(const chaon_screen_key_t *previous,
                                          const chaon_screen_key_t *current)
 {
