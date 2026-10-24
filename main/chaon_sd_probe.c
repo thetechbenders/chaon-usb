@@ -9,6 +9,7 @@
 #include "chaon_fat_ro.h"
 #include "chaon_inspect_mailbox.h"
 #include "chaon_program_stage.h"
+#include "chaon_source_verify.h"
 #include <string.h>
 
 #include <stdbool.h>
@@ -46,6 +47,83 @@ static chaon_inspect_mailbox_t mailbox;
 /* One fixed-capacity program slot. The SD service owns it for the lifetime
  * of the firmware and all access is serialized by diagnostic_lock. */
 static chaon_program_stage_t program_stage;
+/* Single SD task owns physical reads. Requests/results are tiny metadata
+ * and are synchronized by diagnostic_lock. Nonzero IDs defeat stale replies.
+ * Each result can be consumed once. */
+static struct {
+    uint32_t sequence;
+    bool pending;
+    bool completed;
+    bool success;
+    uint8_t index;
+    uint32_t generation;
+    chaon_fat_entry_t entry;
+    uint8_t digest[CHAON_SHA256_SIZE];
+} verify_job;
+
+static void verify_invalidate_locked(void)
+{
+    if (++verify_job.sequence == 0) ++verify_job.sequence;
+    verify_job.pending = false;
+    verify_job.completed = false;
+    verify_job.success = false;
+    verify_job.generation = 0;
+    memset(&verify_job.entry,0,sizeof verify_job.entry);
+    memset(verify_job.digest,0,sizeof verify_job.digest);
+}
+
+void chaon_sd_probe_verify_cancel(void)
+{
+    if (!lock_ready()) return;
+    STATE_LOCK();
+    verify_invalidate_locked();
+    STATE_UNLOCK();
+}
+
+uint32_t chaon_sd_probe_verify_request(uint8_t index,
+    const chaon_fat_entry_t *expected, uint32_t generation,
+    const uint8_t digest[CHAON_SHA256_SIZE])
+{
+    if (!lock_ready() || !expected || !digest || !generation) return 0;
+    STATE_LOCK();
+    verify_invalidate_locked();
+    const bool ok = catalogue_valid && diagnostic == CHAON_SD_CATALOG_OK &&
+        index < catalogue.count && program_stage.state == CHAON_PROGRAM_STAGE_READY &&
+        program_stage.index == index && program_stage.generation == generation &&
+        memcmp(program_stage.source_sha256,digest,CHAON_SHA256_SIZE)==0 &&
+        memcmp(&program_stage.identity,expected,sizeof *expected)==0 &&
+        memcmp(&catalogue.entries[index],expected,sizeof *expected)==0;
+    uint32_t id=0;
+    if (ok) {
+        verify_job.index=index;
+        verify_job.entry=*expected;
+        verify_job.generation=generation;
+        memcpy(verify_job.digest,digest,CHAON_SHA256_SIZE);
+        verify_job.pending=true;
+        id=verify_job.sequence;
+    }
+    STATE_UNLOCK();
+    return id;
+}
+
+chaon_sd_verify_result_t chaon_sd_probe_verify_poll(uint32_t id)
+{
+    if (!lock_ready() || !id) return CHAON_SD_VERIFY_FAIL;
+    STATE_LOCK();
+    chaon_sd_verify_result_t result=CHAON_SD_VERIFY_FAIL;
+    if (verify_job.sequence==id) {
+        if (verify_job.pending || !verify_job.completed)
+            result=CHAON_SD_VERIFY_WAIT;
+        else {
+            result=verify_job.success ? CHAON_SD_VERIFY_PASS : CHAON_SD_VERIFY_FAIL;
+            verify_invalidate_locked();
+        }
+    }
+    STATE_UNLOCK();
+    return result;
+}
+
+
 
 static void publish(chaon_sd_diag_t next)
 {
@@ -54,6 +132,7 @@ static void publish(chaon_sd_diag_t next)
     catalogue_valid = false;
     chaon_inspect_mailbox_clear(&mailbox);
     chaon_program_stage_clear(&program_stage);
+    verify_invalidate_locked();
     STATE_UNLOCK();
 }
 
@@ -138,6 +217,7 @@ void chaon_sd_probe_inspect_clear(void)
         program_stage.state != CHAON_PROGRAM_STAGE_EMPTY) {
         chaon_inspect_mailbox_clear(&mailbox);
         chaon_program_stage_clear(&program_stage);
+        verify_invalidate_locked();
     }
     STATE_UNLOCK();
 }
@@ -252,6 +332,44 @@ static chaon_inspection_t inspect_one(uint8_t index,
         memset(candidate_digest, 0, sizeof candidate_digest);
     }
     return info;
+}
+
+static bool process_verification(void)
+{
+    uint32_t id=0, generation=0;
+    uint8_t index=0, digest[CHAON_SHA256_SIZE]={0};
+    chaon_fat_entry_t entry={0};
+    STATE_LOCK();
+    if (verify_job.pending && catalogue_valid &&
+        diagnostic==CHAON_SD_CATALOG_OK) {
+        id=verify_job.sequence;
+        index=verify_job.index;
+        entry=verify_job.entry;
+        generation=verify_job.generation;
+        memcpy(digest,verify_job.digest,sizeof digest);
+        verify_job.pending=false;
+    }
+    STATE_UNLOCK();
+    if (!id) return false;
+    /* No mutex held across disk I/O, hash computation or scratch wiping. */
+    const bool fresh=chaon_source_verify(read_sector_only,&card,
+        (uint32_t)card.csd.capacity,sector_zero,index,&entry,digest,
+        inspection_source);
+    STATE_LOCK();
+    if (verify_job.sequence==id && !verify_job.pending &&
+        !verify_job.completed) {
+        verify_job.success=fresh && catalogue_valid &&
+            diagnostic==CHAON_SD_CATALOG_OK &&
+            program_stage.state==CHAON_PROGRAM_STAGE_READY &&
+            program_stage.generation==generation &&
+            program_stage.index==index &&
+            memcmp(program_stage.source_sha256,digest,sizeof digest)==0 &&
+            memcmp(&program_stage.identity,&entry,sizeof entry)==0;
+        verify_job.completed=true;
+    }
+    STATE_UNLOCK();
+    memset(digest,0,sizeof digest);
+    return !fresh; /* Forces reinitialization on IO/read failure, fail cold. */
 }
 
 static bool process_inspection(void)
@@ -379,7 +497,7 @@ static void probe_task(void *ctx)
                 unsigned time_to_status_ms = CHAON_SD_POLL_MS;
                 do {
                     vTaskDelay(pdMS_TO_TICKS(100));
-                    if (process_inspection()) {
+                    if (process_verification() || process_inspection()) {
                         err = ESP_FAIL; /* fail closed and reinitialize SD */
                         break;
                     }
