@@ -13,7 +13,7 @@ test scope.
 | Prepared | 2026-10-24, America/New_York |
 | Coordinator | Codex on Dan's Windows gaming rig |
 | Physical operator | Dan (required for visual, BOOT, card and host observations) |
-| Product PR | #18, draft, stacked on `feat/phase2e-execution-authority-gate` |
+| Product PR | #18, merged into `main` after the physical session; this row was recorded while draft |
 | Validation-package branch state | Documentation/fixture-only descendant of the frozen firmware source |
 | Frozen firmware source | `ae70e489ccd7ca22e2dcbe466bc5f544940a55f7` |
 | Accepted baseline | `ba999824f1189747cdb465be56aab98bea58add3` |
@@ -34,7 +34,7 @@ frozen source content; no later PR artifact may be substituted.
 | Gate | Observed evidence | Status |
 | --- | --- | --- |
 | Branch | Worktree began clean at `ae70e489...`; the later package commit changes only docs, fixtures and their byte-preservation attribute | PASS |
-| Product PR | #18 remains OPEN/DRAFT on Phase 2E.1; its frozen firmware ancestor is `ae70e489...` | PASS |
+| Product PR | At the time of physical validation, #18 was OPEN/DRAFT on Phase 2E.1; subsequently merged into `main`. Frozen firmware source remains `ae70e489...` | PASS |
 | CI | Native and ESP-IDF v5.5.3 ESP32-S3 jobs completed successfully | PASS |
 | Artifact API | ID, name, run, head SHA, size and published digest match the handoff | PASS |
 | Independent ZIP hash | Downloaded archive SHA-256 equals `abe10ebf...` | PASS |
