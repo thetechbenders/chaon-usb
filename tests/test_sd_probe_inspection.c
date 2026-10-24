@@ -11,6 +11,7 @@ unsigned test_lock_entries;
 /* Including the production translation unit keeps static scratch ownership
  * intact while the lightweight headers replace only ESP-IDF host services. */
 #include "chaon_sd_probe.c"
+#include "chaon_source_verify.h"
 
 enum {
     IMAGE_SECTORS = 1024,
