@@ -422,7 +422,7 @@ void chaon_sd_probe_start(void)
 {
     diagnostic_lock=xSemaphoreCreateMutexStatic(&diagnostic_mutex_storage);
     if (!lock_ready()) {
-        ESP_LOGE(TAG, "SD_MUTEX_UNAVAILABLE; read-only SD task disabled");
+        ESP_LOGW(TAG, "SD_MUTEX_UNAVAILABLE; read-only SD task disabled");
         return;
     }
     if (xTaskCreate(probe_task, "chaon_sd_probe", CHAON_SD_TASK_STACK,
