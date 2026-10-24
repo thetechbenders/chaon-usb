@@ -2,8 +2,9 @@
 
 Status: **HARDWARE ACCEPTED WITH DOCUMENTED PHYSICAL LIMITATIONS**. The exact
 frozen candidate was flashed and independently read back; all feasible
-original-board checks passed, while fault-injection cases requiring powered
-media access or an interposer remain explicitly BLOCKED.
+original-board checks passed, while feasible fault-injection cases requiring additional equipment remain
+explicitly BLOCKED. Powered SD-card removal is outside this board's physical
+test scope.
 
 ## Session identity
 
@@ -108,7 +109,6 @@ RUN when no attempt occurred.
 | 7 | Same-size source mutation | Preserve raw identity, change A bytes to B; reject with no output | Live raw identity cannot be preserved while modifying the inaccessible powered card; no approved interposer | BLOCKED | Hardware geometry; native regression only |
 | 8a | SD removal in READY | Revoke selection; no output/resume | Powered removal inaccessible. Cold substitute passed: expected SD error/no typing; restoration returned READY/catalogue inertly | NOT APPLICABLE (hot); COLD PASS | Operator report |
 | 8b | SD removal in ARMED | Revoke grant; no output/resume | Powered slot inaccessible; USB-disconnect-while-ARMED revocation passed in test 10 | NOT APPLICABLE | Hardware geometry; test 10 |
-| 8c | SD removal during verification | Catch active verification; fail closed | Powered slot inaccessible; no approved timing/interposer fixture | BLOCKED | Hardware geometry |
 | 9a | BOOT during verification | Catch active verification; cancel with no output/fallback | Verification completes too quickly for reproducible unaided intervention | BLOCKED | Native regression only |
 | 9b | BOOT during execution | Cancel selected execution; no continuation or held key | Cancelled `KEYREL.CHN` during delay; `END` suppressed, READY returned, manual typing normal | PASS | Operator report |
 | 10 | USB epoch invalidation | Disconnect while authorized; reconnect inert and unselected | Disconnect while selected/ARMED returned unselected READY with no resume or typing | PASS | Operator report |
@@ -137,10 +137,12 @@ recovery directory.
 
 The exact frozen candidate was flashed only at manifest offsets and independent
 ROM readback matched all three approved source images byte-for-byte. Physical
-counts are 14 PASS, 0 FAIL, 5 BLOCKED, 1 PARTIAL/strong-case BLOCKED, 2 NOT
-APPLICABLE and 1 NOT REQUIRED, plus a passing cold-card substitute. Blocked
-cases require powered media access or a controlled SD fault/interposer and
-retain separate native evidence. Controlled fixture-only SD changes were
+counts are 14 PASS, 0 FAIL, 4 BLOCKED, 1 PARTIAL/strong-case BLOCKED, 2 NOT
+APPLICABLE and 1 NOT REQUIRED, plus a passing cold-card substitute. Remaining BLOCKED cases concern source mutation, timing-sensitive BOOT cancellation,
+verification timeout and live SD read failure. Powered SD removal during verification
+is excluded from this board's acceptance scope because the slot is physically
+inaccessible while USB is inserted. No test result is claimed for that scenario;
+software-level invalidation remains covered by native regression tests. Controlled fixture-only SD changes were
 backed up and hash-verified. Final state is normal `303A:4004` /
 `CHN-S3-DEV`, READY/catalogue, with no automatic typing. No full-chip erase,
 eFuse change, rollback, merge, tag or release occurred; PR #18 remains draft.
