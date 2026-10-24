@@ -120,3 +120,36 @@ actual read result (not a caller-supplied truth value), USB epoch sourced from
 TinyUSB mount transitions, and careful binding to controller event ownership.
 A standalone callable adapter is not a security boundary until it is wired
 into the only application event loop and end-to-end negative-tested.
+
+
+## First integrated SD execution candidate
+
+`app_main` now retains a validated selected program in owned static storage
+after the asynchronous PICK inspection becomes VALID; it returns to READY
+and shows the selected filename in the lower display strip. A new browser
+selection clears prior authorization. USB epoch changes clear selection,
+grant and any pending verification ticket. Explicit DEMO behavior remains
+available only when no SD program is selected.
+
+For a selected program only, a physically debounced ARM then RUN generates
+a one-use grant. RUN sends a nonblocking, generation- and digest-bound
+verification request to the SD worker. The SD worker re-enumerates FAT and
+re-reads the source bytes, computes and compares SHA-256 outside its mutex,
+then publishes a one-use ticket result. The controller loop rejects lost
+USB, pressed cancellation, stale selection, request expiry (five seconds),
+or any failed/mismatched ticket. Only after a PASS does it prepare and take
+the immutable execution-owned program, then call the bounded ChaoN VM.
+All attempts clear the transaction and key-state recovery remains in the VM.
+
+**This is an unflashed experimental candidate, not hardware accepted.**
+A digest match authenticates the immutable bytes previously selected,
+not the trustworthiness of the script. A verified program continues using
+the owned copy after source verification; removing SD during actual VM
+execution does not retroactively rewrite that memory. USB disconnect or
+physical BOOT cancellation stops VM execution and attempts key release.
+
+The first candidate needs native, ESP-IDF, negative path and physical
+acceptance, especially BOOT interactions, display redraw, SD removal,
+same-size in-place rewrites, USB disconnect between verification and
+delivery, and lack of unintended typing. Do not merge/release/flash until
+separately authorized and accepted.
