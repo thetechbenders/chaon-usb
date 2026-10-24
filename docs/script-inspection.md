@@ -1,16 +1,8 @@
 # Phase 2C inspection and Phase 2D bounded staging
 
-**Development candidate; both branches remain unmerged.** The earlier stacked
-Phase 2D candidate `e34e621` containing this Phase 2C inspection path was
-physically accepted on the original T-Dongle-S3 on 2026-10-23: **33 PASS,
-0 FAIL, 1 NOT TESTED, 2 NOT APPLICABLE**. The in-flight supersession race was
-not physically established, and internal staged bytes were deliberately not
-instrumented; native adversarial tests provide that evidence. The later F3
-sector-scratch clearing change has not been flashed or physically tested. No
-SD-derived HID program was executed. The embedded fixed demo remains the only
-executable path; Phase 2D staging grants no execution authority.
+**Historical implementation detail:** Phase 2C/2D inspection and staging are now merged. This page documents their underlying read-only SD parsing and staging boundaries as developed at that milestone. The current Phase 2E.2 firmware **does** allow selected SD programs to execute, but only after separate physical ARM/RUN gestures, source re-verification and one-use authority. See [current selection contract](phase2e2-selection-contract.md) and [hardware evidence](phase2e2-hardware-evidence.md). Historical assertions below that staging cannot execute describe Phase 2D in isolation, **not** the current complete system.
 
-## Implemented in the draft backend
+## Implemented in the Phase 2C/2D backend
 
 - Only regular FAT32 root **DOS 8.3** entries with raw extension `.CHN`.
   No subdirectory traversal, long filename reconstruction, mounting or writes.
@@ -63,11 +55,15 @@ No physical FAT12/FAT16 support is implied.
    results from earlier generations. An SD read I/O error causes the
    SD observation task to fail closed and reinitialize.
 
-The 20 ms button controller and its fixed HID demo remain unchanged. Even
-a *valid staged* file has **no executable authority**. `app_main` does not call
-the program copy interface; its existing `chaon_run(&demo, &io)` continues to
-use the original embedded fixed demo, never an SD program. See
-[program-staging.md](program-staging.md) for ownership and invalidation.
+## Historical Phase 2C/2D integration behavior
+
+At that milestone, the 20 ms button controller and its fixed HID demo remained
+unchanged. Even a *valid staged* file had **no executable authority**.
+`app_main` did not call the program copy interface; its existing
+`chaon_run(&demo, &io)` used the original embedded fixed demo, never an SD
+program. See [program-staging.md](program-staging.md) for the corresponding
+historical ownership and invalidation contract. Phase 2E.2 later added the
+separate selected-program authority described at the top of this page.
 
 The Phase 2C implementation intentionally does **not** display complete
 script lines or provide script execution, launch, trust grants, USB output
@@ -86,9 +82,9 @@ result suppression, identity mismatches, pending/complete snapshots, stage
 replacement, invalid/partial program rejection, buffer guards and the absence
 of VM/HID linkage from staging, plus summary-only LCD framebuffer bounds.
 
-Physical acceptance applies to the earlier stacked `e34e621` firmware and its
+The original Phase 2C/2D physical acceptance applies to the earlier stacked `e34e621` firmware and its
 observable behavior. A Phase 2C-only binary was not separately flashed, the
 in-flight read race was not reproduced physically, and staged program bytes
 were not observed on-device. ESP-IDF v5.5.3 ESP32-S3 builds remain required for
-the real target. A successful build is not hardware validation, and neither
-draft branch has been merged or released.
+the real target. A successful build is not hardware validation. The branches
+subsequently merged through PRs #14 and #15; no production release followed.

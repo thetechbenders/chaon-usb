@@ -1,10 +1,6 @@
 # Execution authority design and history
 
-The Phase 2E.1 confirmation material below records the hardware-accepted,
-inert baseline. On the Phase 2E.2 draft branch it is superseded by the bounded
-selected-program ownership and two-gesture ARM/RUN contract in
-[phase2e2-selection-contract.md](phase2e2-selection-contract.md). That branch
-does not change BOOT-held ROM recovery and is not yet physically tested.
+**Current disposition (2026-10-24):** Phase 2E.2 is merged into `main` and hardware accepted with documented physical limitations. The operative behavior is described in [the Phase 2E.2 selection contract](phase2e2-selection-contract.md). The 2E.1 material below is preserved as **historical design**, not currently active UI or control logic. See [physical evidence](phase2e2-hardware-evidence.md); no production release has been approved.
 
 ## Historical Phase 2E.1 separation
 
@@ -72,8 +68,9 @@ future SD path must have a distinct controller state and event, and code review
 must continue to show that the fixed demo is the only program reachable from
 the legacy `EXECUTE` event.
 
-Implementation, flashing and physical validation of this design require a new
-explicitly authorized milestone.
+At the time this design was written, implementation, flashing and physical
+validation required a new explicitly authorized milestone. Those later steps
+are recorded in the current selection contract and hardware evidence.
 
 
 ## Phase 2E.1 inert physical confirmation prototype (historical baseline)
@@ -115,5 +112,6 @@ it no longer accidentally invokes the three-second browser exit. To leave
 PICKED, make a short tap to unpick, then hold three seconds to exit browsing.
 The LCD bottom hint changes between `TAP UNPICK` and `3S EXIT` accordingly.
 Cancellation, source eligibility, USB disconnect, missing LCD, and ROM
-recovery remain fail-closed. Do not flash the UX revision until its exact-head
-native and target builds have passed, with an independent review.
+recovery remained fail-closed. At that milestone the UX revision was not to be
+flashed until its exact-head native and target builds passed with independent
+review; those gates were subsequently completed before its controlled test.

@@ -1,41 +1,36 @@
 # Roadmap and release gates
 
-## Phase 0: foundations (this PR)
+**As of 2026-10-24:** Phase 2E.1 and 2E.2 are merged into `main`. This page tracks current gates, not historical draft-branch status.
 
-- [x] Decide original S3 / native C / ESP-IDF architecture and ChaoN identity
-- [x] Collect vendor-confirmed original-board pin/memory facts
-- [x] Prototype bounded parser, US HID mapper, execution callback layer, HID USB application
-- [x] Prepare brand SVG and engineering docs
-- [x] Host and ESP-IDF builds green on original firmware head `323c180`
-- [ ] Review prototype HID timing, button state transitions, and report-release contract
+## Completed milestones
 
-## Phase 1: physical proof
+- [x] Original T-Dongle-S3 C11/ESP-IDF architecture, parser, TinyUSB HID, BOOT input and APA102 status.
+- [x] Physical fixed-demo arm/run/cancel, USB enumeration, inert insertion and ROM recovery on the original board.
+- [x] ST7735 160×80 display bring-up and status interface.
+- [x] SDMMC observation, FAT root metadata preview and one-button browser (Phase 2A/2B).
+- [x] Strict bounded FAT32 root `.CHN` reading, source inspection, and immutable program staging (Phase 2C/2D).
+- [x] Phase 2E.1 inert execution-authority foundation, merged via PR #17.
+- [x] Phase 2E.2 PICK → ARM → RUN, one-use grants, fresh SD reread/hash, selected display and no-demo fallback, merged via PR #18.
+- [x] Phase 2E.2 controlled original-board acceptance: **14 PASS, 0 FAIL, 4 BLOCKED, 1 PARTIAL, 2 N/A, 1 NOT REQUIRED**, on source `ae70e489`.
 
-- [x] Receive original board, verify ROM identity, flash size and USB HID routing
-- [x] Windows USB enumeration: keyboard, no unsolicited typing
-- [x] First Windows smoke test: arm, expire, execute fixed text and cancel (operator-verified)
-- [x] Windows ROM download and recovery validated; USB suspend and other OSes pending
-- [x] APA102 state indication and normal BOOT control regression on original board / Windows (2026-10-19); electrical timing and endurance remain untested
+## Remaining validation
 
-## Phase 2: display and script storage
+- [ ] Physical injection of same-identity file mutation after PICK.
+- [ ] Timing-controlled BOOT cancellation during SD verification.
+- [ ] Forced verification timeout and injected live SD read failure.
+- [ ] Last-moment verification rejection with explicit no-demo-fallback observation.
+- [ ] Broader host/layout, stress and fault-coverage evidence when specifically scoped.
 
-- [x] Physically verify native 160×80 ST7735 status display on original board
-- [x] Read-only SDMMC sector probe, cold empty-slot/restoration and FAT32 root 8.3 preview (Phase 2A, merged PRs #9/#11/#12)
-- [x] Powered SD hot-removal is NOT APPLICABLE: card slot inaccessible while dongle is plugged into USB
-- [x] Phase 2B: one-button root filename browsing and display-only PICK marker; CI and applicable original-board/Windows/FAT32 smoke tests passed 2026-10-20 (PR #13). Still no SD file reads or execution. See [browser controls](browser-controls.md).
-- [ ] Phase 2C: bounded read-only FAT32 .CHN inspection backend and summary-only SD-task/LCD path implemented in draft PR #14; native/target CI and the earlier combined `e34e621` Phase 2D candidate's original-board acceptance provide evidence for it. A Phase 2C-only binary was not separately flashed. Review and merge remain gates. No SD execution. See [inspection design](script-inspection.md).
-- [ ] Phase 2D: bounded one-slot program staging implemented on the Phase 2C draft; the earlier `e34e621` candidate passed observable original-board acceptance on 2026-10-23, while internal staged bytes and in-flight physical supersession remained uninstrumented. The later sector-scratch clearing source change has not been flashed or physically retested. Review and merge remain gates. Staging grants no HID authority.
-- [ ] Future separately authorized milestone: implement and physically validate explicit, time-limited removable-media execution authority
-- [ ] Script directory rules, bounded reading, versioned format and negative tests
-- [ ] Tests for parser fuzz targets and edge cases
+These are unresolved test limitations, **not** reported firmware failures. Powered card removal during verification is outside the original board's manual test scope.
 
-## Phase 3: product hardening
+## Release readiness
 
-- [ ] Host layout selection and user documentation
-- [ ] Decide USB IDs and release packaging (source repository public under AGPL-3.0-only; no production firmware release)
-- [ ] Threat model script ingestion and firmware update pathway
-- [ ] End-to-end on-device test matrix, reproducible release artifacts
-- [ ] No release without owner approval
+- [ ] Resolve [issue #5](https://github.com/thetechbenders/chaon-usb/issues/5): license/distribution confirmation, USB identifiers, firmware provenance, recovery/update packaging, script trust and layout limitations.
+- [ ] Independently review exact release tree and artifact before publishing.
+- [ ] Obtain explicit owner approval for release/tag/publication.
 
-Deferred, not promised: Wi-Fi script management, OTA, signed scripts, remote control, BLE HID. Keep the initial path deliberately simple and auditable.
+Hardware acceptance is not product qualification and does not itself authorize a public firmware release.
 
+## Deferred ideas
+
+Optional Wi-Fi script management, OTA, signed scripts, BLE HID and remote administration remain separate proposals, not current capabilities.

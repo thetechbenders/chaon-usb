@@ -4,64 +4,72 @@
 
 # ChaoN-USB
 
-**The Chaotic Neutral HID.** Experimental, screen-equipped USB HID instrument written in C for the **original LILYGO T-Dongle-S3** (ESP32-S3).
+**The Chaotic Neutral HID.** Experimental USB HID keyboard firmware written in C and ESP-IDF for the **original LILYGO T-Dongle-S3** (ESP32-S3).
 
-> **Development status (2026-10-23):** The inert, physically BOOT-gated HID controller, read-only SD probe, FAT32 root preview and single-button browser passed their documented original-board/Windows/FAT32 smoke tests through Phase 2B. The earlier stacked Phase 2C/2D candidate `e34e621` passed combined original-board physical acceptance (**33 PASS, 0 FAIL, 1 NOT TESTED, 2 NOT APPLICABLE**) on 2026-10-23. The current unmerged source adds a sector-scratch clearing fix and has not been flashed or physically retested. The physical in-flight SD-read supersession race was not established, and staged bytes were not instrumented; native adversarial tests cover those internal guarantees. SD content cannot execute, and the embedded fixed demo remains the only VM/HID program. See [inspection](docs/script-inspection.md), [staging](docs/program-staging.md) and [future execution-authority design](docs/execution-authority.md). No production firmware has been released.
+> **Project status (2026-10-24):** Phase 2E.1 and Phase 2E.2 are merged into `main`. The exact Phase 2E.2 firmware source `ae70e489ccd7ca22e2dcbe466bc5f544940a55f7` is **hardware accepted with documented physical limitations**, not production-qualified or released. On the original board, supervised physical validation recorded **14 PASS, 0 FAIL, 4 BLOCKED, 1 PARTIAL, 2 NOT APPLICABLE and 1 NOT REQUIRED**. See [hardware evidence](docs/phase2e2-hardware-evidence.md) and [validation plan](docs/phase2e2-hardware-validation.md). Later documentation and merge commits are not different hardware-tested images.
 
-## Current implementation
+## What works
 
-- Native ESP-IDF / FreeRTOS firmware structure, ESP32-S3 USB OTG and TinyUSB keyboard device configuration.
-- An inert-on-plug-in USB HID demo. Two deliberate, separate **press-and-release** actions on the BOOT button (GPIO0) arm then execute a fixed harmless text-only test. Arming expires after 30 seconds; USB unplug/restart disarms.
-- A small product-owned, bounded C script parser and executor for `TYPE`, `DELAY`, `ENTER` and `TAB`. No DuckyScript-compatibility claim, scripting from SD, network execution, or host command execution.
-- A US keyboard-layout HID usage mapper; no arbitrary keyboard-layout claims.
-- State-driven APA102 colors (ChaoN green READY, yellow flashing ARMED, red CANCELLED), native ST7735 160×80 status display, portable renderer tests, GitHub CI and hardware validation documentation.
-- **Hardware smoke-tested storage features (PRs #9/#12/#13):** read-only SDMMC sector observation, bounded FAT12/16/32 root-directory metadata listing, and BOOT-operated, display-only navigation/PICK selection. Physical filesystem coverage is FAT32 only; this is neither a full file manager nor an SD-script interpreter.
-- **Unmerged Phase 2C/2D draft:** bounded FAT32 root `.CHN` reading, Script v0 validation, summary-only LCD diagnostics and one fixed-capacity staged program. The earlier `e34e621` candidate was physically smoke-tested; the later scratch-clearing source change was not. Staging has no execution authority and no path to HID.
+- ESP-IDF v5.5.3 / FreeRTOS, native ESP32-S3 USB OTG, and TinyUSB HID keyboard.
+- **Inert insertion:** USB connection, reboot, and SD discovery do not intentionally type anything.
+- **Fixed benign demo:** with no SD selection, two distinct BOOT press/release gestures ARM then RUN the embedded text. The arm window expires after 30 seconds.
+- **Read-only microSD library:** bounded FAT32 root `.CHN` file reading, DOS 8.3 filename selection, strict script validation, LCD inspection and one immutable selected program. FAT12/16 root metadata preview exists, but **script contents are only supported from FAT32**.
+- **Selected SD execution:** BROWSE → PICK (asynchronous validation) → READY → ARM → RUN. The selected file's identity is shown in READY and ARMED. RUN requires a one-use authorization, a fresh independent SD re-read and SHA-256 match, and current USB/source/display eligibility. A rejected selected run does **not** fall back to the demo.
+- **Cancellation and recovery:** BOOT or USB loss cancels active execution; the VM attempts to release all keyboard keys. BOOT held during power-on enters the ESP32-S3 ROM download loader.
+- APA102 status indicator, ST7735 160×80 LCD, bounded C Script v0 parser and execution engine, native tests and ESP32-S3 CI.
 
-**The demo writes into whichever window currently has keyboard focus. Use only on a computer you own or are explicitly authorized to test.** Plugging the device in will not intentionally type anything until physical confirmation. The button is also the boot-strap/download pin, so never hold it during power-on when you want normal boot.
+**Safety:** HID output goes to whichever application has keyboard focus. Use ChaoN only on systems you own or are explicitly authorized to test, with a harmless test script and text editor focused. If USB remains mounted, a failed final HID release is treated as a fault, not proof of a clean cancellation; USB loss instead returns the controller to its disconnected state.
 
-## Scope
+## Supported hardware and software
 
-- **Hardware:** original T-Dongle-S3, not S3 Plus, Dual S3, or T-Dongle-C5.
-- **Language:** C11, not Arduino, C++, or cloned firmware.
-- **SDK:** ESP-IDF v5.5.3 initially; the project uses Espressif's supported TinyUSB component for USB transport rather than attempting to implement USB framing from scratch.
-- **Separate project:** not Dragon-family firmware and not a BandiC5 fork.
+- **Board:** original LILYGO T-Dongle-S3, **not** T-Dongle-S3 Plus, Dual S3 or C5.
+- **Chip / memory:** ESP32-S3, 16 MB flash, 512 KB internal SRAM, **no PSRAM**.
+- **Control:** BOOT / GPIO0, also the ROM-download strap.
+- **Display / storage:** ST7735 160×80, APA102 LED and microSD.
+- **Language:** C11; no Arduino firmware, Dragon-core dependency, or DuckyScript compatibility.
+- **Keyboard mapping:** US HID layout only. On non-US host layouts, visible characters may differ.
+- **Connectivity:** USB only for execution. No Wi-Fi script upload, remote HID execution or OTA feature is claimed.
 
-The vendor's original-board documentation specifies **16 MB flash, 512 KB on-chip SRAM, and no PSRAM**. A listing for the S3 Plus must not be used as the original board's BOM.
+## Quick start for developers
 
-## Development
+Install **ESP-IDF v5.5.3** with an ESP32-S3 toolchain, then run:
 
-Install ESP-IDF **v5.5.3** and an ESP32-S3 toolchain, then:
+```sh
+idf.py set-target esp32s3
+idf.py build
+make test
+```
 
-    idf.py set-target esp32s3
-    idf.py build
+The native test suite uses the repository Makefile. Building firmware does **not** flash it or establish hardware acceptance. Consult [bring-up and recovery](docs/bringup.md) and the [hardware evidence](docs/phase2e2-hardware-evidence.md) before any authorized hardware work. Never assume that a newer artifact is byte-equivalent to the tested image.
 
-Run portable host tests without ESP-IDF:
+## Script format and interaction
 
-    make test
+ChaoN Script v0 supports `TYPE "text"`, `DELAY N`, `TAB`, and `ENTER`, with fixed bounds and strict whole-program rejection on invalid input. See [script language](docs/script-language.md).
 
-CI runs host tests and an ESP32-S3 build on configured PR targets and manual dispatch. The BOOT controller, FAT32 root preview and display-only browser have passed the documented hardware smoke tests on the original board and Windows host; this is **not** production qualification.
+Select a supported FAT32-root `.CHN` file through the physical browser; PICK validates and owns the selection but does **not** arm or run it. A separate short press/release arms, and another deliberately executes it. Each run requires fresh source verification. An invalidated selection must be re-established deliberately. See [selection and authorization contract](docs/phase2e2-selection-contract.md).
+
+## Verification and limitations
+
+The hardware-accepted candidate was independently flashed and read back on the original board, with correct USB identity (`303A:4004`, serial `CHN-S3-DEV`), display/LED response, selected execution, cancellation, reconnect and ROM recovery. **Four specialized physical fault-injection checks remain BLOCKED**: same-identity in-place source modification, BOOT during the brief verification window, forced verification timeout and injected live SD read failure. The dedicated last-moment no-demo-fallback physical check is PARTIAL, with native regression evidence. Powered SD removal during verification is **not a valid manual acceptance test** on this board because the slot is inaccessible when inserted in USB.
+
+The tested source is `ae70e489ccd7ca22e2dcbe466bc5f544940a55f7`; artifact `12573854980`, ZIP SHA-256 `abe10ebffa2d2949de1fb860b41f701097f930e65c86d45b7eb0e946183d69c7`. No public production release or tag is implied. [Release policy decisions](https://github.com/thetechbenders/chaon-usb/issues/5) remain open, including USB identifier policy, packaging and provenance.
 
 ## Documentation
 
-- [Project architecture](docs/architecture.md)
-- [Hardware fact register](docs/hardware.md)
+- [Architecture and trust boundaries](docs/architecture.md)
+- [Hardware facts](docs/hardware.md)
 - [Script language v0](docs/script-language.md)
-- [Security / safe use](docs/security.md)
+- [Security and safe use](docs/security.md)
+- [Historical Phase 2B browser validation](docs/browser-controls.md)
+- [Phase 2E.2 selection/authorization contract](docs/phase2e2-selection-contract.md)
+- [Execution-authority design history](docs/execution-authority.md)
+- [Hardware validation plan](docs/phase2e2-hardware-validation.md) and [physical evidence](docs/phase2e2-hardware-evidence.md)
 - [Board bring-up and recovery](docs/bringup.md)
-- [Milestones and acceptance](docs/roadmap.md)
-- [Branding / asset source](docs/branding.md)
-- [LCD / LED state colors and physical test plan](docs/status-ui.md)
-- [Read-only SD probe and LCD diagnostics](docs/sd-storage.md)
-- [Bounded FAT root preview and 2026-10-20 hardware results](docs/fat-root-preview.md)
-- [Single-button browser contract and Phase 2B validation](docs/browser-controls.md)
-- [Bounded script inspection](docs/script-inspection.md)
-- [Bounded program staging ownership and invalidation](docs/program-staging.md)
-- [Future removable-media execution-authority design](docs/execution-authority.md)
+- [Roadmap and release gates](docs/roadmap.md)
+- [Contributing](CONTRIBUTING.md)
+
+Older phase-specific records document the state at their historical test dates. They must not be interpreted as current functionality.
 
 ## License
 
-ChaoN-USB's original source code, documentation, and project artwork are licensed under the **GNU Affero General Public License v3.0 only** ([AGPL-3.0-only](LICENSE)). Copyright © 2026 Techbenders contributors.
-
-The repository is public and AGPL-licensed, but **no production firmware has been released**. Third-party dependencies (including ESP-IDF and TinyUSB) retain their respective licenses; ChaoN's AGPL does not replace those separate notices.
-
+ChaoN-USB's original source, documentation and project artwork are licensed under the **GNU Affero General Public License v3.0 only** ([AGPL-3.0-only](LICENSE)). Copyright © 2026 Techbenders contributors. Third-party dependencies retain their respective licenses.

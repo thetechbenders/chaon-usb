@@ -1,29 +1,32 @@
 # ChaoN Script v0
 
-This is a small **original C grammar** for a future standalone USB HID test tool. It is **not DuckyScript-compatible**.
+A small original script grammar implemented in **C11** for the built-in HID demo and bounded FAT32-root `.CHN` files on the original T-Dongle-S3. **Not DuckyScript-compatible.** SD programs require physical PICK → ARM → RUN and a passing last-moment freshness check.
 
-## Grammar (v0 candidate)
+## Grammar
 
-- One instruction per line, CRLF or LF accepted.
+- One instruction per line; CRLF or LF accepted.
 - Blank lines, leading/trailing ASCII whitespace and lines beginning with `#` are ignored.
-- `TYPE "text"` sends each printable US-ASCII character as a USB HID keyboard usage. Supported escapes within strings: `\\"` and `\\\\` only.
-- `DELAY N` waits N milliseconds, with 1 <= N <= 10000.
+- `TYPE "text"` sends printable US-ASCII characters through the US HID usage map. Supported escapes inside quoted strings are `\\"` and `\\\\` only.
+- `DELAY N` waits `N` milliseconds, 1–10000.
 - `ENTER` presses and releases Enter.
 - `TAB` presses and releases Tab.
 
 Example:
 
-    # Run only on an owned test workstation
-    DELAY 500
-    TYPE "ChaoN test"
-    TAB
-    TYPE "ready"
+```text
+# Use only on an owned test workstation
+DELAY 500
+TYPE "ChaoN test"
+TAB
+TYPE "ready"
+```
 
-Constraints: source <= 2048 bytes including NUL, <= 32 executable instructions, <= 80 chars per TYPE, ASCII printable only. Invalid syntax fails the **whole** program. There is no partial execution, key combination syntax, loops, conditionals, file/network access, command execution API, layout autodetection, or shell integration.
+## Bounds
 
-The US keyboard translator produces HID key usages and Shift modifiers; it does not type Unicode and does not guarantee the same visible character on a host with a non-US layout.
+For SD files, the reader accepts **1–2047 source bytes**, keeping separate room for a terminating NUL. The parser has a 2048-byte source buffer, at most 32 executable instructions, and at most 80 characters per TYPE. Invalid syntax or unsupported characters reject the **entire** program. No partial execution is authorized.
 
-## Future possibilities (not implemented)
+Only FAT32 root files with supported short DOS 8.3 names and a raw `.CHN` extension can supply selected scripts. FAT12/FAT16 metadata preview does not imply that those files are executable.
 
-Formal bytecode representation, multi-layout maps, key combinations, file-based script selection, previews and signature/trust metadata. Each must preserve bounds and interactive arming.
+No loops, conditions, key chords, file writes, shell execution API, network command handling, layout detection or Unicode typing are implemented. A non-US host layout may render unexpected characters.
 
+See [selection contract](phase2e2-selection-contract.md), [inspection details](script-inspection.md) and [security](security.md).

@@ -1,49 +1,26 @@
 # Safety and authorization
 
-ChaoN is a USB HID engineering instrument, intended for **owned or explicitly authorized** computers. HID devices send key events to whichever application has focus; the device cannot identify the foreground window or the human intent behind it.
+ChaoN is an experimental USB HID engineering device for **owned or explicitly authorized** computers. It sends keystrokes to the focused host application and cannot determine whether that application is safe.
 
-## Deliberate execution policy
+## Current deliberate execution model (Phase 2E.2)
 
-- Power-on / USB insertion alone must not type.
-- The v0 demo requires two discrete physical button press-and-release gestures: arm, then execute.
-- The arm state expires after 30 seconds.
-- Physical button press while a script runs requests cancellation.
-- An interrupted/invalid script must attempt to release all HID keys.
-- No network-triggered script execution exists in the initial scope.
-- The current fixed demo contains only plain printable text and **no Enter** to avoid accidental execution if a terminal has focus. Still, execute only with a safe editor focused.
+- USB insertion, reconnect and passive SD discovery must not type.
+- With no SD selection, the embedded benign demo requires separate BOOT ARM and RUN gestures.
+- BROWSE and PICK are non-executing actions. PICK requires a valid bounded `.CHN` inspection before the application owns a selected program.
+- The selected program's filename remains visible in READY and ARMED. ARM expires after 30 seconds; a second distinct short BOOT gesture requests RUN.
+- Selected RUN requires one-use authorization bound to selection generation, USB epoch and source SHA-256, an independent live SD re-read/hash PASS within the verification window, and an immutable execution-owned copy.
+- Missing or changed source, SD errors, invalid selection, LCD unavailability, USB loss, cancellation, stale authorization or verification timeout deny selected execution. Failed selected execution must not silently trigger the fixed demo.
+- BOOT or USB loss during execution requests cancellation. Every accepted run's completion path attempts an all-keys HID release. If USB remains mounted, failed release is a FAULT; disconnect instead returns the controller to its unmounted state.
+- BOOT held at power-on still enters the ESP32-S3 ROM loader.
 
-## Security limitations
+Script v0 is deliberately small: bounded `TYPE`, `DELAY`, `TAB` and `ENTER`, US layout only. This is **not** DuckyScript, host shell scripting or unattended network execution. FAT32 script storage and SD reads are read-only.
 
-- This is an engineering prototype, not a tamper-resistant security product.
-- USB HID enumeration can still cause endpoint-security warnings; policies vary.
-- Nothing in firmware can guarantee focus or prohibit misinterpretation by the host.
-- USB unplug or brownout while a key is held is a host-visible interruption; the host normally releases keys on disconnect, but that behavior is outside our control.
-- GPIO0 is a boot strap; cannot be used to override the ROM download behavior when power is applied.
-- Readable scripts / unsigned firmware / unverified OTA would be a threat if introduced later. Do not ship those as secure by assertion.
+## Limitations and trust model
 
-No credential collection, persistence, evasion, or unattended keystroke injection is part of the initial architecture.
+- This is not a tamper-resistant or production-qualified security product.
+- Local SD files are operator-provided input, **not inherently trusted** because they parsed successfully; physical authorization is still required.
+- Host focus, host keyboard layout and post-disconnect key state are ultimately host behaviors. Use a harmless fixture and focused text editor.
+- Firmware/USB identity policy, release signing and provenance remain open decisions. No OTA or remote-control capability is claimed.
+- Physical acceptance was **14 PASS / 0 FAIL / 4 BLOCKED / 1 PARTIAL**. Blocked cases involve specialized mutation/timing/read-error injection. Powered SD removal during verification is not a valid manual original-board test.
 
-Before release: decide authentication/trust for any script ingestion, signed firmware policy, update/recovery flow, USB VID/PID assignment, and a threat model suitable for a USB interface that host computers inherently trust as input.
-
-
-## Phase 2C/2D read-only inspection and staging
-
-The development inspector only validates at most 2047 bytes from one
-FAT32 root `.CHN` file after rechecking the raw directory-entry identity
-and bounded cluster chain. It returns a small diagnostic summary to the LCD
-and wipes private source, workspace and candidate memory after validation.
-Phase 2D can publish one fixed-capacity program into an SD-service-owned,
-generation/identity-bound stage. The application does not copy or execute it,
-and the LCD remains summary-only. A validated or staged file is **not trusted
-or executable**. The only HID demo is the preexisting fixed
-string requiring two distinct short physical presses outside browsing.
-No card writes or FAT filesystem mounts are performed.
-
-The earlier stacked `e34e621` firmware containing these Phase 2C/2D paths
-passed the documented original-board acceptance on 2026-10-23. A Phase 2C-only
-binary was not separately flashed, internal staged bytes were not observed,
-and the later sector-scratch clearing source change has not been physically
-retested. This remains an unmerged draft, not a production safety claim.
-
-Future physical execution authorization is design-only and documented in
-[execution-authority.md](execution-authority.md). It requires a new milestone.
+See [selection/authority contract](phase2e2-selection-contract.md), [hardware evidence](phase2e2-hardware-evidence.md), and [release issue #5](https://github.com/thetechbenders/chaon-usb/issues/5).

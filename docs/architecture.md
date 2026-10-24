@@ -1,40 +1,53 @@
 # Architecture and trust boundaries
 
-    Original T-Dongle-S3 USB-A connector
-                |
-     ESP32-S3 USB OTG peripheral
-                |
-         esp_tinyusb / TinyUSB
-                |
-     ChaoN HID report adapter (C)
-                |
-      ChaoN script executor (C)
-        |               |
-    script parser    US HID map
-        |
-    trusted onboard test text (v0)
+**Current status:** Phase 2E.2 merged, hardware accepted on the original T-Dongle-S3 with documented physical limitations. Not production-released.
 
-Firmware ownership: ChaoN owns GPIO, scripts, user interactions, HID report semantics, safety policy and product identity. ESP-IDF and TinyUSB own the transport, USB framing, RTOS and drivers. No Dragon-core dependency.
+```text
+BOOT / GPIO0 → debounced one-button controller
+                   │
+    FAT32 root browser → PICK / async inspection
+                   │
+       SD task: bounded read, Script v0 parse
+                   │
+       immutable selected program + SHA-256
+                   │
+      READY → ARM → RUN (separate gestures)
+                   │
+        production app decision authority
+                   │
+      one-use grant, USB epoch, generation
+                   │
+      SD task: independent source re-read + hash
+                   │
+      execution slot (one-time prepare / take)
+                   │
+        ChaoN VM → US HID map → TinyUSB
+                   │
+                  Host
+```
 
-## Firmware slices
+The embedded benign demo uses the same VM/HID transport, but only when no selected/blocked SD execution context exists. An invalidated selected run cannot fall back to the demo.
 
-1. **v0 candidate:** USB HID keyboard and BOOT button, APA102 status, embedded benign script only. Demo should be inert until two physical press/release actions; arm expires after 30 s.
-2. **Hardware bring-up:** LCD + SD read-only driver and robust button interaction, including physical measurements.
-3. **User script library:** bounded text parser, verified files, preview, select/run/cancel. Script grammar and file format must be versioned.
-4. **Optional management:** local read-only status first, then carefully authenticated update, if ever authorized. No remote auto-run by default.
+## Component ownership
 
-## Invariants
+ChaoN owns GPIO, the browser, SD inspection and selection, scripts, execution decisions, safety guards, HID report semantics and product identity. ESP-IDF/FreeRTOS and TinyUSB provide RTOS/driver/USB transport services. This is a standalone C11 firmware project, not Dragon-family firmware.
 
-- No script runs just because USB enumerates, reconnects, reboots, or receives a network request.
-- A host cannot select/arm/run scripts through HID traffic.
-- Report release on every normal key, failure and cancellation path.
-- Input bounds are explicit; no unbounded dynamic memory in runtime script parsing.
-- No automatic retries on partial execution.
-- The host computer, not the USB device, decides where typed characters land. A benign payload can still be hazardous in a privileged terminal. Test only in a controlled text editor.
-- USB disconnected means no output; a new connection starts disarmed after reset.
-- A bad card, malformed script or unsupported keyboard layout is a visible failure, not interpreted as a valid payload.
+The SD worker performs read-only FAT access and hashing outside the SD state mutex, then publishes bounded results. The main task owns selected execution authority and the immutable execution copy. Display state communicates the selected program in READY and ARMED. No network-based control or USB-host-command execution exists.
 
-## Notes
+## Safety invariants
 
-The USB transport callback is synchronous at the ChaoN adapter boundary; the TinyUSB stack itself schedules USB transactions. Timing and key-release acknowledgement need physical validation. No screen, SD, network or production boot/recovery policy is implemented in v0.
+- USB insertion, enumeration, reboot and reconnect do not trigger execution.
+- PICK never authorizes HID by itself; ARM and RUN require separate debounced gestures within 30 seconds.
+- Each selected execution consumes a single-use grant bound to its selection/source digest and USB epoch.
+- A new SD re-read and SHA-256 match are required immediately before selected execution; stale, changed or unavailable sources deny output.
+- An invalidated selected RUN does not fall back to the embedded demo in the
+  same transaction.
+- BOOT press and USB loss request cancellation; the VM attempts an all-keys release. If USB remains mounted, a failed release is a FAULT; disconnect instead returns the controller to its unmounted state.
+- No automatic resume/retry; controller state and source authority do not survive reconnection.
+- A safe editor and explicit authorization are necessary: the device cannot know the host application's focus.
 
+See [the current selection contract](phase2e2-selection-contract.md), [security](security.md) and [physical evidence](phase2e2-hardware-evidence.md). Earlier bring-up and architecture sections should be interpreted as historical stages rather than active design proposals.
+
+## Scope and deferred work
+
+Native tests and physical acceptance do not establish a production security certification. Remaining specialized fault injection is documented in the evidence ledger. USB VID/PID distribution policy, release packaging and provenance remain open in [release issue #5](https://github.com/thetechbenders/chaon-usb/issues/5). Wi-Fi management, OTA, BLE HID and remote execution are not implemented commitments.
