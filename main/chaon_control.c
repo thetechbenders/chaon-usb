@@ -117,11 +117,20 @@ chaon_control_event_t chaon_control_step_confirmation(chaon_control_t *c,
                         c->confirm_entered_ms = now_ms;
                         c->browser_activity_ms = now_ms;
                         event = CHAON_CONTROL_CONFIRM_ENTER;
+                    } else if (c->browser_selected) {
+                        /* When PICKED, an incomplete confirmation hold must not
+                         * alias the 3s EXIT gesture or discard selection.
+                         * A deliberate short tap unpicks; EXIT is available
+                         * after unpicking, preserving a one-button escape. */
+                        if (duration < CHAON_CONTROL_BROWSER_HOLD_MS) {
+                            c->browser_selected = false;
+                            event = CHAON_CONTROL_BROWSER_SELECT;
+                        }
                     } else if (duration >= CHAON_CONTROL_BROWSER_EXIT_MS) {
                         close_browser(c, false);
                         event = CHAON_CONTROL_BROWSER_CLOSE;
                     } else if (duration >= CHAON_CONTROL_BROWSER_HOLD_MS) {
-                        c->browser_selected = !c->browser_selected;
+                        c->browser_selected = true;
                         event = CHAON_CONTROL_BROWSER_SELECT;
                     } else if (c->browser_count) {
                         c->browser_index = (uint8_t)
