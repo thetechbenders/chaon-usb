@@ -27,6 +27,7 @@
 #include "chaon_screen.h"
 #include "chaon_selection.h"
 #include "chaon_run_authority.h"
+#include "chaon_execution_slot.h"
 
 #define BUTTON_PIN GPIO_NUM_0
 #define APA102_DATA GPIO_NUM_40
@@ -41,6 +42,11 @@ static chaon_program_t staged_copy;
 static chaon_selection_t selected_program;
 static chaon_run_authority_t selected_authority;
 static chaon_execution_grant_t selected_grant;
+static chaon_execution_slot_t execution_slot;
+static chaon_program_t execution_program;
+static uint8_t selected_index;
+static uint32_t verification_ticket;
+static int64_t verification_started_ms;
 
 static const uint8_t hid_report_descriptor[] = {
     TUD_HID_REPORT_DESC_KEYBOARD()
@@ -365,6 +371,9 @@ void app_main(void)
             chaon_selection_clear(&selected_program);
             chaon_run_authority_cancel(&selected_authority);
             chaon_execution_grant_clear(&selected_grant);
+            chaon_execution_slot_clear(&execution_slot);
+            chaon_sd_probe_verify_cancel();
+            verification_ticket=0;
         }
         const bool pressed = gpio_get_level(BUTTON_PIN) == 0;
         const int64_t now_ms = esp_timer_get_time() / 1000;
@@ -399,8 +408,8 @@ void app_main(void)
                 chaon_selection_load(&selected_program,
                     &current_catalog.entries[picked_index], &staged_copy,
                     generation, usb_epoch, digest)) {
-                ESP_LOGI(TAG, "PICK READY: %s (NO SD HID YET)",
-                         selected_program.identity.name);
+                selected_index=picked_index;
+                ESP_LOGI(TAG, "PICK READY: %s", selected_program.identity.name);
             } else {
                 ESP_LOGW(TAG, "PICK failed: no valid immutable program");
             }
@@ -411,7 +420,10 @@ void app_main(void)
             chaon_selection_clear(&selected_program);
             chaon_run_authority_cancel(&selected_authority);
             chaon_execution_grant_clear(&selected_grant);
-            ESP_LOGI(TAG, "read-only browser entered");
+            chaon_execution_slot_clear(&execution_slot);
+            chaon_sd_probe_verify_cancel();
+            verification_ticket=0;
+            ESP_LOGI(TAG, "browser entered; prior selection revoked");
         } else if (event == CHAON_CONTROL_BROWSER_SELECT) {
             if (control.browser_selected && catalog_valid &&
                 control.browser_index < current_catalog.count &&
@@ -436,11 +448,21 @@ void app_main(void)
             ESP_LOGI(TAG, "armed for 30 seconds");
         } else if (event == CHAON_CONTROL_EXECUTE) {
             if (selected_program.valid) {
-                ESP_LOGW(TAG, "selected SD RUN remains disabled until freshness transaction is wired");
-                chaon_control_complete(&control, CHAON_RUN_CANCELLED,
-                                       connected, pressed, now_ms);
-                continue;
-            }
+                if (selected_grant.issued && connected && !pressed) {
+                    verification_ticket=chaon_sd_probe_verify_request(
+                        selected_index,&selected_program.identity,
+                        selected_program.staging_generation,
+                        selected_program.source_sha256);
+                    verification_started_ms=now_ms;
+                    ESP_LOGI(TAG,"SD RUN verifying source (ticket=%lu)",
+                             (unsigned long)verification_ticket);
+                }
+                if (!verification_ticket) {
+                    chaon_execution_grant_clear(&selected_grant);
+                    chaon_control_complete(&control,CHAON_RUN_CANCELLED,
+                                           connected,pressed,now_ms);
+                }
+            } else {
             paint_status(&control, now_ms, &lcd_ok);
             const chaon_transport_t io = {
                 .report = send_hid_report,
@@ -454,6 +476,53 @@ void app_main(void)
             chaon_control_complete(&control, result, tud_mounted(),
                                    gpio_get_level(BUTTON_PIN) == 0,
                                    completed_ms);
+            }
+        }
+        /* Complete the verified one-shot transaction on the controller task.
+         * There is no HID call on a stale/missing/mismatched reply. */
+        if (verification_ticket) {
+            const bool eligible = connected && !pressed &&
+                selected_program.valid &&
+                control.state == CHAON_STATUS_RUNNING &&
+                now_ms >= verification_started_ms &&
+                now_ms - verification_started_ms <= 5000;
+            const chaon_sd_verify_result_t verify = eligible ?
+                chaon_sd_probe_verify_poll(verification_ticket) :
+                CHAON_SD_VERIFY_FAIL;
+            if (verify != CHAON_SD_VERIFY_WAIT) {
+                verification_ticket=0;
+                const bool fresh=verify == CHAON_SD_VERIFY_PASS && eligible;
+                bool authorized = fresh &&
+                    chaon_execution_slot_prepare(&execution_slot,
+                        &selected_grant,&selected_program,
+                        selected_program.staging_generation,usb_epoch,
+                        selected_program.source_sha256,true) &&
+                    chaon_execution_slot_take(&execution_slot,
+                        &selected_program,selected_program.staging_generation,
+                        usb_epoch,selected_program.source_sha256,true,
+                        &execution_program);
+                if (authorized && tud_mounted() &&
+                    gpio_get_level(BUTTON_PIN) != 0) {
+                    paint_status(&control,now_ms,&lcd_ok);
+                    const chaon_transport_t io={
+                        .report=send_hid_report,.sleep_ms=sleep_ms,
+                        .cancelled=is_cancelled,.context=NULL
+                    };
+                    const chaon_run_result_t result=chaon_run(&execution_program,&io);
+                    chaon_control_complete(&control,result,tud_mounted(),
+                        gpio_get_level(BUTTON_PIN)==0,
+                        esp_timer_get_time()/1000);
+                    ESP_LOGI(TAG,"selected CHN result=%d",(int)result);
+                } else {
+                    chaon_control_complete(&control,CHAON_RUN_CANCELLED,
+                        connected,pressed,esp_timer_get_time()/1000);
+                    ESP_LOGW(TAG,"selected RUN denied: stale/invalid verification");
+                }
+                memset(&execution_program,0,sizeof execution_program);
+                chaon_execution_slot_clear(&execution_slot);
+                chaon_execution_grant_clear(&selected_grant);
+                chaon_sd_probe_verify_cancel();
+            }
         }
         /* Any deselection, navigation, USB loss or timeout invalidates an
          * in-flight result. The SD task checks its generation before
