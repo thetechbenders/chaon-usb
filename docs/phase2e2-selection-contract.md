@@ -53,7 +53,7 @@ stack allocations. SD I/O and hashing remain on the SD task outside the
 mutex; only bounded metadata/program publication uses the task-context mutex.
 The SD service is read-only.
 
-## Pre-flash evidence required
+## Validation gates (completed for the accepted candidate)
 
 Host tests exercise the production controller-to-decision path for PICK,
 ARM/RUN, successful freshness, failed freshness, missing grants, USB loss, SD
@@ -62,4 +62,4 @@ warnings-as-errors plus UBSan/ASan and an exact ESP-IDF v5.5.3 ESP32-S3 build
 must pass on the final commit. Independent review remains a gate before any
 controlled physical test.
 
-No flash, merge, tag or release is authorized by this document.
+The accepted candidate was flashed and verified under explicit operator approval, and PR #18 subsequently merged. This document does **not** authorize any subsequent flash, tag, or firmware release.
