@@ -1,9 +1,12 @@
-# Future removable-media execution authority design
+# Execution authority design and history
 
-This is a design gate only. It does **not** authorize or implement removable-
-media HID execution and does not change current BOOT behavior.
+The Phase 2E.1 confirmation material below records the hardware-accepted,
+inert baseline. On the Phase 2E.2 draft branch it is superseded by the bounded
+selected-program ownership and two-gesture ARM/RUN contract in
+[phase2e2-selection-contract.md](phase2e2-selection-contract.md). That branch
+does not change BOOT-held ROM recovery and is not yet physically tested.
 
-## Required separation
+## Historical Phase 2E.1 separation
 
 Selection, validation, staging, authorization and execution are distinct
 states. PICK may request validation and produce a staged program, but it must
@@ -13,7 +16,7 @@ identity, source-change fingerprint and current USB connection epoch. The
 existing fixed-demo `EXECUTE` event must continue to select only the embedded
 demo.
 
-## Proposed one-button confirmation
+## Historical Phase 2E.1 one-button confirmation (superseded in Phase 2E.2)
 
 One button makes timing aliases dangerous, so entry into a future SD execution
 confirmation state must itself be non-executing. A practical candidate is:
@@ -37,7 +40,7 @@ browser exit, SD error, controller reset/fault, or BOOT cancellation. It must
 not survive reconnect or reboot and must never be granted by insertion,
 automatic timers, a network request or validation success alone.
 
-## Source freshness
+## Historical source-freshness requirement
 
 Raw name/cluster/size identity does not prove that same-size sectors were not
 modified after staging. Before entering `EXEC CONFIRM`, a future implementation
@@ -47,7 +50,7 @@ verify the generation, identity and fingerprint again, or atomically transfer
 the freshly validated program into a one-shot execution-owned buffer. Any
 change fails closed and returns to non-armed browsing.
 
-## Execution, cancellation and recovery
+## Shared execution, cancellation and recovery requirements
 
 - Execution owns one immutable bounded program copy; SD replacement cannot
   mutate it. No automatic retry or resume is allowed.
@@ -61,7 +64,7 @@ change fails closed and returns to non-armed browsing.
 - BOOT-held power-on remains the ESP32-S3 ROM download path. Runtime gesture
   handling cannot run before ROM strap sampling and must not impair recovery.
 
-## Fixed-demo compatibility
+## Historical fixed-demo-only compatibility requirement
 
 Outside BROWSE/confirmation, the existing two short press-release gestures,
 30-second arm expiry, cancellation and embedded demo remain unchanged. The
@@ -73,7 +76,7 @@ Implementation, flashing and physical validation of this design require a new
 explicitly authorized milestone.
 
 
-## Phase 2E.1 inert physical confirmation prototype (draft, not flashed)
+## Phase 2E.1 inert physical confirmation prototype (historical baseline)
 
 The initial Phase 2E development branch adds a **non-executing** confirmation
 screen and a BOOT gesture classifier. This does not authorize or perform HID.
@@ -99,7 +102,7 @@ fingerprint, execution-owned program and USB epoch binding. No SD-program
 execution is approved or connected in Phase 2E.1.
 
 
-## Phase 2E.1 usability correction (draft, requires renewed hardware validation)
+## Phase 2E.1 usability correction (historical baseline)
 
 The original 5-second blind hold was unreliable in physical testing (2/10
 successful attempts reported). In the revised draft, pressing BOOT while a
