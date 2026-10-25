@@ -1,6 +1,8 @@
 name: ChaoN CI
 
 on:
+  push:
+    branches: ['rc/**']
   pull_request:
     branches: [main, feat/esp-idf-foundation, feat/sd-readonly-probe]
   workflow_dispatch:
@@ -51,6 +53,39 @@ jobs:
           python3 tools/release_package.py verify \
             --archive "$RUNNER_TEMP/chaon-experimental-candidate.zip" \
             --source-commit "$(git rev-parse HEAD)"
+      - name: Record exact-source CI candidate provenance
+        if: startsWith(github.ref, 'refs/heads/rc/') && github.event_name == 'push'
+        shell: bash
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          REPO: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          SERVER_URL: ${{ github.server_url }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          pkg = pathlib.Path(os.environ["RUNNER_TEMP"]) / "chaon-experimental-candidate.zip"
+          commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          content = {
+              "schema_version": 1,
+              "kind": "ChaoN-original-T-Dongle-S3-experimental-RC-build",
+              "repository": os.environ["REPO"],
+              "source_ref": "refs/heads/" + os.environ["REF_NAME"],
+              "source_commit": commit,
+              "github_actions_run_id": int(os.environ["RUN_ID"]),
+              "github_actions_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "github_actions_run_url": (os.environ["SERVER_URL"] + "/" +
+                                         os.environ["REPO"] + "/actions/runs/" +
+                                         os.environ["RUN_ID"]),
+              "candidate_zip_sha256": hashlib.sha256(pkg.read_bytes()).hexdigest(),
+              "artifact_authenticity": "NOT_SIGNED_CI_RUN_PROVENANCE_ONLY",
+              "physical_validation": "NOT_ESTABLISHED_FOR_THIS_EXACT_BINARY",
+          }
+          output = pathlib.Path(os.environ["RUNNER_TEMP"]) / "rc-provenance.json"
+          output.write_text(json.dumps(content, indent=2, sort_keys=True) + "\n")
+          PY
       - name: Upload flashable firmware inputs
         uses: actions/upload-artifact@v7
         with:
@@ -66,3 +101,4 @@ jobs:
             build/flasher_args.json
             dependencies.lock
             ${{ runner.temp }}/chaon-experimental-candidate.zip
+            ${{ runner.temp }}/rc-provenance.json
