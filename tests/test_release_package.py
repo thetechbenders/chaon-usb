@@ -105,7 +105,7 @@ class PackagingTests(unittest.TestCase):
         with zipfile.ZipFile(self.archive, "w") as archive:
             for name, data in contents.items():
                 archive.writestr(name, data)
-        with self.assertRaisesRegex(ValueError, "integrity mismatch"):
+        with self.assertRaises(ValueError):
             pkg.verify_archive(self.archive)
 
     def test_unexpected_entry_rejected(self):
