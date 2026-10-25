@@ -29,7 +29,7 @@ def digest(data):
 
 def read_inputs(root):
     files = {}
-    for name in [p for p, _ in REQUIRED] + list(METADATA):
+    for name in [p for p, _ in REQUIRED] + [p for p in METADATA if p != "dependencies.lock"]:
         p = root / name
         if not p.is_file() or p.is_symlink():
             raise ValueError(f"missing/unsafe required input: {name}")
