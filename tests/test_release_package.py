@@ -40,7 +40,7 @@ def fixture_files():
     names = {name: esp_image() for name in
              ("bootloader/bootloader.bin", "chaon.bin")}
     names["partition_table/partition-table.bin"] = (
-        b"\\xaa\\x50" + bytes(0xC00 - 2))
+        bytes((0xAA, 0x50)) + bytes(0xC00 - 2))
     names["flasher_args.json"] = json.dumps({
         "flash_files": {"0x0": "bootloader/bootloader.bin",
                         "0x8000": "partition_table/partition-table.bin",
