@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Offline release-package integrity and negative-path tests."""
 import importlib.util
+import json
+from unittest import mock
 import pathlib
 import tempfile
 import unittest
@@ -61,7 +63,7 @@ class PackagingTests(unittest.TestCase):
         with zipfile.ZipFile(self.archive, "w") as archive:
             for name, data in contents.items():
                 archive.writestr(name, data)
-        with self.assertRaisesRegex(ValueError, "integrity failure"):
+        with self.assertRaisesRegex(ValueError, "integrity mismatch"):
             pkg.verify_archive(self.archive)
 
     def test_unexpected_entry_rejected(self):
@@ -70,6 +72,46 @@ class PackagingTests(unittest.TestCase):
             archive.writestr("additional.bin", b"unexpected")
         with self.assertRaisesRegex(ValueError, "unexpected entries"):
             pkg.verify_archive(self.archive)
+
+    def mutate_manifest(self, mutate):
+        self.create()
+        with zipfile.ZipFile(self.archive) as archive:
+            payloads = {name: archive.read(name) for name in archive.namelist()}
+        manifest = json.loads(payloads["manifest.json"])
+        mutate(manifest)
+        payloads["manifest.json"] = pkg.stable_json(manifest)
+        with zipfile.ZipFile(self.archive, "w") as archive:
+            for name, data in payloads.items():
+                archive.writestr(name, data)
+
+    def test_manifest_provenance_tampering_rejected(self):
+        changes = (
+            lambda m: m.update(esp_idf_version="v9.9.9-EVIL"),
+            lambda m: m.update(esp_tinyusb_version="9.9.9"),
+            lambda m: m.update(board="attacker"),
+            lambda m: m.pop("source_tree_sha256"),
+            lambda m: m.update(source_tree_sha256="bogus"),
+            lambda m: m.update(status="RELEASED"),
+            lambda m: m.pop("limitations"),
+            lambda m: m.update(unexpected="field"),
+            lambda m: m.update(source_commit="not-a-commit"),
+        )
+        for change in changes:
+            with self.subTest(change=repr(change)):
+                self.mutate_manifest(change)
+                with self.assertRaises(ValueError):
+                    pkg.verify_archive(self.archive)
+
+    def test_verification_failure_preserves_prior_archive(self):
+        self.create()
+        before = self.archive.read_bytes()
+        with mock.patch.object(pkg, "verify_archive", side_effect=ValueError("bad temp")):
+            with self.assertRaisesRegex(ValueError, "bad temp"):
+                pkg.make_archive(self.archive, self.files,
+                                 pkg.manifest_for(self.files, SOURCE, TREE,
+                                                  "v5.5.3", "2.0.0"))
+        self.assertEqual(self.archive.read_bytes(), before)
+        self.assertEqual(list(self.root.glob("tmp*.zip")), [])
 
     def test_offsets_are_fixed(self):
         self.create()
