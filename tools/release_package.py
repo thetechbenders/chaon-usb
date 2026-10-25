@@ -8,8 +8,6 @@ import hashlib
 import json
 import pathlib
 import re
-import shutil
-import sys
 import tempfile
 import zipfile
 
@@ -79,6 +77,8 @@ def make_archive(out, files, manifest):
                 info.compress_type = zipfile.ZIP_STORED
                 info.external_attr = 0o100644 << 16
                 archive.writestr(info, data)
+        # Verify before replacing an existing known-good candidate.
+        verify_archive(temp_path, manifest["source_commit"])
         temp_path.replace(out)
     finally:
         temp_path.unlink(missing_ok=True)
@@ -93,17 +93,25 @@ def verify_archive(path, expected_source=None):
         manifest = json.loads(archive.read("manifest.json"))
         if expected_source and manifest.get("source_commit") != expected_source:
             raise ValueError("source commit mismatch")
-        if manifest.get("schema_version") != 1:
-            raise ValueError("unsupported manifest schema")
-        if manifest.get("image_offsets") != {name: offset for name, offset in REQUIRED}:
-            raise ValueError("image offset mismatch")
+        if not isinstance(manifest, dict):
+            raise ValueError("manifest must be a JSON object")
         entries = manifest.get("files")
         if not isinstance(entries, dict) or set(entries) != expected - {"manifest.json"}:
             raise ValueError("manifest file-set mismatch")
-        for name, entry in entries.items():
-            data = archive.read(name)
-            if entry != {"bytes": len(data), "sha256": digest(data)}:
-                raise ValueError(f"image or metadata integrity failure: {name}")
+        # Rebuild every field from the packaged bytes and the validated,
+        # pinned metadata policy. Unknown or removed keys cannot pass.
+        source = manifest.get("source_commit")
+        tree = manifest.get("source_tree_sha256")
+        if not isinstance(source, str) or not COMMIT.fullmatch(source):
+            raise ValueError("invalid source commit")
+        if not isinstance(tree, str) or not SHA.fullmatch(tree):
+            raise ValueError("invalid source tree SHA-256")
+        if expected_source and source != expected_source:
+            raise ValueError("source commit mismatch")
+        files = {name: archive.read(name) for name in sorted(entries)}
+        canonical = manifest_for(files, source, tree, "v5.5.3", "2.0.0")
+        if manifest != canonical:
+            raise ValueError("manifest metadata or integrity mismatch")
         return manifest
 
 
@@ -131,7 +139,6 @@ def main(argv=None):
             manifest = manifest_for(files, args.source_commit,
                                     args.source_tree_sha256, "v5.5.3", "2.0.0")
             make_archive(args.out, files, manifest)
-            verify_archive(args.out, args.source_commit)
             print(f"Candidate: {args.out} SHA-256 {digest(args.out.read_bytes())}")
         else:
             manifest = verify_archive(args.archive, args.source_commit)
