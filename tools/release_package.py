@@ -142,7 +142,7 @@ def _validate_esp_image(data, filename, max_size):
         for byte in data[cursor:cursor + seg_length]:
             checksum ^= byte
         cursor += seg_length
-    footer = (cursor + 15) & ~15
+    footer = (cursor + 16) & ~15  # room for checksum even on aligned segments
     if footer + 32 != len(data) or data[footer - 1] != checksum:
         raise ValueError(f"image checksum/length mismatch: {filename}")
     if any(data[cursor:footer - 1]):
