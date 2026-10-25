@@ -28,8 +28,8 @@ def esp_image(chip=9, corrupt_hash=False):
     checksum = 0xEF
     for byte in payload:
         checksum ^= byte
+    image += bytes((-len(image) - 1) % 16)
     image += bytes((checksum,))
-    image += bytes((-len(image)) % 16)
     result = image + hashlib.sha256(image).digest()
     if corrupt_hash:
         result = result[:-1] + bytes((result[-1] ^ 0xFF,))
