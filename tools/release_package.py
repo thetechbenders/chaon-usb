@@ -8,6 +8,8 @@ import hashlib
 import json
 import pathlib
 import re
+import shlex
+import struct
 import tempfile
 import zipfile
 
@@ -38,6 +40,121 @@ def read_inputs(root):
     return files
 
 
+
+# Release policy for the hardware-tested original S3 configuration.
+FLASH_SETTINGS = {"flash_mode": "dio", "flash_freq": "80m", "flash_size": "16MB"}
+APP_PARTITION_SIZE = 0x100000
+FLASH_CAPACITY = 0x1000000
+CHIP_ID_ESP32S3 = 9
+
+
+def _parse_flash_args(files):
+    try:
+        args = json.loads(files["flasher_args.json"])
+    except (UnicodeDecodeError, json.JSONDecodeError) as err:
+        raise ValueError("invalid flasher_args.json") from err
+    if not isinstance(args, dict):
+        raise ValueError("flash arguments must be an object")
+    layout = args.get("flash_files")
+    if not isinstance(layout, dict) or len(layout) != len(REQUIRED):
+        raise ValueError("unexpected flash_files layout")
+    offsets = {}
+    for offset, name in layout.items():
+        try:
+            address = int(offset, 0)
+        except (ValueError, TypeError) as err:
+            raise ValueError("invalid flash offset") from err
+        if address in offsets or not isinstance(name, str):
+            raise ValueError("duplicate flash offset or invalid filename")
+        offsets[address] = name
+    expected = {int(offset, 0): name for name, offset in REQUIRED}
+    if offsets != expected:
+        raise ValueError("flash layout differs from expected original-board layout")
+    settings = args.get("flash_settings")
+    if settings != FLASH_SETTINGS:
+        raise ValueError("flash settings differ from original-board policy")
+    extra = args.get("extra_esptool_args")
+    if not isinstance(extra, dict) or extra.get("chip") != "esp32s3":
+        raise ValueError("wrong or absent ESP32-S3 target")
+    write = args.get("write_flash_args")
+    if not isinstance(write, list) or not all(isinstance(x, str) for x in write):
+        raise ValueError("missing write_flash_args")
+    expected_flags = ["--flash-mode", "dio", "--flash-size", "16MB",
+                      "--flash-freq", "80m"]
+    if write != expected_flags:
+        raise ValueError("write_flash_args disagree with flash settings")
+    try:
+        positional = shlex.split(files["flash_args"].decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as err:
+        raise ValueError("invalid flash_args") from err
+    # ESP-IDF's @flash_args uses the same flash settings and three regions.
+    if positional[:len(expected_flags)] != expected_flags:
+        raise ValueError("flash_args flash settings disagree")
+    remaining = positional[len(expected_flags):]
+    if len(remaining) != 2 * len(REQUIRED):
+        raise ValueError("flash_args region count mismatch")
+    actual = {}
+    for i in range(0, len(remaining), 2):
+        try:
+            offset = int(remaining[i], 0)
+        except ValueError as err:
+            raise ValueError("invalid flash_args offset") from err
+        actual[offset] = remaining[i + 1]
+    if actual != expected or len(actual) != len(REQUIRED):
+        raise ValueError("flash_args layout disagree with flasher_args.json")
+    return {name: hex(offset) for offset, name in sorted(expected.items())}
+
+
+def _validate_esp_image(data, filename, max_size):
+    """Validate Espressif image header, segments, XOR checksum, optional SHA-256."""
+    if len(data) < 33 or len(data) > max_size or data[0] != 0xE9:
+        raise ValueError(f"invalid or oversized ESP image: {filename}")
+    count = data[1]
+    if not 1 <= count <= 16:
+        raise ValueError(f"invalid image segment count: {filename}")
+    chip = struct.unpack_from("<H", data, 12)[0]
+    if chip != CHIP_ID_ESP32S3:
+        raise ValueError(f"wrong image chip ID: {filename}")
+    if data[23] != 1:
+        raise ValueError(f"missing image SHA-256: {filename}")
+    cursor = 24
+    checksum = 0xEF
+    for _ in range(count):
+        if cursor + 8 > len(data):
+            raise ValueError(f"truncated segment header: {filename}")
+        seg_length = struct.unpack_from("<I", data, cursor + 4)[0]
+        cursor += 8
+        if seg_length > max_size or cursor + seg_length > len(data):
+            raise ValueError(f"invalid segment bounds: {filename}")
+        for byte in data[cursor:cursor + seg_length]:
+            checksum ^= byte
+        cursor += seg_length
+    footer = (cursor + 15) & ~15
+    if footer + 32 != len(data) or data[footer - 1] != checksum:
+        raise ValueError(f"image checksum/length mismatch: {filename}")
+    if any(data[cursor:footer - 1]):
+        raise ValueError(f"nonzero image padding: {filename}")
+    if hashlib.sha256(data[:footer]).digest() != data[footer:]:
+        raise ValueError(f"ESP image SHA-256 mismatch: {filename}")
+
+
+def validate_flash_package(files):
+    offsets = _parse_flash_args(files)
+    for name, _ in REQUIRED:
+        max_size = (APP_PARTITION_SIZE if name == "chaon.bin"
+                    else (0x8000 if name.startswith("bootloader/")
+                          else FLASH_CAPACITY))
+        if name == "partition_table/partition-table.bin":
+            data = files[name]
+            if len(data) != 0xC00 or data[:2] != b"\\xaa\\x50":
+                raise ValueError("invalid ESP partition table")
+            continue
+        _validate_esp_image(files[name], name, max_size)
+    for name, offset in REQUIRED:
+        if int(offset, 0) + len(files[name]) > FLASH_CAPACITY:
+            raise ValueError("image exceeds physical flash capacity")
+    return offsets
+
 def manifest_for(files, source, firmware_sha, idf, component):
     if not COMMIT.fullmatch(source):
         raise ValueError("source SHA must be an exact 40-character lowercase git SHA")
@@ -45,6 +162,7 @@ def manifest_for(files, source, firmware_sha, idf, component):
         raise ValueError("firmware source tree hash must be lowercase SHA-256")
     if idf != "v5.5.3" or component != "2.0.0":
         raise ValueError("unexpected ESP-IDF or esp_tinyusb version")
+    validated_offsets = validate_flash_package(files)
     return {
         "schema_version": 1,
         "status": "EXPERIMENTAL_CANDIDATE_NOT_RELEASED",
@@ -53,7 +171,7 @@ def manifest_for(files, source, firmware_sha, idf, component):
         "source_tree_sha256": firmware_sha,
         "esp_idf_version": idf,
         "esp_tinyusb_version": component,
-        "image_offsets": {name: offset for name, offset in REQUIRED},
+        "image_offsets": validated_offsets,
         "files": {name: {"bytes": len(data), "sha256": digest(data)}
                   for name, data in sorted(files.items())},
         "limitations": "See docs/phase2e2-hardware-evidence.md; no product qualification",
