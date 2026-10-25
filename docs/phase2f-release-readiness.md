@@ -27,7 +27,9 @@ An explicitly labeled *publicly downloadable experimental* build for the **origi
 
 Record explicit decisions in issue #5 on: (1) experimental vs public production scope, (2) USB VID/PID/string ownership policy, (3) manual flashing/rollback model, (4) script trust wording, (5) mandatory artifact/provenance controls, (6) tested host/layout support claims, and (7) whether physical fault-injection limitations are accepted. **Do not infer approvals** from the existing AGPL license or hardware acceptance.
 
-**Owner preference recorded:** Dan wants a public experimental firmware download, not source-only. This sets planning direction but does not authorize publication.\n\n**Exit:** every row above has a recorded owner choice, rationale, and where appropriate a new follow-up task. Release issue stays open until these decisions are actually completed.
+**Owner preference recorded:** Dan wants a public experimental firmware download, not source-only. This sets planning direction but does not authorize publication.
+
+**Exit:** every row above has a recorded owner choice, rationale, and where appropriate a new follow-up task. Release issue stays open until these decisions are actually completed.
 
 ### 2F-B: packaging/recovery implementation (after owner decisions)
 
@@ -51,7 +53,11 @@ Publish draft, not a release: supported/unsupported hardware and host layouts, t
 
 Freeze exact source and distribution artifact digest; run required native/ESP-IDF CI, validate distributable bits, obtain any necessary new physical test evidence, and produce a GO/NO-GO record. **Stop before tags, GitHub Releases, publication, flashing, or merge of firmware changes**, unless Dan expressly authorizes each consequential action.
 
-## Public download package (proposed)\n\nDraft GitHub Release assets: bootloader, partition table, application BIN, flash arguments, human-readable SHA-256 manifest with accepted source and exact build identity, concise Windows-first ROM flashing and recovery guide, license/dependency notices, and benign Script v0 fixtures. Do **not** distribute private factory backups or claim host compatibility beyond the tested Windows setup. No automatic flashing executable is assumed. Publishing the GitHub Release requires a separate explicit approval.\n\n## Proposed sequence
+## Public download package (proposed)
+
+Draft GitHub Release assets: bootloader, partition table, application BIN, flash arguments, human-readable SHA-256 manifest with accepted source and exact build identity, concise Windows-first ROM flashing and recovery guide, license/dependency notices, and benign Script v0 fixtures. Do **not** distribute private factory backups or claim host compatibility beyond the tested Windows setup. No automatic flashing executable is assumed. Publishing the GitHub Release requires a separate explicit approval.
+
+## Proposed sequence
 
 1. **Now:** audit #5, publish this decision record in a draft documentation PR, and update #5 with evidence-backed choices.
 2. **Next:** owner chooses USB identity and minimal packaging/provenance requirements, then decide what experimental limitations are acceptable.
