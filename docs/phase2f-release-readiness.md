@@ -6,14 +6,14 @@
 
 ## Proposed experimental-release boundary (requires owner approval)
 
-An explicitly labeled *experimental* build for the **original LILYGO T-Dongle-S3 only**, manually flashed over ESP32-S3 ROM serial download, on owned/authorized hosts. USB HID keyboard + LCD/LED + read-only FAT32-root .CHN selection are the current features. No Wi-Fi, OTA, remote execution, encrypted/signed firmware verification, or support for T-Dongle-S3 Plus is claimed. No auto-run on USB connection. This scope must be approved before a release candidate is promoted.
+An explicitly labeled *publicly downloadable experimental* build for the **original LILYGO T-Dongle-S3 only**, manually flashed over ESP32-S3 ROM serial download, on owned/authorized hosts. USB HID keyboard + LCD/LED + read-only FAT32-root .CHN selection are the current features. No Wi-Fi, OTA, remote execution, encrypted/signed firmware verification, or support for T-Dongle-S3 Plus is claimed. No auto-run on USB connection. This scope must be approved before a release candidate is promoted.
 
 ## Audit: confirmed facts vs open decisions
 
 | Area | Verified from repository / acceptance evidence | Pending owner decision or verification |
 | --- | --- | --- |
 | Licensing | `LICENSE` contains the GNU AGPL v3 text; README and CONTRIBUTING identify AGPL-3.0-only. | Confirm Techbenders has authority to license every shipped original source/artwork and whether dependency notices, source offer, credits and any binary redistribution duties are covered. License selection is **not** pending; distribution approval/compliance review is. |
-| USB identity | Application sets `usb.descriptor.device = NULL` (TinyUSB component default); device strings are Techbenders / ChaoN USB HID / CHN-S3-DEV / ChaoN Keyboard. Accepted hardware enumerated `303A:4004`. | Determine the effective runtime default device descriptor and whether the project's use of VID 0x303A / PID 0x4004 is permitted for distribution. Choose and document a legitimate experimental/production VID/PID and serial-string policy before publication; **do not claim ownership of 0x303A**. Any descriptor change creates a **new firmware candidate** requiring CI and relevant hardware enumeration testing. |
+| USB identity | Application sets `usb.descriptor.device = NULL` (TinyUSB component default); device strings are Techbenders / ChaoN USB HID / CHN-S3-DEV / ChaoN Keyboard. Accepted hardware enumerated `303A:4004`. | Espressif documentation permits its VID 0x303A with the TinyUSB default PID for standard USB device classes (https://docs.espressif.com/projects/esp-iot-solution/en/latest/usb/usb_overview/usb_vid_pid.html). Check that pinned esp_tinyusb 2.0.0 actually supplies default PID 0x4004 for ChaoN's HID configuration, and document the basis and string/serial policy for public distribution. **Do not claim ownership of 0x303A or USB certification**. A dedicated Espressif PID request remains an optional later choice. Any descriptor change creates a **new firmware candidate** requiring CI and relevant hardware enumeration testing. |
 | Flashing/recovery | ESP32-S3, 16 MB, no PSRAM; known-good candidate images at 0x0 bootloader, 0x8000 partition table, 0x10000 app. BOOT-held connection enters ROM; accepted image and private factory backups verified. `sdkconfig.defaults` specifies 16 MB. | Approve manual ROM-flash-only instructions, minimum backup expectations, tool/host prerequisites, rollback steps, safeguards against wrong board/port, and whether user-facing packages include all three images and checksums. No OTA is implemented. |
 | Source trust | FAT32 root `.CHN`, short filenames, bounded parser (1–2047 file bytes), PICK and separate ARM/RUN; one-use grant with last-moment source SHA-256 reread; denied SD execution cannot fall back to demo. Read-only SD access. | Approve disclosure that local scripts are user-controlled and **not authenticated or signed**, and that operator gestures cannot make an untrusted payload intrinsically safe. Future wireless/script ingestion is out of scope, not implicitly approved. |
 | Build/provenance | Pinned ESP-IDF v5.5.3 build and espressif/esp_tinyusb 2.0.0; CI native tests and ESP32-S3 build; GitHub Actions outputs candidate app, bootloader, partition table, flash args, ELF and dependency lock for 30 days. Hardware-accepted artifact ID `12573854980` has ZIP SHA-256 `abe10ebffa2d2949de1fb860b41f701097f930e65c86d45b7eb0e946183d69c7`. | Decide whether experimental release requires cryptographic signing, independently reproducible binary builds, provenance attestations, SBOM/dependency notices, retention policy and immutable release manifest. Do not call builds reproducible or firmware signed without evidence. |
@@ -27,7 +27,7 @@ An explicitly labeled *experimental* build for the **original LILYGO T-Dongle-S3
 
 Record explicit decisions in issue #5 on: (1) experimental vs public production scope, (2) USB VID/PID/string ownership policy, (3) manual flashing/rollback model, (4) script trust wording, (5) mandatory artifact/provenance controls, (6) tested host/layout support claims, and (7) whether physical fault-injection limitations are accepted. **Do not infer approvals** from the existing AGPL license or hardware acceptance.
 
-**Exit:** every row above has a recorded owner choice, rationale, and where appropriate a new follow-up task. Release issue stays open until these decisions are actually completed.
+**Owner preference recorded:** Dan wants a public experimental firmware download, not source-only. This sets planning direction but does not authorize publication.\n\n**Exit:** every row above has a recorded owner choice, rationale, and where appropriate a new follow-up task. Release issue stays open until these decisions are actually completed.
 
 ### 2F-B: packaging/recovery implementation (after owner decisions)
 
@@ -37,7 +37,7 @@ Create a reviewable packaging workflow that produces a manifest binding source c
 
 ### 2F-C: identity and compatibility (conditional firmware change)
 
-First resolve USB identity legal/operational policy. If identifiers or descriptors change, implement in a distinct firmware PR with descriptor tests, exact ESP-IDF CI, and supervised USB-enumeration/no-auto-type/ROM recovery regression on hardware. Otherwise document why the existing identifiers are legitimately distributable.
+First verify Espressif's documented default TinyUSB identifier permission against pinned runtime behavior. If identifiers or descriptors change, implement in a distinct firmware PR with descriptor tests, exact ESP-IDF CI, and supervised USB-enumeration/no-auto-type/ROM recovery regression on hardware. Otherwise document why the existing identifiers are legitimately distributable.
 
 **Exit:** approved identifier policy and matching descriptor/host evidence. Existing Phase 2E.2 acceptance is **not** automatically transferable to changed firmware.
 
@@ -51,7 +51,7 @@ Publish draft, not a release: supported/unsupported hardware and host layouts, t
 
 Freeze exact source and distribution artifact digest; run required native/ESP-IDF CI, validate distributable bits, obtain any necessary new physical test evidence, and produce a GO/NO-GO record. **Stop before tags, GitHub Releases, publication, flashing, or merge of firmware changes**, unless Dan expressly authorizes each consequential action.
 
-## Proposed sequence
+## Public download package (proposed)\n\nDraft GitHub Release assets: bootloader, partition table, application BIN, flash arguments, human-readable SHA-256 manifest with accepted source and exact build identity, concise Windows-first ROM flashing and recovery guide, license/dependency notices, and benign Script v0 fixtures. Do **not** distribute private factory backups or claim host compatibility beyond the tested Windows setup. No automatic flashing executable is assumed. Publishing the GitHub Release requires a separate explicit approval.\n\n## Proposed sequence
 
 1. **Now:** audit #5, publish this decision record in a draft documentation PR, and update #5 with evidence-backed choices.
 2. **Next:** owner chooses USB identity and minimal packaging/provenance requirements, then decide what experimental limitations are acceptable.
