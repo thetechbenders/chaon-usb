@@ -76,21 +76,32 @@ def _parse_flash_args(files):
     extra = args.get("extra_esptool_args")
     if not isinstance(extra, dict) or extra.get("chip") != "esp32s3":
         raise ValueError("wrong or absent ESP32-S3 target")
-    write = args.get("write_flash_args")
-    if not isinstance(write, list) or not all(isinstance(x, str) for x in write):
-        raise ValueError("missing write_flash_args")
-    expected_flags = ["--flash-mode", "dio", "--flash-size", "16MB",
-                      "--flash-freq", "80m"]
-    if write != expected_flags:
-        raise ValueError("write_flash_args disagree with flash settings")
+    def parse_flags(tokens):
+        if not isinstance(tokens, list) or not all(isinstance(x, str) for x in tokens):
+            raise ValueError("invalid flash option tokens")
+        opts = {}
+        index = 0
+        while index < len(tokens) and tokens[index].startswith("--"):
+            key = tokens[index].replace("_", "-")
+            if key not in ("--flash-mode", "--flash-size", "--flash-freq"):
+                raise ValueError("unexpected flash parameter")
+            if key in opts or index + 1 >= len(tokens):
+                raise ValueError("duplicated/missing flash parameter")
+            opts[key] = tokens[index + 1]
+            index += 2
+        expected = {"--flash-mode": "dio", "--flash-size": "16MB",
+                    "--flash-freq": "80m"}
+        if opts != expected:
+            raise ValueError("flash parameters disagree with original-board policy")
+        return tokens[index:]
+
+    if parse_flags(args.get("write_flash_args")):
+        raise ValueError("unexpected trailing write_flash_args")
     try:
         positional = shlex.split(files["flash_args"].decode("utf-8"))
     except (UnicodeDecodeError, ValueError) as err:
         raise ValueError("invalid flash_args") from err
-    # ESP-IDF's @flash_args uses the same flash settings and three regions.
-    if positional[:len(expected_flags)] != expected_flags:
-        raise ValueError("flash_args flash settings disagree")
-    remaining = positional[len(expected_flags):]
+    remaining = parse_flags(positional)
     if len(remaining) != 2 * len(REQUIRED):
         raise ValueError("flash_args region count mismatch")
     actual = {}
@@ -99,8 +110,10 @@ def _parse_flash_args(files):
             offset = int(remaining[i], 0)
         except ValueError as err:
             raise ValueError("invalid flash_args offset") from err
+        if offset in actual:
+            raise ValueError("duplicate flash_args offset")
         actual[offset] = remaining[i + 1]
-    if actual != expected or len(actual) != len(REQUIRED):
+    if actual != expected:
         raise ValueError("flash_args layout disagree with flasher_args.json")
     return {name: hex(offset) for offset, name in sorted(expected.items())}
 
