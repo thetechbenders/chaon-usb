@@ -20,6 +20,8 @@ jobs:
       - uses: actions/checkout@v7
       - name: Host unit tests (-Werror)
         run: make test
+      - name: Offline release packager unit tests
+        run: python3 -m unittest discover -s tests -p test_release_package.py
       - name: UBSan build and run
         run: |
           make clean
@@ -36,6 +38,19 @@ jobs:
           esp_idf_version: v5.5.3
           target: esp32s3
           path: .
+      - name: Stage and verify experimental candidate package (not published)
+        shell: bash
+        run: |
+          set -euo pipefail
+          tree_sha256="$(git archive --format=tar HEAD | sha256sum | awk '{print $1}')"
+          python3 tools/release_package.py pack \
+            --build-dir build --lock dependencies.lock \
+            --source-commit "$(git rev-parse HEAD)" \
+            --source-tree-sha256 "$tree_sha256" \
+            --out build/chaon-experimental-candidate.zip
+          python3 tools/release_package.py verify \
+            --archive build/chaon-experimental-candidate.zip \
+            --source-commit "$(git rev-parse HEAD)"
       - name: Upload flashable firmware inputs
         uses: actions/upload-artifact@v7
         with:
@@ -50,3 +65,4 @@ jobs:
             build/flash_args
             build/flasher_args.json
             dependencies.lock
+            build/chaon-experimental-candidate.zip
