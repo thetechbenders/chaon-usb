@@ -159,7 +159,7 @@ def validate_flash_package(files):
                           else FLASH_CAPACITY))
         if name == "partition_table/partition-table.bin":
             data = files[name]
-            if len(data) != 0xC00 or data[:2] != b"\\xaa\\x50":
+            if len(data) != 0xC00 or data[:2] != bytes((0xAA, 0x50)):
                 raise ValueError("invalid ESP partition table")
             continue
         _validate_esp_image(files[name], name, max_size)
