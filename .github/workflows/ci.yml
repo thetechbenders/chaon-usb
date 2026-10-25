@@ -47,9 +47,9 @@ jobs:
             --build-dir build --lock dependencies.lock \
             --source-commit "$(git rev-parse HEAD)" \
             --source-tree-sha256 "$tree_sha256" \
-            --out build/chaon-experimental-candidate.zip
+            --out "$RUNNER_TEMP/chaon-experimental-candidate.zip"
           python3 tools/release_package.py verify \
-            --archive build/chaon-experimental-candidate.zip \
+            --archive "$RUNNER_TEMP/chaon-experimental-candidate.zip" \
             --source-commit "$(git rev-parse HEAD)"
       - name: Upload flashable firmware inputs
         uses: actions/upload-artifact@v7
@@ -65,4 +65,4 @@ jobs:
             build/flash_args
             build/flasher_args.json
             dependencies.lock
-            build/chaon-experimental-candidate.zip
+            ${{ runner.temp }}/chaon-experimental-candidate.zip
