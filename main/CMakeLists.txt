@@ -7,5 +7,5 @@ idf_component_register(
          "chaon_source_sha256.c" "chaon_source_verify.c" "chaon_selection.c" "chaon_execution_slot.c"
          "chaon_run_authority.c" "chaon_app_decision.c"
     INCLUDE_DIRS "."
-    PRIV_REQUIRES esp_driver_gpio esp_driver_spi esp_driver_sdmmc sdmmc esp_timer fatfs esp_vfs_fat
+    PRIV_REQUIRES esp_driver_gpio esp_driver_spi esp_driver_sdmmc sdmmc esp_timer fatfs
 )
