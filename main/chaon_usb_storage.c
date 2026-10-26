@@ -44,9 +44,9 @@ chaon_usb_mode_t chaon_usb_boot_mode(void)
     esp_err_t err = esp_vfs_fat_sdmmc_mount("/chaon", &host, &slot,
                                             &mount, &card);
     if (err != ESP_OK) {
-        ESP_LOGW(TAG, "BOOT_MARKER_SCAN_UNAVAILABLE %s; HID forbidden",
+        ESP_LOGW(TAG, "BOOT_MARKER_SCAN_UNAVAILABLE %s; USB blocked",
                  esp_err_to_name(err));
-        return CHAON_USB_MSC;
+        return CHAON_USB_BLOCKED;
     }
     struct stat info;
     const char *path = "/chaon/DUCKY";
@@ -68,8 +68,8 @@ chaon_usb_mode_t chaon_usb_boot_mode(void)
      * transferring media ownership to either personality. */
     err = esp_vfs_fat_sdcard_unmount("/chaon", card);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "SD_UNMOUNT_FAILED; HID forbidden");
-        return CHAON_USB_MSC;
+        ESP_LOGE(TAG, "SD_UNMOUNT_FAILED; USB blocked to avoid dual owner");
+        return CHAON_USB_BLOCKED;
     }
     const chaon_usb_mode_t mode =
         chaon_usb_mode_select(marker, removed, absent_after);
