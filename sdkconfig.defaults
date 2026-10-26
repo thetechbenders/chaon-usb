@@ -1,3 +1,8 @@
 # Original T-Dongle-S3: 16 MB flash; no PSRAM.
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 CONFIG_TINYUSB_HID_COUNT=1
+
+# Storage-only MSC or one-boot HID. MSC must be compiled even though its
+# interface is never advertised alongside the HID interface.
+CONFIG_TINYUSB_MSC_ENABLED=y
+CONFIG_TINYUSB_MSC_BUFSIZE=512
