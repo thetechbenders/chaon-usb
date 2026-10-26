@@ -7,7 +7,8 @@
  * exact empty marker was consumed and its absence was verified. */
 typedef enum {
     CHAON_USB_MSC = 0,
-    CHAON_USB_HID = 1
+    CHAON_USB_HID = 1,
+    CHAON_USB_BLOCKED = 2
 } chaon_usb_mode_t;
 typedef enum {
     CHAON_MARKER_ABSENT,
