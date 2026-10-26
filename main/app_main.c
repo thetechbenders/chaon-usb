@@ -18,6 +18,8 @@
 #include "tinyusb.h"
 #include "tinyusb_default_config.h"
 #include "class/hid/hid_device.h"
+#include "class/msc/msc_device.h"
+#include "chaon_usb_storage.h"
 
 #include "chaon_script.h"
 #include "chaon_vm.h"
@@ -33,6 +35,7 @@
 #define APA102_DATA GPIO_NUM_40
 #define APA102_CLOCK GPIO_NUM_39
 #define USB_DESCRIPTOR_LEN (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN)
+#define MSC_DESCRIPTOR_LEN (TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN)
 
 static const char *TAG = "chaon";
 static const char demo_source[] = "DELAY 500\nTYPE \"ChaoN USB HID smoke test\"\n";
@@ -52,6 +55,15 @@ static const uint8_t hid_configuration_descriptor[] = {
     TUD_CONFIG_DESCRIPTOR(1, 1, 0, USB_DESCRIPTOR_LEN, 0, 100),
     TUD_HID_DESCRIPTOR(0, 4, HID_ITF_PROTOCOL_KEYBOARD,
                        sizeof(hid_report_descriptor), 0x81, 16, 10),
+};
+/* Storage-only descriptor: no keyboard interface and no HID endpoint. */
+static const uint8_t msc_configuration_descriptor[] = {
+    TUD_CONFIG_DESCRIPTOR(1, 1, 0, MSC_DESCRIPTOR_LEN, 0, 100),
+    TUD_MSC_DESCRIPTOR(0, 4, 0x02, 0x82, 64),
+};
+static const char *msc_string_descriptor[] = {
+    (const char[2]){0x09, 0x04}, "Techbenders",
+    "ChaoN USB Storage", "CHN-S3-DEV", "ChaoN Storage"
 };
 static const char language_id[2] = {0x09, 0x04};
 static const char *hid_string_descriptor[] = {
@@ -282,14 +294,30 @@ void app_main(void)
     }
     init_gpio();
 
+    /* Exactly one USB personality is selected BEFORE USB enumeration.
+     * The host cannot own card sectors concurrently with ChaoN's SD task. */
+    const chaon_usb_mode_t mode = chaon_usb_boot_mode();
     tinyusb_config_t usb = TINYUSB_DEFAULT_CONFIG();
     usb.descriptor.device = NULL;
+    if (mode == CHAON_USB_MSC) {
+        tinyusb_msc_storage_handle_t storage = NULL;
+        const bool media_ok = chaon_usb_storage_start(&storage);
+        usb.descriptor.full_speed_config = msc_configuration_descriptor;
+        usb.descriptor.string = msc_string_descriptor;
+        usb.descriptor.string_count =
+            sizeof(msc_string_descriptor) / sizeof(msc_string_descriptor[0]);
+        ESP_ERROR_CHECK(tinyusb_driver_install(&usb));
+        ESP_LOGW(TAG, "STORAGE_ONLY: %s; HID not enumerated",
+                 media_ok ? "SD exported to host" : "media unavailable");
+        /* Do not start SD probe, HID controller, or VM while host owns MSC. */
+        for (;;) vTaskDelay(pdMS_TO_TICKS(1000));
+    }
     usb.descriptor.full_speed_config = hid_configuration_descriptor;
     usb.descriptor.string = hid_string_descriptor;
     usb.descriptor.string_count =
         sizeof(hid_string_descriptor) / sizeof(hid_string_descriptor[0]);
     ESP_ERROR_CHECK(tinyusb_driver_install(&usb));
-    ESP_LOGI(TAG, "USB HID configured; no typing until physical ARM/RUN");
+    ESP_LOGI(TAG, "ONE_BOOT_HID: marker consumed; physical ARM/RUN still required");
 
     bool lcd_ok = chaon_lcd_open(); /* advisory peripheral only */
     if (!lcd_ok) ESP_LOGW(TAG, "LCD unavailable; HID stays operational");
