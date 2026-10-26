@@ -297,6 +297,11 @@ void app_main(void)
     /* Exactly one USB personality is selected BEFORE USB enumeration.
      * The host cannot own card sectors concurrently with ChaoN's SD task. */
     const chaon_usb_mode_t mode = chaon_usb_boot_mode();
+    if (mode == CHAON_USB_BLOCKED) {
+        ESP_LOGE(TAG, "SD handoff failed; do not enumerate HID or MSC");
+        led_set(64, 0, 0);
+        for (;;) vTaskDelay(pdMS_TO_TICKS(1000));
+    }
     tinyusb_config_t usb = TINYUSB_DEFAULT_CONFIG();
     usb.descriptor.device = NULL;
     if (mode == CHAON_USB_MSC) {
