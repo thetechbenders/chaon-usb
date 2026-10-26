@@ -48,6 +48,33 @@ static chaon_program_t execution_program;
 static uint8_t selected_index;
 static uint32_t verification_ticket;
 
+/* TinyUSB class-bit default PID scheme: MSC=0x4002, HID=0x4004.
+ * Distinct PIDs are essential because Windows caches interface drivers by
+ * USB identity; a runtime personality must not reuse the other's PID. */
+#define CHAON_ESPRESSIF_VID 0x303A
+#define CHAON_MSC_PID 0x4002
+#define CHAON_HID_PID 0x4004
+#define CHAON_DEVICE_DESC(pid) { \
+    .bLength = sizeof(tusb_desc_device_t), \
+    .bDescriptorType = TUSB_DESC_DEVICE, \
+    .bcdUSB = 0x0200, \
+    .bDeviceClass = 0, \
+    .bDeviceSubClass = 0, \
+    .bDeviceProtocol = 0, \
+    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE, \
+    .idVendor = CHAON_ESPRESSIF_VID, \
+    .idProduct = (pid), \
+    .bcdDevice = 0x0100, \
+    .iManufacturer = 1, \
+    .iProduct = 2, \
+    .iSerialNumber = 3, \
+    .bNumConfigurations = 1, \
+}
+static const tusb_desc_device_t hid_device_descriptor =
+    CHAON_DEVICE_DESC(CHAON_HID_PID);
+static const tusb_desc_device_t msc_device_descriptor =
+    CHAON_DEVICE_DESC(CHAON_MSC_PID);
+
 static const uint8_t hid_report_descriptor[] = {
     TUD_HID_REPORT_DESC_KEYBOARD()
 };
@@ -303,7 +330,7 @@ void app_main(void)
         for (;;) vTaskDelay(pdMS_TO_TICKS(1000));
     }
     tinyusb_config_t usb = TINYUSB_DEFAULT_CONFIG();
-    usb.descriptor.device = NULL;
+    usb.descriptor.device = &msc_device_descriptor;
     if (mode == CHAON_USB_MSC) {
         tinyusb_msc_storage_handle_t storage = NULL;
         const bool media_ok = chaon_usb_storage_start(&storage);
@@ -317,6 +344,7 @@ void app_main(void)
         /* Do not start SD probe, HID controller, or VM while host owns MSC. */
         for (;;) vTaskDelay(pdMS_TO_TICKS(1000));
     }
+    usb.descriptor.device = &hid_device_descriptor;
     usb.descriptor.full_speed_config = hid_configuration_descriptor;
     usb.descriptor.string = hid_string_descriptor;
     usb.descriptor.string_count =
