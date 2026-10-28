@@ -4,6 +4,8 @@
 
 # ChaoN-USB
 
+**Pronunciation:** **Cown** (rhymes with *town*, with a hard **K** sound, as in *chaos*). The name comes from **Chaotic Neutral**.
+
 **The Chaotic Neutral HID.** Experimental USB HID keyboard firmware written in C and ESP-IDF for the **original LILYGO T-Dongle-S3** (ESP32-S3).
 
 > **Project status (2026-10-24):** Phase 2E.1 and Phase 2E.2 are merged into `main`. The exact Phase 2E.2 firmware source `ae70e489ccd7ca22e2dcbe466bc5f544940a55f7` is **hardware accepted with documented physical limitations**, not production-qualified or released. On the original board, supervised physical validation recorded **14 PASS, 0 FAIL, 4 BLOCKED, 1 PARTIAL, 2 NOT APPLICABLE and 1 NOT REQUIRED**. See [hardware evidence](docs/phase2e2-hardware-evidence.md) and [validation plan](docs/phase2e2-hardware-validation.md). Later documentation and merge commits are not different hardware-tested images.
