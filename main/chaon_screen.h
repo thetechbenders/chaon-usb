@@ -13,6 +13,12 @@ enum { CHAON_SCREEN_WIDTH = 160, CHAON_SCREEN_HEIGHT = 80,
        CHAON_SCREEN_SD_Y = 72, CHAON_SCREEN_SD_HEIGHT = 8,
        CHAON_SCREEN_BYTES = CHAON_SCREEN_WIDTH * CHAON_SCREEN_HEIGHT * 2 };
 
+/* USB storage-only screen. Capacity is a PRE-USB FAT snapshot, never live
+ * while the host owns the SD card. Unsupported values show unavailable. */
+bool chaon_screen_render_msc(const char *volume_label, bool usage_valid,
+                             uint64_t used_bytes, uint64_t total_bytes,
+                             uint8_t *buffer, size_t size);
+
 /* Portable RGB565 big-endian framebuffer renderer; no allocation or SDK calls.
  * Returns false without touching memory for a short/NULL output buffer.
  */
