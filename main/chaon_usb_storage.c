@@ -11,9 +11,45 @@
 #include "esp_vfs_fat.h"
 #include "esp_log.h"
 #include "sdmmc_cmd.h"
+#include "ff.h"
 
 static const char *TAG = "chaon_msc";
 static sdmmc_card_t storage_card;
+static chaon_usb_volume_t volume_snapshot;
+
+const chaon_usb_volume_t *chaon_usb_volume_snapshot(void)
+{
+    return &volume_snapshot;
+}
+
+/* Read FAT usage only before unmount and before USB ownership begins. */
+static void volume_read_snapshot(void)
+{
+    uint64_t total = 0, free_bytes = 0;
+    memset(&volume_snapshot, 0, sizeof volume_snapshot);
+    if (esp_vfs_fat_info("/chaon", &total, &free_bytes) == ESP_OK &&
+        total > 0 && free_bytes <= total) {
+        volume_snapshot.valid = true;
+        volume_snapshot.total_bytes = total;
+        volume_snapshot.used_bytes = total - free_bytes;
+    }
+    char label[12] = {0};
+    if (f_getlabel("", label, NULL) == FR_OK && label[0]) {
+        size_t i = 0;
+        while (i < sizeof volume_snapshot.volume_label - 1 && label[i]) {
+            const unsigned char ch = (unsigned char)label[i];
+            volume_snapshot.volume_label[i] = (char)(
+                ch >= 'a' && ch <= 'z' ? ch - 'a' + 'A' :
+                (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') ||
+                ch == '-' || ch == '_' || ch == ' ' ? ch : ' ');
+            ++i;
+        }
+        volume_snapshot.volume_label[i] = '\0';
+    }
+    if (!volume_snapshot.volume_label[0])
+        memcpy(volume_snapshot.volume_label, "USB DRIVE", sizeof "USB DRIVE");
+}
+
 
 /* Diagnostics only. Application-side mounts and automatic formatting
  * of host-owned media are prohibited. */
@@ -47,6 +83,7 @@ static sdmmc_slot_config_t sd_slot(void)
 
 chaon_usb_mode_t chaon_usb_boot_mode(void)
 {
+    memset(&volume_snapshot, 0, sizeof volume_snapshot);
     sdmmc_host_t host = sd_host();
     sdmmc_slot_config_t slot = sd_slot();
     const esp_vfs_fat_sdmmc_mount_config_t mount = {
@@ -61,6 +98,7 @@ chaon_usb_mode_t chaon_usb_boot_mode(void)
                  esp_err_to_name(err));
         return CHAON_USB_BLOCKED;
     }
+    volume_read_snapshot();
     struct stat info;
     const char *path = "/chaon/DUCKY";
     chaon_marker_state_t marker = CHAON_MARKER_IO_ERROR;
