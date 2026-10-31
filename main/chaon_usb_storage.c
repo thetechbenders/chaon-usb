@@ -15,6 +15,19 @@
 static const char *TAG = "chaon_msc";
 static sdmmc_card_t storage_card;
 
+/* Diagnostics only. Application-side mounts and automatic formatting
+ * of host-owned media are prohibited. */
+static void msc_event_log(tinyusb_msc_storage_handle_t handle,
+                          tinyusb_msc_event_t *event, void *ctx)
+{
+    (void)handle;
+    (void)ctx;
+    if (!event) return;
+    ESP_LOGW(TAG, "MSC_EVENT id=%d owner=%d",
+             (int)event->id, (int)event->mount_point);
+}
+
+
 static sdmmc_host_t sd_host(void)
 {
     sdmmc_host_t host = SDMMC_HOST_DEFAULT();
@@ -94,11 +107,27 @@ bool chaon_usb_storage_start(tinyusb_msc_storage_handle_t *out)
         err = ESP_ERR_NOT_SUPPORTED;
         goto cleanup;
     }
+    /* esp_tinyusb 2.0.0 defaults can mount on eject and format unknown
+     * media. Prohibit both for a host-owned raw block device. */
+    const tinyusb_msc_driver_config_t driver = {
+        .user_flags = { .auto_mount_off = 1 },
+        .callback = msc_event_log,
+    };
+    err = tinyusb_msc_install_driver(&driver);
+    if (err != ESP_OK) goto cleanup;
+
     const tinyusb_msc_storage_config_t config = {
         .medium.card = &storage_card,
+        .fat_fs = { .do_not_format = true },
+        .mount_point = TINYUSB_MSC_STORAGE_MOUNT_USB,
     };
     err = tinyusb_msc_new_storage_sdmmc(&config, out);
-    if (err == ESP_OK) return true;
+    if (err == ESP_OK && *out != NULL) return true;
+    /* The pinned implementation can leak on partial allocation failure.
+     * Do not enumerate a missing LUN: upstream callbacks assume it exists.
+     * Retain ownership until reboot, with USB disabled by the caller. */
+    ESP_LOGE(TAG, "MSC_BACKEND_INIT_FAILED; USB must remain disabled");
+    return false;
 cleanup:
     (void)sdmmc_host_deinit();
 unavailable:
