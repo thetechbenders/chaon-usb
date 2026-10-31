@@ -338,9 +338,15 @@ void app_main(void)
         usb.descriptor.string = msc_string_descriptor;
         usb.descriptor.string_count =
             sizeof(msc_string_descriptor) / sizeof(msc_string_descriptor[0]);
+        if (!media_ok) {
+            /* The pinned upstream MSC callbacks assume an allocated LUN.
+             * Never install USB after a partial storage creation failure. */
+            ESP_LOGE(TAG, "MSC startup failed; USB blocked, ROM recovery available");
+            led_set(64, 0, 0);
+            for (;;) vTaskDelay(pdMS_TO_TICKS(1000));
+        }
         ESP_ERROR_CHECK(tinyusb_driver_install(&usb));
-        ESP_LOGW(TAG, "STORAGE_ONLY: %s; HID not enumerated",
-                 media_ok ? "SD exported to host" : "media unavailable");
+        ESP_LOGI(TAG, "STORAGE_ONLY: SD exported to host; HID not enumerated");
         /* Do not start SD probe, HID controller, or VM while host owns MSC. */
         for (;;) vTaskDelay(pdMS_TO_TICKS(1000));
     }
