@@ -168,10 +168,12 @@ bool chaon_screen_render_msc(const char *volume_label, bool usage_valid,
                 "%llu / %llu MB",
                 (unsigned long long)used, (unsigned long long)total);
         }
-        const uint32_t percent = (uint32_t)((used_bytes / 100U) * 100U /
-                                           (total_bytes / 100U ? total_bytes / 100U : 1U));
-        /* Multiplication on a bounded ratio avoids 64-bit overflow. */
-        const int bar = (int)(percent > 100U ? 136U : percent * 136U / 100U);
+        /* Only 136 pixels of precision are needed. Divide first to
+         * avoid multiplying potentially large media capacities. */
+        const uint64_t unit = total_bytes / 136U + 1U;
+        uint64_t bar_width = used_bytes / unit;
+        if (bar_width > 136U) bar_width = 136U;
+        const int bar = (int)bar_width;
         rect(frame, 9, 61, 136, 5, 0x2945);
         rect(frame, 9, 61, bar, 5, green);
     }
