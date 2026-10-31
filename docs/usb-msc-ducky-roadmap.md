@@ -36,3 +36,11 @@ The remediation explicitly installs the MSC driver with `user_flags.auto_mount_o
 **Known upstream constraint:** The synchronous MSC write path can acknowledge the host before an SD write error is propagated. Hardware acceptance must use a disposable card, eject, reconnect, and independently hash-check files; normal data-storage reliability remains unqualified even if the smoke test passes. Do not silently claim general-purpose flash-drive reliability.
 
 **Additional pending work:** diagnostic behavior for missing/corrupt media, distinct MSC startup failure display, boot-time FAT/marker fault injection, descriptor-byte tests, and provenance distinction between PR head and synthetic CI merge commit.
+
+## Discreet MSC display (unqualified feature candidate)
+
+The original-board ST7735 screen shows only **USB STORAGE**, the FAT32 volume label (or `USB DRIVE` if not readable), used / total FAT capacity, and a proportional usage bar. A small **AT BOOT** legend makes it explicit that FAT usage was measured during the existing pre-USB mount. It is **not live** during Windows file copies: no filesystem query is allowed while the MSC backend owns the card. Refresh requires a safe eject and new cold connection. The Windows-assigned drive letter cannot be known by standalone USB firmware; the on-card volume label is the available identity.
+
+The APA102 provides a dim green standby indication with a brief low-intensity heartbeat while USB is configured. This is **not** a claim of actual per-sector read/write activity: pinned esp_tinyusb v2.0.0 exposes no supported per-I/O callback without modifying the storage backend. No additional SD access occurs from the LCD/LED loop.
+
+This UI feature is **not physically validated** by the 2026-10-31 hardware session, which applied to earlier firmware SHA `63945635b...`. It requires exact-head CI and a narrowly scoped physical screen/LED observation. Previously deferred HID execution regression stays deferred until feature completion.
