@@ -6,3 +6,6 @@ CONFIG_TINYUSB_HID_COUNT=1
 # interface is never advertised alongside the HID interface.
 CONFIG_TINYUSB_MSC_ENABLED=y
 CONFIG_TINYUSB_MSC_BUFSIZE=512
+
+# Enable read-only FAT volume label lookup for the MSC boot snapshot.
+CONFIG_FATFS_USE_LABEL=y
