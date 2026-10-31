@@ -345,10 +345,29 @@ void app_main(void)
             led_set(64, 0, 0);
             for (;;) vTaskDelay(pdMS_TO_TICKS(1000));
         }
+        /* Snapshot was taken during the pre-USB FAT mount. No application
+         * SD access is permitted after the MSC backend owns the medium. */
+        const chaon_usb_volume_t *volume = chaon_usb_volume_snapshot();
+        if (chaon_lcd_open()) {
+            if (!chaon_lcd_show_msc(volume->volume_label, volume->valid,
+                                    volume->used_bytes, volume->total_bytes))
+                ESP_LOGW(TAG, "MSC_LCD_FAILED; storage remains available");
+        } else {
+            ESP_LOGW(TAG, "MSC_LCD_UNAVAILABLE; storage remains available");
+        }
         ESP_ERROR_CHECK(tinyusb_driver_install(&usb));
         ESP_LOGI(TAG, "STORAGE_ONLY: SD exported to host; HID not enumerated");
-        /* Do not start SD probe, HID controller, or VM while host owns MSC. */
-        for (;;) vTaskDelay(pdMS_TO_TICKS(1000));
+        /* Subtle standby heartbeat, not a claim of SD read/write activity.
+         * The pinned MSC driver exposes no per-transfer activity callback.
+         * Do not start SD probe, HID controller, or VM in MSC mode. */
+        for (;;) {
+            led_set(0, 10, 3);
+            vTaskDelay(pdMS_TO_TICKS(1700));
+            if (tud_mounted()) {
+                led_set(0, 25, 5);
+                vTaskDelay(pdMS_TO_TICKS(75));
+            }
+        }
     }
     usb.descriptor.device = &hid_device_descriptor;
     usb.descriptor.full_speed_config = hid_configuration_descriptor;
