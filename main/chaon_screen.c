@@ -150,7 +150,7 @@ bool chaon_screen_render_msc(const char *volume_label, bool usage_valid,
     /* The volume label, unlike a Windows drive letter, exists on the SD. */
     print_text(frame, 9, 29, volume_label ? volume_label : "USB DRIVE",
                1, muted);
-    char capacity[32] = "CAPACITY UNKNOWN";
+    char capacity[96] = "CAPACITY UNKNOWN";
     if (usage_valid && total_bytes && used_bytes <= total_bytes) {
         const uint64_t divisor = total_bytes >= 1000000000ULL
             ? 100000000ULL : 1000000ULL;
