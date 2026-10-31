@@ -26,3 +26,13 @@
 - Verify no SD worker starts in MSC mode and no MSC backend exists in HID mode.
 - Confirm the exact pinned TinyUSB v2.0.0 driver and config behavior in CI and original-board hardware.
 - Verify no further filesystem writes are introduced outside the single marker unlink.
+
+## Independent pre-flash review and MSC driver correction
+
+An independent read-only review of PR #23 found a P0 flaw in pinned `esp_tinyusb` 2.0.0: automatic app-side FAT remounting on USB eject/disconnect could format host-owned media when the filesystem was unsupported or altered. The initial firmware candidate `2c08c401...` is **NO-GO for flashing**.
+
+The remediation explicitly installs the MSC driver with `user_flags.auto_mount_off = 1`, sets `fat_fs.do_not_format = true` and `mount_point = TINYUSB_MSC_STORAGE_MOUNT_USB`, and blocks USB enumeration if MSC LUN creation fails. CI includes a source-level configuration regression check, which is **not** a substitute for Windows/eject testing or fault injection. Exact-head CI and review are required before a hardware test.
+
+**Known upstream constraint:** The synchronous MSC write path can acknowledge the host before an SD write error is propagated. Hardware acceptance must use a disposable card, eject, reconnect, and independently hash-check files; normal data-storage reliability remains unqualified even if the smoke test passes. Do not silently claim general-purpose flash-drive reliability.
+
+**Additional pending work:** diagnostic behavior for missing/corrupt media, distinct MSC startup failure display, boot-time FAT/marker fault injection, descriptor-byte tests, and provenance distinction between PR head and synthetic CI merge commit.
