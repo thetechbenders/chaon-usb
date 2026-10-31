@@ -49,6 +49,27 @@ int main(void)
     memcpy(ready_frame, frame, sizeof ready_frame);
     assert(chaon_screen_render(CHAON_STATUS_ARMED, 12, CHAON_SD_INIT, frame, CHAON_SCREEN_BYTES));
     assert(memcmp(ready_frame, frame, CHAON_SCREEN_BYTES) != 0);
+    /* MSC presentation is passive and respects framebuffer boundaries. */
+    frame[CHAON_SCREEN_BYTES] = 0xA5;
+    frame[CHAON_SCREEN_BYTES + 1] = 0x5A;
+    assert(!chaon_screen_render_msc("TESTVOL", true, 4000000000ULL,
+                                    16000000000ULL, NULL, CHAON_SCREEN_BYTES));
+    assert(!chaon_screen_render_msc("TESTVOL", true, 4000000000ULL,
+                                    16000000000ULL, frame, CHAON_SCREEN_BYTES - 1));
+    assert(chaon_screen_render_msc("TESTVOL", true, 4000000000ULL,
+                                   16000000000ULL, frame, CHAON_SCREEN_BYTES));
+    assert(frame[CHAON_SCREEN_BYTES] == 0xA5);
+    assert(frame[CHAON_SCREEN_BYTES + 1] == 0x5A);
+    uint8_t msc_used[CHAON_SCREEN_BYTES];
+    memcpy(msc_used, frame, sizeof msc_used);
+    assert(chaon_screen_render_msc("TESTVOL", true, 0,
+                                   16000000000ULL, frame, CHAON_SCREEN_BYTES));
+    assert(memcmp(msc_used, frame, CHAON_SCREEN_BYTES) != 0);
+    assert(chaon_screen_render_msc("TESTVOL", false, 0,
+                                   0, frame, CHAON_SCREEN_BYTES));
+    assert(memcmp(msc_used, frame, CHAON_SCREEN_BYTES) != 0);
+    assert(chaon_screen_render_msc("TESTVOL", true, 200, 100,
+                                   frame, CHAON_SCREEN_BYTES));
     puts("ChaoN status and screen tests: PASS");
     return 0;
 }
