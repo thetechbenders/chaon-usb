@@ -1,0 +1,16 @@
+menu "ChaoN board selection"
+    choice CHAON_BOARD
+        prompt "Target board"
+        default CHAON_BOARD_ORIGINAL
+        help
+            Explicit build identity. The original T-Dongle-S3 remains the
+            validated baseline. Selecting Plus does not itself validate
+            its pins, PSRAM configuration or flashing compatibility.
+
+        config CHAON_BOARD_ORIGINAL
+            bool "Original LILYGO T-Dongle-S3 (no PSRAM)"
+
+        config CHAON_BOARD_PLUS
+            bool "LILYGO T-Dongle-S3 Plus (8 MB OPI PSRAM)"
+    endchoice
+endmenu
