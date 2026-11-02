@@ -326,6 +326,8 @@ void app_main(void)
      * The host cannot own card sectors concurrently with ChaoN's SD task. */
     const chaon_usb_mode_t mode = chaon_usb_boot_mode();
     if (mode == CHAON_USB_BLOCKED) {
+        if (chaon_lcd_open())
+            (void)chaon_lcd_show_usb_fault(chaon_usb_boot_fault_reason());
         ESP_LOGE(TAG, "SD handoff failed; do not enumerate HID or MSC");
         led_set(64, 0, 0);
         for (;;) vTaskDelay(pdMS_TO_TICKS(1000));
@@ -342,6 +344,8 @@ void app_main(void)
         if (!media_ok) {
             /* The pinned upstream MSC callbacks assume an allocated LUN.
              * Never install USB after a partial storage creation failure. */
+            if (chaon_lcd_open())
+                (void)chaon_lcd_show_usb_fault("MSC BACKEND FAIL");
             ESP_LOGE(TAG, "MSC startup failed; USB blocked, ROM recovery available");
             led_set(64, 0, 0);
             for (;;) vTaskDelay(pdMS_TO_TICKS(1000));
