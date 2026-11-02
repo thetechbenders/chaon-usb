@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 /* Cold-boot, single-owner media arbitration. No USB driver is running yet. */
 #include "chaon_usb_storage.h"
+#include "chaon_usb_marker.h"
 #include <errno.h>
 #include <sys/stat.h>
 #include <stdio.h>
@@ -87,6 +88,22 @@ static sdmmc_slot_config_t sd_slot(void)
     return slot;
 }
 
+static int marker_stat(void *ctx, const char *path, struct stat *info)
+{
+    (void)ctx;
+    return stat(path, info);
+}
+static int marker_unlink(void *ctx, const char *path)
+{
+    (void)ctx;
+    return unlink(path);
+}
+static int marker_unmount(void *ctx)
+{
+    sdmmc_card_t *card = ctx;
+    return esp_vfs_fat_sdcard_unmount("/chaon", card) == ESP_OK ? 0 : -1;
+}
+
 chaon_usb_mode_t chaon_usb_boot_mode(void)
 {
     memset(&volume_snapshot, 0, sizeof volume_snapshot);
@@ -107,32 +124,18 @@ chaon_usb_mode_t chaon_usb_boot_mode(void)
         return CHAON_USB_BLOCKED;
     }
     volume_read_snapshot();
-    struct stat info;
-    const char *path = "/chaon/DUCKY";
-    chaon_marker_state_t marker = CHAON_MARKER_IO_ERROR;
-    bool removed = false, absent_after = false;
-    errno = 0;
-    if (stat(path, &info) == 0) {
-        marker = (S_ISREG(info.st_mode) && info.st_size == 0)
-                 ? CHAON_MARKER_EMPTY_REGULAR : CHAON_MARKER_INVALID;
-        if (marker == CHAON_MARKER_EMPTY_REGULAR && unlink(path) == 0) {
-            removed = true;
-            errno = 0;
-            absent_after = (stat(path, &info) < 0 && errno == ENOENT);
-        }
-    } else if (errno == ENOENT) {
-        marker = CHAON_MARKER_ABSENT;
-    }
-    /* No MSC handler or read-only worker has started; unmount before
-     * transferring media ownership to either personality. */
-    err = esp_vfs_fat_sdcard_unmount("/chaon", card);
-    if (err != ESP_OK) {
+    const chaon_usb_marker_ops_t ops = {
+        .stat_file = marker_stat, .unlink_file = marker_unlink,
+        .unmount_card = marker_unmount,
+    };
+    bool unmount_failed = false;
+    const chaon_usb_mode_t mode = chaon_usb_marker_finish(
+        &ops, card, &unmount_failed);
+    if (unmount_failed) {
         boot_fault_reason = "FAT UNMOUNT FAIL";
-        ESP_LOGE(TAG, "SD_UNMOUNT_FAILED; USB blocked to avoid dual owner");
+        ESP_LOGE(TAG, "SD_UNMOUNT_FAILED; USB blocked");
         return CHAON_USB_BLOCKED;
     }
-    const chaon_usb_mode_t mode =
-        chaon_usb_mode_select(marker, removed, absent_after);
     ESP_LOGI(TAG, "cold boot USB personality: %s",
              mode == CHAON_USB_HID ? "HID (marker consumed)" : "MSC");
     return mode;
