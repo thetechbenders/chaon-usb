@@ -13,6 +13,16 @@ Rollback `v0.1.0-rc1` remains at tag object `6006cdffd8eeeb63d9410a769f1ad037462
 
 **Before any bench session**: Refresh the PR head SHA and verify exact-head CI again. If changed, disregard the SHA above as an executable candidate. Keep the PR draft. **Never flash the older `2c08c401...` candidate / artifact `12645771310`**: independent review identified an auto-remount/formatting hazard in that older image. Preserve the existing `v0.1.0-rc1` rollback image, flash commands, provenance and host-side recovery access. Flashing requires Dan's explicit, separate permission.
 
+## Exact branch-source validation result
+
+Exact tested branch commit: `6028ef2917fce0d0df3f7dfb5b3aea48bcece321` (firmware implementation unchanged from `b0a291d77dcdc71bf3f97d7cfb4c886df3b9a864`). Direct branch [ChaoN CI run 151](https://github.com/thetechbenders/chaon-usb/actions/runs/41439930656), `workflow_dispatch`, **SUCCESS** for native `-Werror`/patch tests, UBSan, package/policy tests, ESP-IDF v5.5.3 original-board build and verified/uploaded candidate. The downloaded package independently verifies against **that same exact SHA**. PR integration run [41439937359](https://github.com/thetechbenders/chaon-usb/actions/runs/41439937359) also passed for that head.
+
+- Exact-source artifact ID: `13139466009`.
+- Outer Actions artifact digest: `sha256:d39cd5405438c905d444ff5cc17318eb9d3f09efa6c229cac0a5d52d630d9237`.
+- Inner candidate ZIP SHA256: `2b92b396088997a8f8d1238eee3b9da6227c89919174b7ec7ceeafa7406ab45c`.
+- This handoff result is recorded in a subsequent documentation-only commit; check its current PR head and CI separately.
+- Hardware results: B01-B12 **NOT RUN**; B11 fault injection **BLOCKED** without fixture. No flash authorization, physical acceptance, storage-transfer success, or reliability claim follows.
+
 ## What currently exists and does not exist
 
 - Original LILYGO T-Dongle-S3, 16 MB flash, no PSRAM. Not S3 Plus.
