@@ -13,6 +13,8 @@ typedef struct {
     char volume_label[12]; /* FAT short-label, sanitized for 5x7 font */
 } chaon_usb_volume_t;
 const chaon_usb_volume_t *chaon_usb_volume_snapshot(void);
+/* Boot failure diagnostic, not a storage operation. */
+const char *chaon_usb_boot_fault_reason(void);
 /* Runs before USB enumeration, with no other SD task running.
  * A missing or invalid marker selects MSC, but failed FAT mount/unmount\n * blocks USB entirely. Neither case may select HID. */
 chaon_usb_mode_t chaon_usb_boot_mode(void);
