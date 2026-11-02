@@ -24,6 +24,8 @@ jobs:
         run: make test
       - name: Offline release packager unit tests
         run: python3 -m unittest discover -s tests -p test_release_package.py
+      - name: MSC ownership and no-format policy guardrails
+        run: python3 -m unittest discover -s tests -p test_usb_msc_policy.py
       - name: UBSan build and run
         run: |
           make clean

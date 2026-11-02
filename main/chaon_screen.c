@@ -134,6 +134,70 @@ bool chaon_screen_render(chaon_status_t status, uint32_t seconds_remaining,
     return chaon_screen_render_sd(sd, frame, length);
 }
 
+bool chaon_screen_render_usb_fault(const char *reason,
+                                   uint8_t *frame, size_t length)
+{
+    if (!frame || length < CHAON_SCREEN_BYTES || !reason) return false;
+    for (size_t i = 0; i < CHAON_SCREEN_BYTES; i += 2) {
+        frame[i] = 0x10;
+        frame[i + 1] = 0x82;
+    }
+    rect(frame, 0, 0, 3, CHAON_SCREEN_HEIGHT, 0xF800);
+    print_text(frame, 9, 5, "USB BLOCKED", 2, 0xF800);
+    rect(frame, 9, 27, 142, 1, 0x9D13);
+    print_text(frame, 9, 40, reason, 1, 0xD6DB);
+    print_text(frame, 9, 69, "NO HID OR MSC", 1, 0x9D13);
+    return true;
+}
+
+bool chaon_screen_render_msc(const char *volume_label, bool usage_valid,
+                             uint64_t used_bytes, uint64_t total_bytes,
+                             uint8_t *frame, size_t length)
+{
+    if (!frame || length < CHAON_SCREEN_BYTES) return false;
+    const uint16_t dark = 0x1082, foreground = 0xD6DB;
+    const uint16_t muted = 0x9D13, green = 0x7D6F;
+    for (size_t i = 0; i < CHAON_SCREEN_BYTES; i += 2) {
+        frame[i] = (uint8_t)(dark >> 8);
+        frame[i + 1] = (uint8_t)dark;
+    }
+    print_text(frame, 9, 4, "USB STORAGE", 2, foreground);
+    rect(frame, 9, 25, 142, 1, muted);
+    /* The volume label, unlike a Windows drive letter, exists on the SD. */
+    print_text(frame, 9, 29, volume_label ? volume_label : "USB DRIVE",
+               1, muted);
+    char capacity[96] = "CAPACITY UNKNOWN";
+    if (usage_valid && total_bytes && used_bytes <= total_bytes) {
+        const uint64_t divisor = total_bytes >= 1000000000ULL
+            ? 100000000ULL : 1000000ULL;
+        const uint64_t used = used_bytes / divisor;
+        const uint64_t total = total_bytes / divisor;
+        if (divisor == 100000000ULL) {
+            (void)snprintf(capacity, sizeof capacity,
+                "%llu.%llu / %llu.%llu GB",
+                (unsigned long long)(used / 10U),
+                (unsigned long long)(used % 10U),
+                (unsigned long long)(total / 10U),
+                (unsigned long long)(total % 10U));
+        } else {
+            (void)snprintf(capacity, sizeof capacity,
+                "%llu / %llu MB",
+                (unsigned long long)used, (unsigned long long)total);
+        }
+        /* Only 136 pixels of precision are needed. Divide first to
+         * avoid multiplying potentially large media capacities. */
+        const uint64_t unit = total_bytes / 136U + 1U;
+        uint64_t bar_width = used_bytes / unit;
+        if (bar_width > 136U) bar_width = 136U;
+        const int bar = (int)bar_width;
+        rect(frame, 9, 61, 136, 5, 0x2945);
+        rect(frame, 9, 61, bar, 5, green);
+    }
+    print_text(frame, 9, 45, capacity, 1, foreground);
+    print_text(frame, 9, 71, "AT BOOT", 1, muted);
+    return true;
+}
+
 bool chaon_screen_render_sd(chaon_sd_diag_t sd, uint8_t *frame, size_t length)
 {
     if (!frame || length < CHAON_SCREEN_BYTES) return false;

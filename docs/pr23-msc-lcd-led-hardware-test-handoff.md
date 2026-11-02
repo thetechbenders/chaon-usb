@@ -1,0 +1,105 @@
+# PR #23 original-board USB MSC LCD/LED test handoff
+
+Status: **TEST PLAN ONLY, NOT HARDWARE AUTHORIZATION OR ACCEPTANCE**. Prepared 2026-11-02.
+Repository: `thetechbenders/chaon-usb` / draft PR #23 (`feat/msc-ducky-one-shot`).
+Implemented/tested firmware source: `b0a291d77dcdc71bf3f97d7cfb4c886df3b9a864`.
+PR-associated integration CI: [ChaoN CI run 149](https://github.com/thetechbenders/chaon-usb/actions/runs/41439339187), **SUCCESS**: native `-Werror` tests including activity/patch tests, policy and package tests, UBSan, original ESP-IDF v5.5.3 ESP32-S3 build, candidate verification/upload. Local native/UBSan and all 23 Python tests also passed.
+
+Starting head `d306289f14f85a5dbb20a4c3006f5164c6841662` was confirmed exact-head green in [run 148](https://github.com/thetechbenders/chaon-usb/actions/runs/41438303973) **before firmware edits**. Subsequent handoff-only commits record results; they do not change firmware. PR workflows use a synthetic merge checkout; exact branch-head build provenance additionally requires a workflow-dispatch run on the branch. Refresh current PR metadata and verify CI on that exact head before any bench work.
+
+Run 149 artifact: `13137118541`, `chaon-esp32s3-candidate`; outer Actions archive digest `sha256:979639e5c6ae775fe65316db0df3a5dd2acb233cee28f4a1fcd36889cfa19b5b` (not the inner firmware ZIP hash). Downloaded inner package independently passed verification against its actual synthetic merge source `991ce12992ed9d2d638d136edc2ff45cbace249a`; verification against the feature SHA correctly rejected the provenance mismatch. Run 149 is associated with feature head `b0a291d77dcdc71bf3f97d7cfb4c886df3b9a864`, but its binary is labeled with that merge SHA. A direct branch workflow-dispatch run is required for exact-head binary provenance. Build logs confirm the generated `chaon_tinyusb_msc.c` and application activity source compiled; downloaded ELF defines both MSC callbacks and activity event/drain symbols. This establishes integration/build evidence, **not physical USB/LED function**.
+
+Rollback `v0.1.0-rc1` remains at tag object `6006cdffd8eeeb63d9410a769f1ad0374624b3a6`; no rollback image, release, tag or flash operation was changed/performed. No merge or release was performed.
+
+**Before any bench session**: Refresh the PR head SHA and verify exact-head CI again. If changed, disregard the SHA above as an executable candidate. Keep the PR draft. **Never flash the older `2c08c401...` candidate / artifact `12645771310`**: independent review identified an auto-remount/formatting hazard in that older image. Preserve the existing `v0.1.0-rc1` rollback image, flash commands, provenance and host-side recovery access. Flashing requires Dan's explicit, separate permission.
+
+## Exact branch-source validation result
+
+Exact tested branch commit: `6028ef2917fce0d0df3f7dfb5b3aea48bcece321` (firmware implementation unchanged from `b0a291d77dcdc71bf3f97d7cfb4c886df3b9a864`). Direct branch [ChaoN CI run 151](https://github.com/thetechbenders/chaon-usb/actions/runs/41439930656), `workflow_dispatch`, **SUCCESS** for native `-Werror`/patch tests, UBSan, package/policy tests, ESP-IDF v5.5.3 original-board build and verified/uploaded candidate. The downloaded package independently verifies against **that same exact SHA**. PR integration run [41439937359](https://github.com/thetechbenders/chaon-usb/actions/runs/41439937359) also passed for that head.
+
+- Exact-source artifact ID: `13139466009`.
+- Outer Actions artifact digest: `sha256:d39cd5405438c905d444ff5cc17318eb9d3f09efa6c229cac0a5d52d630d9237`.
+- Inner candidate ZIP SHA256: `2b92b396088997a8f8d1238eee3b9da6227c89919174b7ec7ceeafa7406ab45c`.
+- This handoff result is recorded in a subsequent documentation-only commit; check its current PR head and CI separately.
+- Hardware results: B01-B12 **NOT RUN**; B11 fault injection **BLOCKED** without fixture. No flash authorization, physical acceptance, storage-transfer success, or reliability claim follows.
+
+## What currently exists and does not exist
+
+- Original LILYGO T-Dongle-S3, 16 MB flash, no PSRAM. Not S3 Plus.
+- MSC default identity: VID:PID `303A:4002`. HID-only identity: `303A:4004` after safely consuming the empty root `DUCKY` file on cold boot.
+- MSC LCD is intended to show `USB STORAGE`, sanitized FAT volume label or `USB DRIVE`, used/total capacity, utilization bar, and `AT BOOT` legend. Capacity is a **cold-boot snapshot**, not live.
+- APA102 now has an application-side attempted-data activity implementation: blue READ10, amber WRITE10, purple mixed, with bounded pulses over the dim idle/mounted heartbeat. **Hardware UNVALIDATED**; attempts include failures and deferred writes, not successful transfer or persistence.
+- USB MSC setup explicitly configures `auto_mount_off = 1`, `do_not_format = true`, USB ownership, and blocks enumeration on backend startup failure. Source-policy CI confirms the configuration, not physical USB behavior.
+- Pinned `esp_tinyusb` v2.0.0 has no supported transfer hook. An isolated hash-checked build patch now signals nonempty callback attempts through a lock-free atomic latch. See `pr23-msc-activity-design.md` for source provenance, semantics and limitations.
+- Known upstream risk: synchronous MSC write errors may be acknowledged as success. Even a passing copy/eject/readback smoke test **does not establish reliable general-purpose storage**.
+
+## Bench prerequisites and evidence
+
+Use a sacrificial known-good FAT32 microSD containing no valuable data, an original T-Dongle-S3, an accessible Windows test host, tested USB data cable, serial logs, and a separately verified ROM recovery and rollback procedure. Save the card image/hash if its starting state matters. Capture the exact firmware commit SHA, CI URL and job outcomes, candidate archive + internal file hashes, flashing offsets (from verified package), board revision, host OS version, card model/capacity, photos/video of LCD+LED, Windows USB descriptors, serial log, and per-case results with time stamps.
+
+**Go/no-go before flashing:** (1) named reviewer has checked the current source and pinned MSC implementation, including known write-error/format risk; (2) exact-head CI is green; (3) correct-board firmware bundle and hashes are verified; (4) Dan has explicitly authorized the test flash; (5) rollback/recovery verified. If any fails, stop.
+
+## Supervised test sequence (only after approval)
+
+| ID | Procedure | Expected / evidence |
+| --- | --- | --- |
+| B01 | Cold-connect valid FAT32 card with no `DUCKY` marker. | Windows sees only MSC `303A:4002`, no HID keyboard interface, no automatic keystrokes. Photograph `USB STORAGE`, volume label, usage bar, used/total and `AT BOOT`. |
+| B02 | Observe LED idle for at least 10 seconds and while Windows enumerates. | Dim idle green with brief heartbeat when USB mounted. **Attempt pulses are implemented but unvalidated**; observe idle separately from host background scans. Film the sequence. |
+| B03 | On disposable FAT32 card, write test files of several sizes, including a zero-length file and files crossing sector/cluster boundaries; safely eject. | Windows copy/eject reports, serial logs and LED video retained. Observe blue read / amber write / purple mixed attempt pulses and a visible gap during sustained traffic; correlate against independent host traces, not just file-copy UI. No app-side mount/format. Disconnect, read card independently and compare cryptographic hashes/lengths to sources. Note any failures; a green UI is insufficient. |
+| B04 | Reconnect after host writes. | Capacity bar may change only after this cold boot; verify `AT BOOT` remains truthful. Compare against actual free space with rounding tolerance. |
+| B05 | Create exactly empty root regular file `DUCKY` on host; flush/eject, disconnect, cold-connect. | Marker safely deleted before USB startup, Windows enumerates HID-only `303A:4004`, not MSC, no auto-type. A deliberate BOOT PICK/ARM/RUN must still be required. Record serial and descriptors. |
+| B06 | Disconnect/reconnect with marker already consumed. | Default MSC-only returns; no persistent HID latch and no keystrokes. |
+| B07 | Put nonempty file named `DUCKY`, directory instead of marker, or inaccessible media (separate cases). | Never switch to HID. Invalid marker remains nonauthorizing; failed FAT mount/unmount may block USB entirely. Capture exact failure mode and logs, without asserting host data safety beyond evidence. |
+| B08 | Test FAT unsupported/corrupt media and absent media on sacrificial card/fixture. | Never format, remount or expose HID as a fallback. A blocked USB device is acceptable when ownership cannot be guaranteed. Preserve card before/after images where feasible. |
+| B09 | Hold BOOT during USB insertion for ROM download/recovery. | ROM recovery remains available, no unexpected keyboard interface or automatic execution. Follow documented recovery procedure; do not overwrite rollback artifact. |
+| B10 | Abort/replug/eject under controlled conditions on sacrificial card; test post-operation integrity. | No app-side media owner starts in MSC mode. Capture disconnect behavior, error logs and post-reconnect hashes. **Do not intentionally interrupt active writes on valuable data.** |
+| B11 | Attempt to trigger SD read/write errors with a fault-injection fixture, if available. | Record exact host-visible result versus card readback. This is currently an unresolved P1 and **BLOCKED**, not PASS, without the fixture. |
+| B12 | In intentional HID mode, run previously accepted PICK -> ARM -> RUN and cancellation smoke cases. | No automatic script execution; selected-script safety and the read-only SD worker remain functional. No MSC backend coexists. |
+
+## Activity implementation and remaining validation
+
+The attempted-data hook is implemented as described in `pr23-msc-activity-design.md`. Physical behavior is **NOT VALIDATED**. It signals nonempty READ10/WRITE10 attempts, including errors and writes awaiting deferred execution. The application polls an always-lock-free atomic bit latch; the hook does no GPIO, LCD, logging, allocation, clock reads or blocking operations. Attempts coalesce; 75 ms pulses have at least 125 ms gaps in application time. This is not operation counting or a successful-transfer indicator.
+
+**Remaining gates (all pending):** independent source/patch review; exact-head CI refresh; verified correct-board bundle/hash/offsets; separately authorized supervised flash; B01-B12 acceptance with host traces/video, exclusive descriptors/no-auto-type, FAT/no-format/ownership observations, independent eject/reconnect readback hashes, LCD snapshot, idle heartbeat and activity pulse timing, and ROM recovery/rollback. B11 fault injection remains **BLOCKED** without an appropriate fixture. Known deferred-write error reporting is unchanged. No general-purpose storage reliability claim is justified.
+
+## Verdict template
+
+- Tested commit and flashed image SHA:
+- CI run / job URLs:
+- Board, SD, Windows details:
+- B01-B12 per-case PASS / FAIL / BLOCKED / N/A with evidence:
+- LCD text and volume snapshot accuracy:
+- Idle LED observation:
+- **Attempted-data activity LED: IMPLEMENTED, HARDWARE NOT VALIDATED; no successful-transfer claim**:
+- Descriptor captures and no-auto-type:
+- File hashes before/after eject and reconnect:
+- FAT/no-format/ownership observations:
+- Recovery and rollback result:
+- Remaining faults and explicit risk disposition:
+- Reviewer sign-off / Dan release decision:
+
+**No merge, release or production reliability claim follows automatically from this plan or a green CI run.**
+
+## 2026-11-02 deferred-write fault remediation checkpoint
+
+Claude review finding F1 motivated a new sticky error channel. Starting from reviewed head `d57b5bec`, commits through `d88fdaf1` add a fail-closed patch anchor on the pinned synchronous deferred-write error log, an independent lock-free atomic write-failure latch, app-side solid-red APA102 precedence, and native tests asserting that normal activity drains cannot clear the fault. **The existing WRITE10 host acknowledgment behavior is unchanged.** This fault signal means an actual deferred medium write reported an error, not that Windows received an error. A red LED should cause the operator to stop using the volume, safely eject if possible, and independently verify hashes on a different reader.
+
+These changes are **unqualified until new CI confirms that the pinned source patch applies and ESP-IDF builds**. Do not flash based on earlier green runs (#154 or #157). The error indication has not been physically validated and cannot detect every form of corrupted or lost data. Continue independent readback hash checks even if no red indication occurs. F3 distinct LCD blocked-state reasons and F5 native boot-sequence stubs remain pending.
+
+## F3/F5 remediation checkpoint (2026-11-02)
+
+The draft now displays SD-independent, fail-cold LCD diagnostics before installing USB: `FAT MOUNT FAIL`, `FAT UNMOUNT FAIL`, and `MSC BACKEND FAIL`. All retain solid-red LED and do not authorize MSC or HID. The USB Serial/JTAG device may still appear on Windows in the blocked state; do not infer that USB is physically absent. LCD init failure can leave the screen dark, so the display is diagnostic only, not a safety interlock.
+
+The cold-boot marker stat/unlink/second-stat/unmount transaction was factored into `chaon_usb_marker.c` with stubbed native tests for absence, valid empty marker, nonempty/directory marker, EIO, deletion failure, residual marker, second-stat error and unmount failure. Mount failure remains handled in `chaon_usb_storage.c` before invoking this transaction; the source-level policy checks and physical B07/B08 tests still apply.
+
+**Qualification remains pending:** New commit requires native tests, UBSan, original-board ESP-IDF v5.5.3 CI and independent review. Neither source tests nor CI prove the physical screen is readable or that the actual SD filesystem behavior matches stubs. The pinned TinyUSB deferred-write failure latch remains a detected-failure indicator only. Never use a green host copy result or lack of red LED as proof of durability. Physical cases B01-B12 and exact-branch artifact verification remain necessary. No flash, merge, release or tag is authorized by this document.
+
+## Independent review follow-up (2026-11-02)
+
+The latest read-only review returned **CONDITIONAL GO**, not flash authorization. Its reviewed PR merge package belonged to synthetic merge `b84287f7fd2fbee3416a7c1b2aba565e1c23302d`, not the exact feature-branch SHA `e4cf67c6a7c6a192325438c672970fc92df8e52a`. Do **not** flash or label that merge package exact-branch qualified. Obtain a direct branch build and independently verify the actual manifest and package hashes against a frozen branch head before any bench flash.
+
+Review remediation: `make clean` now removes the marker transaction test binary so UBSan recompiles it; the fault indicator is accurately described as **sticky until reset or power loss**, not persistent across resets; an explicit lock-free assertion now covers the boolean fault latch. Pending new exact-head CI.
+
+**Inherited pinned-upstream risk:** unsupported LUN 1 can encounter an unallocated storage pointer and crash in `esp_tinyusb` 2.0.0. The present app allocates only LUN 0. This remains **UNRESOLVED**, and malformed/unsupported LUN traffic is excluded from initial supervised validation. Do not claim the device is hardened against hostile USB hosts. Upstream defensive NULL checking plus a test should be addressed in a separate auditable patch before release or fuzz testing.
+
+The host may acknowledge an SD write before the deferred physical write fails; red fault only indicates a failure observed by the instrumented path. Absence of red never proves integrity. B11 requires a genuine deferred-write fault, red-over-activity observation and independent readback; mark it BLOCKED without an appropriate fixture. Never substitute removal of inaccessible powered media. All B01-B12 physical results remain pending.
