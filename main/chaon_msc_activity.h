@@ -6,6 +6,9 @@
 enum { CHAON_MSC_READ = 1u, CHAON_MSC_WRITE = 2u };
 /* Single atomic OR in USB task context. Reports attempts, including failures. */
 void chaon_msc_activity_event(unsigned int event);
+/* Sticky until power cycle. A deferred write failed after host acknowledgement. */
+void chaon_msc_write_failure(void);
+bool chaon_msc_write_failed(void);
 /* Atomic drain; bursts coalesce, concurrent later events survive next drain. */
 unsigned int chaon_msc_activity_take(void);
 
