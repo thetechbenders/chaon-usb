@@ -185,6 +185,19 @@ bool chaon_lcd_show(chaon_status_t status, uint32_t remaining_s,
     return true;
 }
 
+bool chaon_lcd_show_usb_fault(const char *reason)
+{
+    if (!lcd_initialized || !reason) return false;
+    if (!chaon_screen_render_usb_fault(reason, framebuffer,
+                                       sizeof framebuffer)) return false;
+    if (!flush_band(0, CHAON_SCREEN_HEIGHT)) return false;
+    if (!backlight_enabled) {
+        gpio_set_level(LCD_BL, 0);
+        backlight_enabled = true;
+    }
+    return true;
+}
+
 bool chaon_lcd_show_msc(const char *volume_label, bool usage_valid,
                         uint64_t used_bytes, uint64_t total_bytes)
 {
