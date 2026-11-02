@@ -134,6 +134,22 @@ bool chaon_screen_render(chaon_status_t status, uint32_t seconds_remaining,
     return chaon_screen_render_sd(sd, frame, length);
 }
 
+bool chaon_screen_render_usb_fault(const char *reason,
+                                   uint8_t *frame, size_t length)
+{
+    if (!frame || length < CHAON_SCREEN_BYTES || !reason) return false;
+    for (size_t i = 0; i < CHAON_SCREEN_BYTES; i += 2) {
+        frame[i] = 0x10;
+        frame[i + 1] = 0x82;
+    }
+    rect(frame, 0, 0, 3, CHAON_SCREEN_HEIGHT, 0xF800);
+    print_text(frame, 9, 5, "USB BLOCKED", 2, 0xF800);
+    rect(frame, 9, 27, 142, 1, 0x9D13);
+    print_text(frame, 9, 40, reason, 1, 0xD6DB);
+    print_text(frame, 9, 69, "NO HID OR MSC", 1, 0x9D13);
+    return true;
+}
+
 bool chaon_screen_render_msc(const char *volume_label, bool usage_valid,
                              uint64_t used_bytes, uint64_t total_bytes,
                              uint8_t *frame, size_t length)
