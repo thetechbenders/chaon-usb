@@ -16,6 +16,12 @@
 static const char *TAG = "chaon_msc";
 static sdmmc_card_t storage_card;
 static chaon_usb_volume_t volume_snapshot;
+static const char *boot_fault_reason = "BOOT UNKNOWN";
+
+const char *chaon_usb_boot_fault_reason(void)
+{
+    return boot_fault_reason;
+}
 
 const chaon_usb_volume_t *chaon_usb_volume_snapshot(void)
 {
@@ -84,6 +90,7 @@ static sdmmc_slot_config_t sd_slot(void)
 chaon_usb_mode_t chaon_usb_boot_mode(void)
 {
     memset(&volume_snapshot, 0, sizeof volume_snapshot);
+    boot_fault_reason = "BOOT UNKNOWN";
     sdmmc_host_t host = sd_host();
     sdmmc_slot_config_t slot = sd_slot();
     const esp_vfs_fat_sdmmc_mount_config_t mount = {
@@ -94,6 +101,7 @@ chaon_usb_mode_t chaon_usb_boot_mode(void)
     esp_err_t err = esp_vfs_fat_sdmmc_mount("/chaon", &host, &slot,
                                             &mount, &card);
     if (err != ESP_OK) {
+        boot_fault_reason = "FAT MOUNT FAIL";
         ESP_LOGW(TAG, "BOOT_MARKER_SCAN_UNAVAILABLE %s; USB blocked",
                  esp_err_to_name(err));
         return CHAON_USB_BLOCKED;
@@ -119,6 +127,7 @@ chaon_usb_mode_t chaon_usb_boot_mode(void)
      * transferring media ownership to either personality. */
     err = esp_vfs_fat_sdcard_unmount("/chaon", card);
     if (err != ESP_OK) {
+        boot_fault_reason = "FAT UNMOUNT FAIL";
         ESP_LOGE(TAG, "SD_UNMOUNT_FAILED; USB blocked to avoid dual owner");
         return CHAON_USB_BLOCKED;
     }
