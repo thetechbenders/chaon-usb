@@ -79,3 +79,9 @@ The attempted-data hook is implemented as described in `pr23-msc-activity-design
 - Reviewer sign-off / Dan release decision:
 
 **No merge, release or production reliability claim follows automatically from this plan or a green CI run.**
+
+## 2026-11-02 deferred-write fault remediation checkpoint
+
+Claude review finding F1 motivated a new sticky error channel. Starting from reviewed head `d57b5bec`, commits through `d88fdaf1` add a fail-closed patch anchor on the pinned synchronous deferred-write error log, an independent lock-free atomic write-failure latch, app-side solid-red APA102 precedence, and native tests asserting that normal activity drains cannot clear the fault. **The existing WRITE10 host acknowledgment behavior is unchanged.** This fault signal means an actual deferred medium write reported an error, not that Windows received an error. A red LED should cause the operator to stop using the volume, safely eject if possible, and independently verify hashes on a different reader.
+
+These changes are **unqualified until new CI confirms that the pinned source patch applies and ESP-IDF builds**. Do not flash based on earlier green runs (#154 or #157). The error indication has not been physically validated and cannot detect every form of corrupted or lost data. Continue independent readback hash checks even if no red indication occurs. F3 distinct LCD blocked-state reasons and F5 native boot-sequence stubs remain pending.
