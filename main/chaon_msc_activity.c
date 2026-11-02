@@ -4,6 +4,17 @@
 
 _Static_assert(ATOMIC_INT_LOCK_FREE == 2, "MSC latch must always be lock-free");
 static atomic_uint pending;
+static atomic_bool write_failed;
+
+void chaon_msc_write_failure(void)
+{
+    atomic_store_explicit(&write_failed, true, memory_order_relaxed);
+}
+
+bool chaon_msc_write_failed(void)
+{
+    return atomic_load_explicit(&write_failed, memory_order_relaxed);
+}
 
 void chaon_msc_activity_event(unsigned int event)
 {
