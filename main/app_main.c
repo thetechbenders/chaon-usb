@@ -370,7 +370,7 @@ void app_main(void)
             const bool mounted = tud_mounted();
             /* Deferred writes may fail after the host has seen success. */
             if (chaon_msc_write_failed()) {
-                led_set(64, 0, 0); /* sticky until power cycle */
+                led_set(64, 0, 0); /* sticky until reset or power loss */
                 vTaskDelay(pdMS_TO_TICKS(25));
                 continue;
             }
