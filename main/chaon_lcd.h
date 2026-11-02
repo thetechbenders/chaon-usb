@@ -12,6 +12,8 @@
  * The backlight remains off on initialization errors.
  */
 bool chaon_lcd_open(void);
+/* Safe before USB enumeration; independent of SD and FAT. */
+bool chaon_lcd_show_usb_fault(const char *reason);
 /* Single main-task draw before MSC enumeration. Does not touch SD media. */
 bool chaon_lcd_show_msc(const char *volume_label, bool usage_valid,
                         uint64_t used_bytes, uint64_t total_bytes);
