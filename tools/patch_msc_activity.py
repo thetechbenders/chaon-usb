@@ -23,6 +23,15 @@ def patch_source(source, expected_sha=SOURCE_SHA256):
             "    /* ChaoN modification: nonblocking data-attempt signal only. */\n"
             "    extern void chaon_msc_activity_event(unsigned int event);\n"
             f"    if (bufsize != 0) chaon_msc_activity_event({1 if direction == 'read' else 2}u);\n")
+    # Deferred SD writes may fail after the host has received GOOD status.
+    # Report this failure independently from transfer-attempt pulses.
+    failure = 'ESP_LOGE(TAG, "Write failed, error=0x%x", err);'
+    if text.count(failure) != 1:
+        raise ValueError("deferred MSC write-failure path changed")
+    text = text.replace(failure, failure +
+        "\\n        /* ChaoN modification: sticky write-failure evidence. */" +
+        "\\n        extern void chaon_msc_write_failure(void);" +
+        "\\n        chaon_msc_write_failure();")
     return text
 
 
