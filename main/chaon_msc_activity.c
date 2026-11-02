@@ -3,6 +3,7 @@
 #include <stdatomic.h>
 
 _Static_assert(ATOMIC_INT_LOCK_FREE == 2, "MSC latch must always be lock-free");
+_Static_assert(ATOMIC_BOOL_LOCK_FREE == 2, "MSC fault latch must always be lock-free");
 static atomic_uint pending;
 static atomic_bool write_failed;
 
