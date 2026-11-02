@@ -70,6 +70,22 @@ int main(void)
     assert(memcmp(msc_used, frame, CHAON_SCREEN_BYTES) != 0);
     assert(chaon_screen_render_msc("TESTVOL", true, 200, 100,
                                    frame, CHAON_SCREEN_BYTES));
+    assert(!chaon_screen_render_usb_fault("FAT MOUNT FAIL", NULL,
+                                           CHAON_SCREEN_BYTES));
+    assert(!chaon_screen_render_usb_fault("FAT MOUNT FAIL", frame,
+                                           CHAON_SCREEN_BYTES - 1));
+    assert(chaon_screen_render_usb_fault("FAT MOUNT FAIL", frame,
+                                          CHAON_SCREEN_BYTES));
+    assert(frame[CHAON_SCREEN_BYTES] == 0xA5);
+    assert(frame[CHAON_SCREEN_BYTES + 1] == 0x5A);
+    uint8_t fault_mount[CHAON_SCREEN_BYTES];
+    memcpy(fault_mount, frame, sizeof fault_mount);
+    assert(chaon_screen_render_usb_fault("FAT UNMOUNT FAIL", frame,
+                                          CHAON_SCREEN_BYTES));
+    assert(memcmp(fault_mount, frame, CHAON_SCREEN_BYTES) != 0);
+    assert(chaon_screen_render_usb_fault("MSC BACKEND FAIL", frame,
+                                          CHAON_SCREEN_BYTES));
+    assert(memcmp(fault_mount, frame, CHAON_SCREEN_BYTES) != 0);
     puts("ChaoN status and screen tests: PASS");
     return 0;
 }
