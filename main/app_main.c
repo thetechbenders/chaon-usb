@@ -374,6 +374,12 @@ void app_main(void)
             vTaskDelay(pdMS_TO_TICKS(25));
         }
     }
+    /* Explicitly allow HID only after the verified one-shot marker decision. */
+    if (mode != CHAON_USB_HID) {
+        ESP_LOGE(TAG, "UNEXPECTED_USB_MODE; refusing HID enumeration");
+        led_set(64, 0, 0);
+        for (;;) vTaskDelay(pdMS_TO_TICKS(1000));
+    }
     usb.descriptor.device = &hid_device_descriptor;
     usb.descriptor.full_speed_config = hid_configuration_descriptor;
     usb.descriptor.string = hid_string_descriptor;
