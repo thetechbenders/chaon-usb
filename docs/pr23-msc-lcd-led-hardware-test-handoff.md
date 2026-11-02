@@ -2,8 +2,14 @@
 
 Status: **TEST PLAN ONLY, NOT HARDWARE AUTHORIZATION OR ACCEPTANCE**. Prepared 2026-11-02.
 Repository: `thetechbenders/chaon-usb` / draft PR #23 (`feat/msc-ducky-one-shot`).
-Last inspected source: `04f80a2fc3f37d8ca41c49a055e3961f741cbd5b`.
-Source CI: [ChaoN CI run 147](https://github.com/thetechbenders/chaon-usb/actions/runs/41209344404), SUCCESS for native `-Werror` tests, policy checks, UBSan, original ESP-IDF v5.5.3 ESP32-S3 build and candidate packaging.
+Implemented/tested firmware source: `b0a291d77dcdc71bf3f97d7cfb4c886df3b9a864`.
+Source CI: [ChaoN CI run 149](https://github.com/thetechbenders/chaon-usb/actions/runs/41439339187), **SUCCESS**: native `-Werror` tests including activity/patch tests, policy and package tests, UBSan, original ESP-IDF v5.5.3 ESP32-S3 build, candidate verification/upload. Local native/UBSan and all 23 Python tests also passed.
+
+Starting head `d306289f14f85a5dbb20a4c3006f5164c6841662` was confirmed exact-head green in [run 148](https://github.com/thetechbenders/chaon-usb/actions/runs/41438303973) **before firmware edits**. The subsequent handoff-only commit records the completed results; it does not change firmware. Refresh current PR metadata and verify CI on that exact head before any bench work.
+
+Run 149 artifact: `13137118541`, `chaon-esp32s3-candidate`; outer Actions archive digest `sha256:979639e5c6ae775fe65316db0df3a5dd2acb233cee28f4a1fcd36889cfa19b5b` (not the inner firmware ZIP hash). Downloaded inner package independently passed `release_package.py verify --source-commit b0a291d77dcdc71bf3f97d7cfb4c886df3b9a864`. Build logs confirm the generated `chaon_tinyusb_msc.c` and application activity source compiled; downloaded ELF defines both MSC callbacks and activity event/drain symbols. This establishes integration/build evidence, **not physical USB/LED function**.
+
+Rollback `v0.1.0-rc1` remains at tag object `6006cdffd8eeeb63d9410a769f1ad0374624b3a6`; no rollback image, release, tag or flash operation was changed/performed. No merge or release was performed.
 
 **Before any bench session**: Refresh the PR head SHA and verify exact-head CI again. If changed, disregard the SHA above as an executable candidate. Keep the PR draft. **Never flash the older `2c08c401...` candidate / artifact `12645771310`**: independent review identified an auto-remount/formatting hazard in that older image. Preserve the existing `v0.1.0-rc1` rollback image, flash commands, provenance and host-side recovery access. Flashing requires Dan's explicit, separate permission.
 
@@ -42,7 +48,9 @@ Use a sacrificial known-good FAT32 microSD containing no valuable data, an origi
 
 ## Activity implementation and remaining validation
 
-The attempted-data hook is implemented as described in `pr23-msc-activity-design.md`. Physical behavior is **NOT VALIDATED**. The design requirements and remaining independent review gates follow. Do **not** infer activity from `tud_mounted()`, LED animation time, or LCD refresh. First inspect the exact pinned `esp_tinyusb` 2.0.0 MSC callbacks and their task/ISR/ownership context. If a clean supported hook is absent, assess an isolated, pinned component patch instead of double-defining TinyUSB callbacks or wrapping SDMMC arbitrarily. Signal only successful/attempted MSC data transfer events with clear semantics, using a lock-free/atomic counter or nonblocking queue; **do not call GPIO, LCD, logging or blocking primitives from hot transfer callbacks**. Render APA102 from the existing application loop, preserve dim idle heartbeat, and avoid saturating on repeated reads. Define honest behavior on failed writes and when USB is not configured. Add native event-state tests (idle/read/write bursts, rollover, tick wrap, event loss), strict target build and USB regression checks. New exact-head CI and supervised repeat of B01-B12 are required before claiming this feature physically works.
+The attempted-data hook is implemented as described in `pr23-msc-activity-design.md`. Physical behavior is **NOT VALIDATED**. It signals nonempty READ10/WRITE10 attempts, including errors and writes awaiting deferred execution. The application polls an always-lock-free atomic bit latch; the hook does no GPIO, LCD, logging, allocation, clock reads or blocking operations. Attempts coalesce; 75 ms pulses have at least 125 ms gaps in application time. This is not operation counting or a successful-transfer indicator.
+
+**Remaining gates (all pending):** independent source/patch review; exact-head CI refresh; verified correct-board bundle/hash/offsets; separately authorized supervised flash; B01-B12 acceptance with host traces/video, exclusive descriptors/no-auto-type, FAT/no-format/ownership observations, independent eject/reconnect readback hashes, LCD snapshot, idle heartbeat and activity pulse timing, and ROM recovery/rollback. B11 fault injection remains **BLOCKED** without an appropriate fixture. Known deferred-write error reporting is unchanged. No general-purpose storage reliability claim is justified.
 
 ## Verdict template
 
