@@ -6,6 +6,7 @@
 int main(void)
 {
     assert(chaon_msc_activity_take() == 0);
+    assert(!chaon_msc_write_failed());
     for (unsigned i = 0; i < 100000; ++i) chaon_msc_activity_event(1);
     chaon_msc_activity_event(2);
     assert(chaon_msc_activity_take() == 3); /* no saturating counter/rollover */
@@ -41,5 +42,9 @@ int main(void)
     assert(chaon_msc_activity_step(&s, start + 225u, true, 1) == 1);
     /* Dropped/coalesced signals cannot leave a permanent activity light. */
     assert(chaon_msc_activity_step(&s, start + 1000u, true, 0) == 0);
+    chaon_msc_write_failure();
+    assert(chaon_msc_write_failed());
+    assert(chaon_msc_activity_take() == 0);
+    assert(chaon_msc_write_failed()); /* draining or unmounting must not clear fault */
     puts("MSC activity tests passed");
 }
