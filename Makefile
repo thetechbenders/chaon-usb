@@ -41,7 +41,9 @@ SD_PROBE_BIN := tests/chaon_sd_probe_inspection_tests
 SD_PROBE_CPPFLAGS := -Itests/sd_probe_stubs
 
 .PHONY: test clean
-test: $(USB_MODE_BIN) $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SELECTION_CONTROL_BIN) $(SELECTION_BIN) $(HASH_BIN) $(EXEC_SLOT_BIN) $(RUN_AUTH_BIN) $(APP_DECISION_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
+test: tests/chaon_msc_activity_tests $(USB_MODE_BIN) $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SELECTION_CONTROL_BIN) $(SELECTION_BIN) $(HASH_BIN) $(EXEC_SLOT_BIN) $(RUN_AUTH_BIN) $(APP_DECISION_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
+	./tests/chaon_msc_activity_tests
+	python3 -m unittest discover -s tests -p test_msc_activity_patch.py
 	./$(USB_MODE_BIN)
 	./$(NATIVE_BIN)
 	./$(VISUAL_BIN)
@@ -118,4 +120,7 @@ $(SD_PROBE_BIN): $(SD_PROBE_SRCS) main/chaon_sd_probe.c main/chaon_sd_probe.h ma
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(SD_PROBE_CPPFLAGS) $(SD_PROBE_SRCS) -o $(SD_PROBE_BIN)
 
 clean:
-	rm -f $(USB_MODE_BIN) $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SELECTION_CONTROL_BIN) $(SELECTION_BIN) $(HASH_BIN) $(EXEC_SLOT_BIN) $(RUN_AUTH_BIN) $(APP_DECISION_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
+	rm -f tests/chaon_msc_activity_tests $(USB_MODE_BIN) $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SELECTION_CONTROL_BIN) $(SELECTION_BIN) $(HASH_BIN) $(EXEC_SLOT_BIN) $(RUN_AUTH_BIN) $(APP_DECISION_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
+
+tests/chaon_msc_activity_tests: main/chaon_msc_activity.c main/chaon_msc_activity.h tests/test_msc_activity.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) main/chaon_msc_activity.c tests/test_msc_activity.c -o $@

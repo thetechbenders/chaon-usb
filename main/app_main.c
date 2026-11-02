@@ -1,3 +1,4 @@
+#include "chaon_msc_activity.h"
 /*
  * ChaoN original T-Dongle-S3 USB HID bring-up candidate.
  * Inert on insertion: press/release BOOT once to arm, again to run the
@@ -357,16 +358,20 @@ void app_main(void)
         }
         ESP_ERROR_CHECK(tinyusb_driver_install(&usb));
         ESP_LOGI(TAG, "STORAGE_ONLY: SD exported to host; HID not enumerated");
-        /* Subtle standby heartbeat, not a claim of SD read/write activity.
-         * The pinned MSC driver exposes no per-transfer activity callback.
-         * Do not start SD probe, HID controller, or VM in MSC mode. */
+        /* Only the application task touches APA102. Events mean attempts,
+         * including failed/deferred writes, never successful persistence. */
+        chaon_msc_activity_t activity = {0};
         for (;;) {
-            led_set(0, 10, 3);
-            vTaskDelay(pdMS_TO_TICKS(1700));
-            if (tud_mounted()) {
-                led_set(0, 25, 5);
-                vTaskDelay(pdMS_TO_TICKS(75));
-            }
+            const uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);
+            const bool mounted = tud_mounted();
+            const unsigned int events = chaon_msc_activity_step(&activity,
+                now, mounted, chaon_msc_activity_take());
+            if (events == CHAON_MSC_READ) led_set(0, 15, 60);
+            else if (events == CHAON_MSC_WRITE) led_set(60, 20, 0);
+            else if (events) led_set(40, 0, 50);
+            else if (mounted && now % 1775u >= 1700u) led_set(0, 25, 5);
+            else led_set(0, 10, 3);
+            vTaskDelay(pdMS_TO_TICKS(25));
         }
     }
     usb.descriptor.device = &hid_device_descriptor;

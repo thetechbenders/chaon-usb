@@ -12,9 +12,9 @@ Source CI: [ChaoN CI run 147](https://github.com/thetechbenders/chaon-usb/action
 - Original LILYGO T-Dongle-S3, 16 MB flash, no PSRAM. Not S3 Plus.
 - MSC default identity: VID:PID `303A:4002`. HID-only identity: `303A:4004` after safely consuming the empty root `DUCKY` file on cold boot.
 - MSC LCD is intended to show `USB STORAGE`, sanitized FAT volume label or `USB DRIVE`, used/total capacity, utilization bar, and `AT BOOT` legend. Capacity is a **cold-boot snapshot**, not live.
-- APA102 currently emits a dim green idle level with a brief heartbeat when `tud_mounted()`. **It does not indicate actual USB transfers**. Do not mark read/write LED activity as PASS or advertise it as implemented.
+- APA102 now has an application-side attempted-data activity implementation: blue READ10, amber WRITE10, purple mixed, with bounded pulses over the dim idle/mounted heartbeat. **Hardware UNVALIDATED**; attempts include failures and deferred writes, not successful transfer or persistence.
 - USB MSC setup explicitly configures `auto_mount_off = 1`, `do_not_format = true`, USB ownership, and blocks enumeration on backend startup failure. Source-policy CI confirms the configuration, not physical USB behavior.
-- Pinned `esp_tinyusb` v2.0.0 MSC backend has no supported per-transfer activity hook in this integration. Actual read/write indication remains future implementation, requiring careful upstream inspection, nonblocking signaling and target regression testing.
+- Pinned `esp_tinyusb` v2.0.0 has no supported transfer hook. An isolated hash-checked build patch now signals nonempty callback attempts through a lock-free atomic latch. See `pr23-msc-activity-design.md` for source provenance, semantics and limitations.
 - Known upstream risk: synchronous MSC write errors may be acknowledged as success. Even a passing copy/eject/readback smoke test **does not establish reliable general-purpose storage**.
 
 ## Bench prerequisites and evidence
@@ -28,8 +28,8 @@ Use a sacrificial known-good FAT32 microSD containing no valuable data, an origi
 | ID | Procedure | Expected / evidence |
 | --- | --- | --- |
 | B01 | Cold-connect valid FAT32 card with no `DUCKY` marker. | Windows sees only MSC `303A:4002`, no HID keyboard interface, no automatic keystrokes. Photograph `USB STORAGE`, volume label, usage bar, used/total and `AT BOOT`. |
-| B02 | Observe LED idle for at least 10 seconds and while Windows enumerates. | Dim idle green with brief heartbeat when USB mounted. **No real transfer flash is expected in this version**. Film the sequence. |
-| B03 | On disposable FAT32 card, write test files of several sizes, including a zero-length file and files crossing sector/cluster boundaries; safely eject. | Windows copy/eject reports and serial logs retained. No app-side mount/format. Disconnect, read card independently and compare cryptographic hashes/lengths to sources. Note any failures; a green UI is insufficient. |
+| B02 | Observe LED idle for at least 10 seconds and while Windows enumerates. | Dim idle green with brief heartbeat when USB mounted. **Attempt pulses are implemented but unvalidated**; observe idle separately from host background scans. Film the sequence. |
+| B03 | On disposable FAT32 card, write test files of several sizes, including a zero-length file and files crossing sector/cluster boundaries; safely eject. | Windows copy/eject reports, serial logs and LED video retained. Observe blue read / amber write / purple mixed attempt pulses and a visible gap during sustained traffic; correlate against independent host traces, not just file-copy UI. No app-side mount/format. Disconnect, read card independently and compare cryptographic hashes/lengths to sources. Note any failures; a green UI is insufficient. |
 | B04 | Reconnect after host writes. | Capacity bar may change only after this cold boot; verify `AT BOOT` remains truthful. Compare against actual free space with rounding tolerance. |
 | B05 | Create exactly empty root regular file `DUCKY` on host; flush/eject, disconnect, cold-connect. | Marker safely deleted before USB startup, Windows enumerates HID-only `303A:4004`, not MSC, no auto-type. A deliberate BOOT PICK/ARM/RUN must still be required. Record serial and descriptors. |
 | B06 | Disconnect/reconnect with marker already consumed. | Default MSC-only returns; no persistent HID latch and no keystrokes. |
@@ -40,9 +40,9 @@ Use a sacrificial known-good FAT32 microSD containing no valuable data, an origi
 | B11 | Attempt to trigger SD read/write errors with a fault-injection fixture, if available. | Record exact host-visible result versus card readback. This is currently an unresolved P1 and **BLOCKED**, not PASS, without the fixture. |
 | B12 | In intentional HID mode, run previously accepted PICK -> ARM -> RUN and cancellation smoke cases. | No automatic script execution; selected-script safety and the read-only SD worker remain functional. No MSC backend coexists. |
 
-## Proposed implementation follow-up: actual LED transfer activity
+## Activity implementation and remaining validation
 
-Do **not** infer activity from `tud_mounted()`, LED animation time, or LCD refresh. First inspect the exact pinned `esp_tinyusb` 2.0.0 MSC callbacks and their task/ISR/ownership context. If a clean supported hook is absent, assess an isolated, pinned component patch instead of double-defining TinyUSB callbacks or wrapping SDMMC arbitrarily. Signal only successful/attempted MSC data transfer events with clear semantics, using a lock-free/atomic counter or nonblocking queue; **do not call GPIO, LCD, logging or blocking primitives from hot transfer callbacks**. Render APA102 from the existing application loop, preserve dim idle heartbeat, and avoid saturating on repeated reads. Define honest behavior on failed writes and when USB is not configured. Add native event-state tests (idle/read/write bursts, rollover, tick wrap, event loss), strict target build and USB regression checks. New exact-head CI and supervised repeat of B01-B12 are required before claiming this feature physically works.
+The attempted-data hook is implemented as described in `pr23-msc-activity-design.md`. Physical behavior is **NOT VALIDATED**. The design requirements and remaining independent review gates follow. Do **not** infer activity from `tud_mounted()`, LED animation time, or LCD refresh. First inspect the exact pinned `esp_tinyusb` 2.0.0 MSC callbacks and their task/ISR/ownership context. If a clean supported hook is absent, assess an isolated, pinned component patch instead of double-defining TinyUSB callbacks or wrapping SDMMC arbitrarily. Signal only successful/attempted MSC data transfer events with clear semantics, using a lock-free/atomic counter or nonblocking queue; **do not call GPIO, LCD, logging or blocking primitives from hot transfer callbacks**. Render APA102 from the existing application loop, preserve dim idle heartbeat, and avoid saturating on repeated reads. Define honest behavior on failed writes and when USB is not configured. Add native event-state tests (idle/read/write bursts, rollover, tick wrap, event loss), strict target build and USB regression checks. New exact-head CI and supervised repeat of B01-B12 are required before claiming this feature physically works.
 
 ## Verdict template
 
@@ -52,7 +52,7 @@ Do **not** infer activity from `tud_mounted()`, LED animation time, or LCD refre
 - B01-B12 per-case PASS / FAIL / BLOCKED / N/A with evidence:
 - LCD text and volume snapshot accuracy:
 - Idle LED observation:
-- **Real read/write activity LED: NOT IMPLEMENTED (unless a later independently validated commit adds it)**:
+- **Attempted-data activity LED: IMPLEMENTED, HARDWARE NOT VALIDATED; no successful-transfer claim**:
 - Descriptor captures and no-auto-type:
 - File hashes before/after eject and reconnect:
 - FAT/no-format/ownership observations:
