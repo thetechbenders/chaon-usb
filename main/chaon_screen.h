@@ -13,6 +13,10 @@ enum { CHAON_SCREEN_WIDTH = 160, CHAON_SCREEN_HEIGHT = 80,
        CHAON_SCREEN_SD_Y = 72, CHAON_SCREEN_SD_HEIGHT = 8,
        CHAON_SCREEN_BYTES = CHAON_SCREEN_WIDTH * CHAON_SCREEN_HEIGHT * 2 };
 
+/* Fail-cold diagnostic screen, rendered without SD access. */
+bool chaon_screen_render_usb_fault(const char *reason,
+                                   uint8_t *buffer, size_t size);
+
 /* USB storage-only screen. Capacity is a PRE-USB FAT snapshot, never live
  * while the host owns the SD card. Unsupported values show unavailable. */
 bool chaon_screen_render_msc(const char *volume_label, bool usage_valid,
