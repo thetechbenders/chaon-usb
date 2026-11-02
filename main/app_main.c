@@ -364,6 +364,12 @@ void app_main(void)
         for (;;) {
             const uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);
             const bool mounted = tud_mounted();
+            /* Deferred writes may fail after the host has seen success. */
+            if (chaon_msc_write_failed()) {
+                led_set(64, 0, 0); /* sticky until power cycle */
+                vTaskDelay(pdMS_TO_TICKS(25));
+                continue;
+            }
             const unsigned int events = chaon_msc_activity_step(&activity,
                 now, mounted, chaon_msc_activity_take());
             if (events == CHAON_MSC_READ) led_set(0, 15, 60);
