@@ -23,6 +23,8 @@ SD_SECTOR_SRCS := main/chaon_sd_sector.c tests/test_sd_sector.c
 SD_SECTOR_BIN := tests/chaon_sd_sector_tests
 USB_MODE_SRCS := main/chaon_usb_mode.c tests/test_usb_mode.c
 USB_MODE_BIN := tests/chaon_usb_mode_tests
+USB_MARKER_SRCS := main/chaon_usb_marker.c main/chaon_usb_mode.c tests/test_usb_marker.c
+USB_MARKER_BIN := tests/chaon_usb_marker_tests
 
 SD_DIAG_SRCS := main/chaon_sd_diag.c main/chaon_status.c main/chaon_screen.c tests/test_sd_diag.c
 SD_DIAG_BIN := tests/chaon_sd_diag_tests
@@ -41,10 +43,11 @@ SD_PROBE_BIN := tests/chaon_sd_probe_inspection_tests
 SD_PROBE_CPPFLAGS := -Itests/sd_probe_stubs
 
 .PHONY: test clean
-test: tests/chaon_msc_activity_tests $(USB_MODE_BIN) $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SELECTION_CONTROL_BIN) $(SELECTION_BIN) $(HASH_BIN) $(EXEC_SLOT_BIN) $(RUN_AUTH_BIN) $(APP_DECISION_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
+test: tests/chaon_msc_activity_tests $(USB_MODE_BIN) $(USB_MARKER_BIN) $(NATIVE_BIN) $(VISUAL_BIN) $(CONTROL_BIN) $(SELECTION_CONTROL_BIN) $(SELECTION_BIN) $(HASH_BIN) $(EXEC_SLOT_BIN) $(RUN_AUTH_BIN) $(APP_DECISION_BIN) $(SD_SECTOR_BIN) $(SD_DIAG_BIN) $(FAT_ROOT_BIN) $(FAT_UI_BIN) $(INSPECT_BIN) $(MAILBOX_BIN) $(STAGE_BIN) $(SD_PROBE_BIN)
 	./tests/chaon_msc_activity_tests
 	python3 -m unittest discover -s tests -p test_msc_activity_patch.py
 	./$(USB_MODE_BIN)
+	./$(USB_MARKER_BIN)
 	./$(NATIVE_BIN)
 	./$(VISUAL_BIN)
 	./$(CONTROL_BIN)
@@ -62,6 +65,9 @@ test: tests/chaon_msc_activity_tests $(USB_MODE_BIN) $(NATIVE_BIN) $(VISUAL_BIN)
 	./$(MAILBOX_BIN)
 	./$(STAGE_BIN)
 	./$(SD_PROBE_BIN)
+
+$(USB_MARKER_BIN): $(USB_MARKER_SRCS) main/chaon_usb_marker.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(USB_MARKER_SRCS) -o $(USB_MARKER_BIN)
 
 $(USB_MODE_BIN): $(USB_MODE_SRCS) main/chaon_usb_mode.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(USB_MODE_SRCS) -o $(USB_MODE_BIN)
