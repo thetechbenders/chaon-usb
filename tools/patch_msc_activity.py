@@ -29,9 +29,9 @@ def patch_source(source, expected_sha=SOURCE_SHA256):
     if text.count(failure) != 1:
         raise ValueError("deferred MSC write-failure path changed")
     text = text.replace(failure, failure +
-        "\\n        /* ChaoN modification: sticky write-failure evidence. */" +
-        "\\n        extern void chaon_msc_write_failure(void);" +
-        "\\n        chaon_msc_write_failure();")
+        "\n        /* ChaoN modification: sticky write-failure evidence. */" +
+        "\n        extern void chaon_msc_write_failure(void);" +
+        "\n        chaon_msc_write_failure();")
     return text
 
 
