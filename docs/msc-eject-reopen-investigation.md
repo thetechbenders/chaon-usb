@@ -1,44 +1,35 @@
-# MSC eject/reopen investigation and proposed state contract
+# ChaoN MSC B10 eject remediation: pinned-source integration candidate
 
-Status: **SOURCE-ONLY DESIGN / NATIVE TESTS. NOT CONNECTED TO USB CALLBACKS. NOT FLASHABLE AS AN EJECT FIX.**
+**UNFLASHED DEVELOPMENT ONLY.** Baseline: frozen, physically qualified `bfea174590ff88707ccfd5717cef08565ea40dbd`. Changes are isolated on `fix/msc-eject-state`; do not update PR #23's branch, flash hardware, merge, or tag on the strength of this document.
 
-Baseline: frozen supervised-test firmware `bfea174590ff88707ccfd5717cef08565ea40dbd`.
-Evidence: on macOS, `diskutil eject` reported success but the FAT32 volume remounted within ~5 seconds, observed twice. `diskutil unmountDisk` stayed unmounted, and cold reconnect restored MSC. The test SD card's ten files passed independent-reader hashes. No USB SCSI trace establishes which commands macOS sent.
+## Evidence and proven upstream behavior
 
-## Confirmed source mechanism
+macOS `diskutil eject` reports success but volume remounts within ~5 s (2/2 observations). `diskutil unmountDisk` remains unmounted; cold reconnect restores MSC. No USB command trace confirms specific SCSI commands or who initiates the remount.
 
-Pinned `espressif/esp_tinyusb` v2.0.0, source `device/esp_tinyusb/tinyusb_msc.c` at `b8c36cdd...`:
-- `tud_msc_start_stop_cb` calls `msc_storage_mount_to_app()` on LOAD/EJECT + STOP and returns success.
-- ChaoN configures `auto_mount_off=1`, so that mount helper skips all storage. Keep this setting and `do_not_format=true`; they prevent dangerous host/app ownership overlap and automatic formatting.
-- `tud_msc_test_unit_ready_cb` reports ready whenever LUN 0 is USB-owned; no ejected latch exists.
-- READ10/WRITE10 callbacks lack ejected-state checks.
-- WRITE10 queues physical SD writes via `usbd_defer_func(tusb_write_func, ...)` and may acknowledge the host before physical SD success/failure. The existing sticky red fault only catches the known deferred error branch.
-- Unsupported LUN 1 can dereference a missing storage pointer, inherited upstream; not fixed by the policy model here.
+Pinned `esp_tinyusb` 2.0.0 upstream currently acknowledges START STOP UNIT eject with a call to `msc_storage_mount_to_app()`. Because ChaoN uses `auto_mount_off=1`, that helper does nothing. TEST UNIT READY still returns ready while USB owns the SD. It also uses `usbd_defer_func()` for physical SD writes and returns successful WRITE10 length before the write executes. This function returns void, so an internal queue insertion failure cannot be reported to the caller. The deferred callback reuses a storage-object buffer, so independent host acknowledgment is not evidence of persistence. The prior sticky red latch observed only failures in the deferred worker, not silent queue insertion failure. This is a substantive data-integrity gap.
 
-**Inference, not proven causality:** After eject, continued readiness may allow macOS to rescan/remount the still-attached device. Host USB-command evidence is required to attribute the observed remount conclusively.
+Pinned TinyUSB core `msc_device.c` supports `TUD_MSC_RET_ASYNC`, but `tud_msc_async_io_done()` also relies on `usbd_defer_func()`. For this single-card implementation, a straightforward blocking SD write inside the USB callback is easier to reason about than modifying the USB event-queue API. It trades safety auditability against USB task latency and watchdog/timeout risks: physical validation and failure injection remain mandatory.
 
-## New source-only model
+## Implemented candidate (requires CI/review)
 
-`main/chaon_msc_eject.[ch]` is a pure, native-testable model. It is not compiled into ESP-IDF firmware and does not change either USB personality.
+Two strict source transformations run after the existing original-SHA-256 activity patch:
+- A second script removes `tusb_write_func()` and `msc_storage_write_sector_deferred()` from the build-local copy of pinned `tinyusb_msc.c`. WRITE10 now calls `msc_storage_write_sector()` **synchronously** and only returns successful length if SDMMC reports ESP_OK. On failure, existing red error evidence is latched and SCSI command fails. The generated source retains upstream license notices. The managed ESP-IDF component remains unchanged.
+- Eject START STOP UNIT latches an in-RAM single-boot ejected state. TEST UNIT READY fails with NOT READY / MEDIUM NOT PRESENT; READ10/WRITE10 reject further I/O with not-ready sense; READ CAPACITY returns zero blocks while ejected. A START before eject is a no-op success, but an in-session LOAD/START does **not** rearm after eject. Power-cycle/cold boot is the intended rearm.
+- A missing LUN storage pointer is explicitly checked before dereferencing. GET_MAX_LUN still reports one configured LUN to TinyUSB, which subtracts one for the USB wire reply. Further adversarial transport validation remains necessary.
+- `auto_mount_off=1`, `do_not_format=true`, USB-only storage ownership, and marker-to-HID behavior are unchanged.
 
-Required integration contract:
-1. All state transitions in actual MSC callbacks must be serialized with deferred-write start/completion (or use an audited synchronization implementation).
-2. Maintain a correct count of accepted but not yet physically completed writes. Every reserved write is completed exactly once on both success and error, with no counter overflow/underflow.
-3. An eject with pending writes must not report success prematurely; consider a nonblocking deferred completion design and SCSI semantics rather than busy-waiting the USB task.
-4. Valid eject latches media unavailable; TEST UNIT READY returns NOT READY / MEDIUM NOT PRESENT; READ10/WRITE10 reject post-eject access with correct SCSI sense, without app FAT access.
-5. A fresh firmware reset/cold boot rearms media. Same-session reload behavior is intentionally rejected in this initial model and needs OS compatibility review.
-6. Do not let a backend fault be disguised as an ejection. The existing fault-red latch remains independently observable until reset/power loss.
-7. Reject unsupported LUN safely in all callbacks, including GET_MAX_LUN consistency, before any raw host fuzzing.
-8. Preserve normal HID marker handling and NO-AUTO-FORMAT / single-owner invariants.
+The portable eject policy tests include malformed LUNs, readiness, pending-write rejection (as a model constraint), pre-eject START, latched eject, post-eject refusal, no silent reload, and counter limits. A synthetic transformation test checks callback and synchronous-write injection, plus missing/duplicate source anchors. Both are invoked by `make test`, including under UBSan.
 
-## Native tests
+**Important distinction:** the production write path is synchronous and never creates a pending-write model reservation; the pending counter is retained as a pure-state test for future async policy. Do not claim it measures hardware queue depth.
 
-`tests/test_msc_eject.c` verifies: ready-only USB ownership and LUN 0, invalid LUN rejection, pending-write rejection of eject, release then latched eject, post-eject reads/writes denied via policy, explicit in-session reload denied, NULL-state handling, and counter overflow. `make test` / UBSan now include the executable. These tests do **not** prove pinned TinyUSB integration or hardware USB behavior.
+## Risk and review gates
 
-## Release/test boundaries
+- Blocking SDMMC writes occur inside the TinyUSB task. Measure worst-case normal and failure latency and host timeouts. Evaluate watchdog exposure; do not assume successful file hashes prove bounded latency.
+- `sdmmc` write completion is an ESP-IDF driver result, not proof of nonvolatile NAND persistence; SD cards can cache internally. Preserve independent-reader readback. Check SCSI SYNCHRONIZE CACHE behavior before release.
+- The silent `usbd_defer_func` queue failure can still affect other TinyUSB internal deferred operations, but the product WRITE10 data path no longer uses that mechanism.
+- Unsupported-LUN handling has been hardened in the upstream storage getter; broader malformed-CBW/SCSI robustness is not proven. No fuzzing on the qualified board.
+- Further review of write-error sense, zero-length writes, capacity-after-eject behavior, USB BOT reset, and same-session LOAD/START host compatibility is required.
+- Built candidate source must be checked against pinned original SHA and generated-source transformations; native and UBSan checks are necessary but insufficient.
+- Hardware authorization requires exact ESP-IDF v5.5.3 original T-Dongle-S3 build, new exact-commit artifact hashes, independent review, and explicit supervised flash decision. Re-run B03 integrity, B05/B06 HID one-shot, B08 missing-card failure, B09 ROM recovery, B10 macOS eject and unmount. Capture SCSI/USB traces when possible.
 
-- Frozen `bfea174` firmware stays untouched; do not flash this new branch.
-- No merge, release, tag, full erase, eFuse modification, or rollback change.
-- Before integration: independent review of deferred-write queue/ordering and host START STOP semantics; decide whether accepted write completion can be observed at the correct point.
-- After integration: strict native and UBSan checks, real ESP-IDF v5.5.3 original T-Dongle-S3 build, generated-source pin/hash verification, protocol-level SCSI tests, explicit exact-branch package hashes, and separate permission for an incremental disposable-media flash.
-- Re-run B01, B03 (eject/replug/readback hashes), B05/B06, B08, B09, and B10, with USB trace where possible. Lack of remount alone does not prove write durability.
+**No hardware flash, merge, release, eFuse, rollback modification, or automated formatting is authorized.**
