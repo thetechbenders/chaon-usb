@@ -4,11 +4,17 @@ idf_component_get_property(msc_lib espressif__esp_tinyusb COMPONENT_LIB)
 set(msc_original "${msc_dir}/tinyusb_msc.c")
 set(msc_patched "${CMAKE_BINARY_DIR}/chaon_tinyusb_msc.c")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    "${msc_original}" "${CMAKE_CURRENT_LIST_DIR}/patch_msc_activity.py")
+    "${msc_original}" "${CMAKE_CURRENT_LIST_DIR}/patch_msc_activity.py"
+    "${CMAKE_CURRENT_LIST_DIR}/patch_msc_eject.py")
 execute_process(COMMAND "${PYTHON}" "${CMAKE_CURRENT_LIST_DIR}/patch_msc_activity.py"
     "${msc_original}" "${msc_patched}" RESULT_VARIABLE patch_result)
 if(NOT patch_result EQUAL 0)
     message(FATAL_ERROR "Pinned MSC activity hook patch failed")
+endif()
+execute_process(COMMAND "${PYTHON}" "${CMAKE_CURRENT_LIST_DIR}/patch_msc_eject.py"
+    "${msc_patched}" "${msc_patched}" RESULT_VARIABLE eject_patch_result)
+if(NOT eject_patch_result EQUAL 0)
+    message(FATAL_ERROR "Pinned MSC eject and synchronous-write patch failed")
 endif()
 get_target_property(msc_sources ${msc_lib} SOURCES)
 set(msc_replaced 0)
