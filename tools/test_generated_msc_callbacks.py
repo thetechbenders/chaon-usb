@@ -48,6 +48,7 @@ HEADER = r'''
 #include <string.h>
 #include "chaon_msc_eject.h"
 #define ESP_OK 0
+static uint8_t chaon_msc_verify_buffer[512] __attribute__((aligned(4)));
 #define MSC_STORAGE_BUFFER_SIZE 512u
 #define TINYUSB_MSC_STORAGE_MOUNT_USB 1
 #define SCSI_SENSE_NOT_READY 2u
