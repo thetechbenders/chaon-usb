@@ -29,7 +29,7 @@ bool chaon_msc_eject_start_stop(chaon_msc_eject_t *s,
 {
     if (!s || lun != 0) return false;
     if (!load_eject) return !s->ejected;
-    if (start) return false; /* No implicit in-session rearm. */
+    if (start) return !s->ejected; /* Allow a no-op START before eject. */
     if (s->pending_writes != 0) return false; /* No false-safe eject. */
     s->ejected = true;
     return true;
