@@ -96,6 +96,7 @@ class PatchTests(unittest.TestCase):
         self.assertIn("chaon_msc_write_failure();", result)
         self.assertEqual(result.count("chaon_msc_write_failure();"), 2)
         self.assertIn("SCSI_SENSE_NOT_READY", result)
+        self.assertIn("|| chaon_msc_write_failed()", result)
         self.assertIn("if (lun != 0)", result)
 
     def test_missing_or_duplicate_anchor_is_rejected(self):
