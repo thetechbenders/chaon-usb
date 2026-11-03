@@ -50,6 +50,7 @@ def patch_source(text):
  * TinyUSB task. Never mount host-owned SD media in the application. */
 extern bool chaon_msc_device_ready(uint8_t lun, bool usb_owned);
 extern bool chaon_msc_device_start_stop(uint8_t lun, bool start, bool load_eject);
+extern bool chaon_msc_write_failed(void);
 
 static bool chaon_msc_host_ready(uint8_t lun)
 {
