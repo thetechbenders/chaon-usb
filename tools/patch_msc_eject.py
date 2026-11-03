@@ -55,7 +55,7 @@ extern bool chaon_msc_write_failed(void);
 static bool chaon_msc_host_ready(uint8_t lun)
 {
     msc_storage_obj_t *storage = NULL;
-    if (msc_storage_get_by_lun(lun, &storage) != ESP_OK) return false;
+    if (msc_storage_get_by_lun(lun, &storage) != ESP_OK || chaon_msc_write_failed()) return false;
     return chaon_msc_device_ready(
         lun, storage->mount_point == TINYUSB_MSC_STORAGE_MOUNT_USB);
 }
