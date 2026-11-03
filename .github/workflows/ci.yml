@@ -44,6 +44,8 @@ jobs:
           path: .
       - name: Validate generated MSC callbacks and target sector size
         run: python3 tools/verify_generated_msc.py build/chaon_tinyusb_msc.c build/config/sdkconfig.h
+      - name: Exercise generated MSC callbacks against a fake SD backend
+        run: python3 tools/test_generated_msc_callbacks.py build/chaon_tinyusb_msc.c
       - name: Stage and verify experimental candidate package (not published)
         shell: bash
         run: |
