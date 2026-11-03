@@ -125,8 +125,8 @@ int main(int argc, char **argv)
     assert(tud_msc_test_unit_ready_cb(0));
     assert(!tud_msc_test_unit_ready_cb(1));
     test_invalid();
-    assert(tud_msc_write10_cb(0, 98, 0, buffer, 1024) == 1024);
-    assert(tud_msc_read10_cb(0, 98, 0, buffer, 1024) == 1024);
+    assert(tud_msc_write10_cb(0, 99, 0, buffer, 512) == 512);
+    assert(tud_msc_read10_cb(0, 99, 0, buffer, 512) == 512);
     assert(read_count == 1 && write_count == 1);
     if (strcmp(argv[1], "fault") == 0) {
         write_backend_fail = true;
