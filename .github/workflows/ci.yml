@@ -4,7 +4,7 @@ on:
   push:
     branches: ['rc/**']
   pull_request:
-    branches: [main, feat/esp-idf-foundation, feat/sd-readonly-probe]
+    branches: [main, feat/esp-idf-foundation, feat/sd-readonly-probe, feat/msc-ducky-one-shot]
   workflow_dispatch:
 
 permissions:
@@ -42,6 +42,8 @@ jobs:
           esp_idf_version: v5.5.3
           target: esp32s3
           path: .
+      - name: Validate generated MSC callbacks and target sector size
+        run: python3 tools/verify_generated_msc.py build/chaon_tinyusb_msc.c build/config/sdkconfig.h
       - name: Stage and verify experimental candidate package (not published)
         shell: bash
         run: |
