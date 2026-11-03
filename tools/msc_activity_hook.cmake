@@ -64,3 +64,5 @@ if(NOT tusb_replaced EQUAL 1)
     message(FATAL_ERROR "Expected exactly one pinned TinyUSB transport compilation unit")
 endif()
 set_property(TARGET ${tusb_lib} PROPERTY SOURCES "${tusb_new_sources}")
+# Build-local source loses its original relative header search directory.
+target_include_directories(${tusb_lib} PRIVATE "${tusb_dir}/src/class/msc")
