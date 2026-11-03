@@ -42,3 +42,12 @@ Review commit `69166599` received CONDITIONAL GO for supervised tests, NO-GO for
 **Remaining limitation:** the actual generated TinyUSB C callbacks have not yet been executed in a host-compiled test harness. A source verifier is stronger than synthetic-only tests but does not close M2 completely. The upstream TinyUSB core still handles certain LUN 1 built-ins outside our auxiliary SCSI guard. The exact dependency lock is generated and included in CI artifacts, not yet committed or hash-pinned for reproducible local builds. These remain release-review items, not silently closed.
 
 **Do not flash based on the remediation branch before exact-head CI and independent diff review.** The frozen `bfea174` firmware and known rollback remain unchanged.
+
+
+## N1 upstream completion error mitigation (2026-11-03)
+
+Independent review identified a potential ESP-IDF v5.5.3 `sdmmc_write_sectors_dma` status-poll propagation defect: the default case after `sdmmc_wait_for_idle()` returns the previously successful `err` instead of the failing status. This can make `sdmmc_write_sectors` return ESP_OK even when CMD13 status polling failed. **This is independently source-confirmed in the pinned IDF; it is not a hardware-reproduced failure.**
+
+Without altering managed ESP-IDF files, the product's generated MSC WRITE10 now *also* reads the written bytes back via the SDMMC driver and compares the entire callback buffer before sending SCSI GOOD. Any read failure or data mismatch latches the existing sticky red fault and fails the host command. The generated callback harness injects both mismatch and read failure.
+
+**Scope of assurance:** readback checks observable data at that moment, not card power-loss durability, internal FTL persistence, or transient driver errors that happen to be hidden by subsequent successful reads. It roughly doubles storage traffic per write chunk and may increase USB task blocking time; measure both. The ESP-IDF upstream propagation bug is **not repaired** and remains a release-review concern. Investigate an upstream fix and regress it with fault injection before release. Retain independent-reader SHA verification and sacrificial media as hard hardware gates.
