@@ -72,6 +72,7 @@ int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t *
         ESP_LOGE(TAG, "WRITE(10) command failed, %s", esp_err_to_name(err));
         goto error;
     }
+    // Return the number of bytes accepted
     return bufsize;
 error:
     return -1;
@@ -95,7 +96,8 @@ class PatchTests(unittest.TestCase):
         self.assertEqual(result.count("if (!chaon_msc_host_ready(lun))"), 2)
         self.assertIn('p_msc_driver->dynamic.storage[lun] != NULL', result)
         self.assertIn("chaon_msc_write_failure();", result)
-        self.assertEqual(result.count("chaon_msc_write_failure();"), 2)
+        self.assertEqual(result.count("chaon_msc_write_failure();"), 3)
+        self.assertIn("chaon_msc_write_verified(lun, lba, offset, buffer, bufsize)", result)
         self.assertIn("SCSI_SENSE_NOT_READY", result)
         self.assertIn("|| chaon_msc_write_failed()", result)
         self.assertIn("return bytes <= MSC_STORAGE_BUFFER_SIZE &&", result)
