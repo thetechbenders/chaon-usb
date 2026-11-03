@@ -19,6 +19,8 @@ def verify(source: str, config: str) -> None:
         "chaon_msc_transfer_valid(lba, offset, bytes,": 1,
         "chaon_msc_device_start_stop(lun, start, load_eject)": 1,
         "chaon_msc_write_failed()": 1,
+        "chaon_msc_write_verified(lun, lba, offset, buffer, bufsize)": 1,
+        "static uint8_t chaon_msc_verify_buffer[MSC_STORAGE_BUFFER_SIZE]": 1,
         "return bytes <= MSC_STORAGE_BUFFER_SIZE &&": 1,
         "msc_storage_write_sector(lun, lba, offset, bufsize, buffer)": 1,
         "p_msc_driver->dynamic.storage[lun] != NULL": 1,
