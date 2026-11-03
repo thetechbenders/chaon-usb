@@ -30,4 +30,8 @@ endforeach()
 if(NOT msc_replaced EQUAL 1)
     message(FATAL_ERROR "Expected exactly one pinned MSC compilation unit")
 endif()
+# The patched MSC backend calls these functions. Keep their definitions in
+# the same component archive to avoid static archive link-order failures.
+# This is a build-local integration; the managed component tree stays intact.
+list(APPEND msc_new_sources "${CMAKE_SOURCE_DIR}/main/chaon_msc_eject.c")
 set_property(TARGET ${msc_lib} PROPERTY SOURCES "${msc_new_sources}")
