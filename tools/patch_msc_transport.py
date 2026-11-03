@@ -38,21 +38,21 @@ def patch_source(source: bytes, expected_sha: str = SOURCE_SHA256) -> str:
   tud_msc_capacity_cb(cbw->lun, &media_sectors, &media_sector_size);
   uint32_t const lba = rdwr10_get_lba(cbw->command);
   if (media_sector_size != 512u || media_sectors == 0u) {
-    TU_LOG_DRV("  ChaoN: READ10/WRITE10 media not ready\\\\r\\\\n");
+    TU_LOG_DRV("  ChaoN: READ10/WRITE10 media not ready\\r\\n");
     (void) tud_msc_set_sense(cbw->lun, SCSI_SENSE_NOT_READY, 0x3a, 0x00);
     return MSC_CSW_STATUS_FAILED;
   }
   /* Avoid overflow by checking the input count against remaining capacity. */
   if (block_count != 0u && (lba >= media_sectors ||
        (uint32_t)block_count > media_sectors - lba)) {
-    TU_LOG_DRV("  ChaoN: READ10/WRITE10 exceeds media capacity\\\\r\\\\n");
+    TU_LOG_DRV("  ChaoN: READ10/WRITE10 exceeds media capacity\\r\\n");
     (void) tud_msc_set_sense(cbw->lun, SCSI_SENSE_ILLEGAL_REQUEST, 0x21, 0x00);
     return MSC_CSW_STATUS_FAILED;
   }
   /* SCSI READ10 count=0 with zero CBW payload is a legitimate no-op. */
   if ((block_count == 0u && cbw->total_bytes != 0u) ||
       (block_count != 0u && cbw->total_bytes != (uint32_t)block_count * 512u)) {
-    TU_LOG_DRV("  ChaoN: inconsistent READ10/WRITE10 CBW geometry\\\\r\\\\n");
+    TU_LOG_DRV("  ChaoN: inconsistent READ10/WRITE10 CBW geometry\\r\\n");
     (void) tud_msc_set_sense(cbw->lun, SCSI_SENSE_ILLEGAL_REQUEST, 0x24, 0x00);
     return MSC_CSW_STATUS_PHASE_ERROR;
   }
