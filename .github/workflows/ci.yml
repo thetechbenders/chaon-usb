@@ -88,6 +88,9 @@ jobs:
                                          os.environ["REPO"] + "/actions/runs/" +
                                          os.environ["RUN_ID"]),
               "candidate_zip_sha256": hashlib.sha256(pkg.read_bytes()).hexdigest(),
+              "dependency_lock_sha256": hashlib.sha256(pathlib.Path("dependencies.lock").read_bytes()).hexdigest(),
+              "generated_msc_backend_sha256": hashlib.sha256(pathlib.Path("build/chaon_tinyusb_msc.c").read_bytes()).hexdigest(),
+              "generated_msc_transport_sha256": hashlib.sha256(pathlib.Path("build/chaon_tinyusb_msc_transport.c").read_bytes()).hexdigest(),
               "artifact_authenticity": "NOT_SIGNED_CI_RUN_PROVENANCE_ONLY",
               "physical_validation": "NOT_ESTABLISHED_FOR_THIS_EXACT_BINARY",
           }
