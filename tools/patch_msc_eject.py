@@ -22,7 +22,7 @@ def patch_source(text):
     # This source already passed tools/patch_msc_activity.py's pinned SHA gate.
     # Remove deferred worker/queue and its one-buffer operation: WRITE10 now
     # waits for the SDMMC driver result before reporting SCSI success.
-    start = "/*\n * @brief Handles deferred USB MSC write operations."
+    start = "/**\n * @brief Handles deferred USB MSC write operations."
     end = "static esp_err_t vfs_fat_format(BYTE format_flags)"
     if text.count(start) != 1 or text.count(end) != 1:
         raise ValueError("MSC deferred-worker function anchors changed")
