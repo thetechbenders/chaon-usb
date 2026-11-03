@@ -52,6 +52,7 @@ HEADER = r'''
 #define SCSI_SENSE_NOT_READY 2u
 #define SCSI_SENSE_ILLEGAL_REQUEST 5u
 #define SCSI_CODE_ASC_MEDIUM_NOT_PRESENT 0x3au
+#define SCSI_CODE_ASC_INVALID_COMMAND_OPERATION_CODE 0x20u
 #define SCSI_CODE_ASCQ 0u
 #define ESP_LOGE(...) ((void)0)
 #define TAG "msc-test"
