@@ -66,3 +66,32 @@ endif()
 set_property(TARGET ${tusb_lib} PROPERTY SOURCES "${tusb_new_sources}")
 # Build-local source loses its original relative header search directory.
 target_include_directories(${tusb_lib} PRIVATE "${tusb_dir}/src/class/msc")
+
+# N1: Patch pinned ESP-IDF v5.5.3 SDMMC completion error propagation in a
+# build-local copy. Never alter IDF_PATH or the original managed IDF source.
+idf_component_get_property(sdmmc_dir sdmmc COMPONENT_DIR)
+idf_component_get_property(sdmmc_lib sdmmc COMPONENT_LIB)
+set(sdmmc_original "${sdmmc_dir}/sdmmc_cmd.c")
+set(sdmmc_patched "${CMAKE_BINARY_DIR}/chaon_sdmmc_cmd_n1.c")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${sdmmc_original}" "${CMAKE_CURRENT_LIST_DIR}/patch_idf_sdmmc_n1.py")
+execute_process(COMMAND "${PYTHON}" "${CMAKE_CURRENT_LIST_DIR}/patch_idf_sdmmc_n1.py"
+    "${sdmmc_original}" "${sdmmc_patched}" RESULT_VARIABLE sdmmc_patch_result)
+if(NOT sdmmc_patch_result EQUAL 0)
+    message(FATAL_ERROR "Pinned ESP-IDF SDMMC N1 source check/patch failed")
+endif()
+get_target_property(sdmmc_sources ${sdmmc_lib} SOURCES)
+set(sdmmc_replaced 0)
+set(sdmmc_new_sources "")
+foreach(source IN LISTS sdmmc_sources)
+    if(source STREQUAL "sdmmc_cmd.c" OR source STREQUAL "${sdmmc_original}")
+        list(APPEND sdmmc_new_sources "${sdmmc_patched}")
+        math(EXPR sdmmc_replaced "${sdmmc_replaced} + 1")
+    else()
+        list(APPEND sdmmc_new_sources "${source}")
+    endif()
+endforeach()
+if(NOT sdmmc_replaced EQUAL 1)
+    message(FATAL_ERROR "Expected exactly one pinned SDMMC compilation unit")
+endif()
+set_property(TARGET ${sdmmc_lib} PROPERTY SOURCES "${sdmmc_new_sources}")
