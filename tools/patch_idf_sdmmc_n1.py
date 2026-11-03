@@ -46,12 +46,21 @@ def patch_source(data: bytes, expected_blob: str = UPSTREAM_GIT_BLOB_SHA1) -> st
     if actual != expected_blob:
         raise ValueError(f"Pinned ESP-IDF SDMMC source changed: {actual}")
     text = data.decode("utf-8")
-    if text.count(OLD) != 1:
-        raise ValueError(f"Pinned SDMMC completion block changed: count={text.count(OLD)}")
-    patched = text.replace(OLD, NEW, 1)
-    if patched.count("return idle_err;") != 1 or OLD in patched:
-        raise ValueError("SDMMC completion error propagation patch incomplete")
-    return patched
+    start = "esp_err_t sdmmc_write_sectors_dma("
+    end = "esp_err_t sdmmc_read_sectors("
+    if text.count(start) != 1 or text.count(end) != 1:
+        raise ValueError("Pinned SDMMC write/read function boundaries drifted")
+    i, j = text.index(start), text.index(end)
+    if i >= j:
+        raise ValueError("Pinned SDMMC write function boundary ordering changed")
+    write_fn = text[i:j]
+    if write_fn.count(OLD) != 1:
+        raise ValueError(f"Pinned SDMMC write completion block changed: count={write_fn.count(OLD)}")
+    patched_write = write_fn.replace(OLD, NEW, 1)
+    if patched_write.count("return idle_err;") != 1 or OLD in patched_write:
+        raise ValueError("SDMMC write completion correction incomplete")
+    # The analogous READ path stays untouched.
+    return text[:i] + patched_write + text[j:]
 
 
 if __name__ == "__main__":
