@@ -4,7 +4,7 @@ on:
   push:
     branches: ['rc/**']
   pull_request:
-    branches: [main, feat/esp-idf-foundation, feat/sd-readonly-probe]
+    branches: [main, feat/esp-idf-foundation, feat/sd-readonly-probe, feat/msc-ducky-one-shot]
   workflow_dispatch:
 
 permissions:
@@ -42,6 +42,14 @@ jobs:
           esp_idf_version: v5.5.3
           target: esp32s3
           path: .
+      - name: Validate generated MSC callbacks and target sector size
+        run: python3 tools/verify_generated_msc.py build/chaon_tinyusb_msc.c build/config/sdkconfig.h
+      - name: Exercise generated MSC callbacks against a fake SD backend
+        run: python3 tools/test_generated_msc_callbacks.py build/chaon_tinyusb_msc.c
+      - name: Execute generated TinyUSB malformed-CBW transport tests
+        run: python3 tools/test_generated_msc_transport.py build/chaon_tinyusb_msc_transport.c
+      - name: Fault-inject generated ESP-IDF SDMMC N1 completion branch
+        run: python3 tools/test_generated_idf_sdmmc_n1.py build/chaon_sdmmc_cmd_n1.c
       - name: Stage and verify experimental candidate package (not published)
         shell: bash
         run: |
@@ -82,6 +90,10 @@ jobs:
                                          os.environ["REPO"] + "/actions/runs/" +
                                          os.environ["RUN_ID"]),
               "candidate_zip_sha256": hashlib.sha256(pkg.read_bytes()).hexdigest(),
+              "dependency_lock_sha256": hashlib.sha256(pathlib.Path("dependencies.lock").read_bytes()).hexdigest(),
+              "generated_msc_backend_sha256": hashlib.sha256(pathlib.Path("build/chaon_tinyusb_msc.c").read_bytes()).hexdigest(),
+              "generated_msc_transport_sha256": hashlib.sha256(pathlib.Path("build/chaon_tinyusb_msc_transport.c").read_bytes()).hexdigest(),
+              "generated_sdmmc_n1_sha256": hashlib.sha256(pathlib.Path("build/chaon_sdmmc_cmd_n1.c").read_bytes()).hexdigest(),
               "artifact_authenticity": "NOT_SIGNED_CI_RUN_PROVENANCE_ONLY",
               "physical_validation": "NOT_ESTABLISHED_FOR_THIS_EXACT_BINARY",
           }

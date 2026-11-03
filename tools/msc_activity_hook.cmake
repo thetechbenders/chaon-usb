@@ -4,11 +4,17 @@ idf_component_get_property(msc_lib espressif__esp_tinyusb COMPONENT_LIB)
 set(msc_original "${msc_dir}/tinyusb_msc.c")
 set(msc_patched "${CMAKE_BINARY_DIR}/chaon_tinyusb_msc.c")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    "${msc_original}" "${CMAKE_CURRENT_LIST_DIR}/patch_msc_activity.py")
+    "${msc_original}" "${CMAKE_CURRENT_LIST_DIR}/patch_msc_activity.py"
+    "${CMAKE_CURRENT_LIST_DIR}/patch_msc_eject.py")
 execute_process(COMMAND "${PYTHON}" "${CMAKE_CURRENT_LIST_DIR}/patch_msc_activity.py"
     "${msc_original}" "${msc_patched}" RESULT_VARIABLE patch_result)
 if(NOT patch_result EQUAL 0)
     message(FATAL_ERROR "Pinned MSC activity hook patch failed")
+endif()
+execute_process(COMMAND "${PYTHON}" "${CMAKE_CURRENT_LIST_DIR}/patch_msc_eject.py"
+    "${msc_patched}" "${msc_patched}" RESULT_VARIABLE eject_patch_result)
+if(NOT eject_patch_result EQUAL 0)
+    message(FATAL_ERROR "Pinned MSC eject and synchronous-write patch failed")
 endif()
 get_target_property(msc_sources ${msc_lib} SOURCES)
 set(msc_replaced 0)
@@ -24,4 +30,68 @@ endforeach()
 if(NOT msc_replaced EQUAL 1)
     message(FATAL_ERROR "Expected exactly one pinned MSC compilation unit")
 endif()
+# The patched MSC backend calls these functions. Keep their definitions in
+# the same component archive to avoid static archive link-order failures.
+# This is a build-local integration; the managed component tree stays intact.
+list(APPEND msc_new_sources "${CMAKE_SOURCE_DIR}/main/chaon_msc_eject.c")
 set_property(TARGET ${msc_lib} PROPERTY SOURCES "${msc_new_sources}")
+
+# Patch the pinned TinyUSB BOT command validator in a separate build-local
+# compilation unit. The original file is checked by SHA-256 before writing.
+idf_component_get_property(tusb_dir espressif__tinyusb COMPONENT_DIR)
+idf_component_get_property(tusb_lib espressif__tinyusb COMPONENT_LIB)
+set(tusb_original "${tusb_dir}/src/class/msc/msc_device.c")
+set(tusb_patched "${CMAKE_BINARY_DIR}/chaon_tinyusb_msc_transport.c")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${tusb_original}" "${CMAKE_CURRENT_LIST_DIR}/patch_msc_transport.py")
+execute_process(COMMAND "${PYTHON}" "${CMAKE_CURRENT_LIST_DIR}/patch_msc_transport.py"
+    "${tusb_original}" "${tusb_patched}" RESULT_VARIABLE transport_patch_result)
+if(NOT transport_patch_result EQUAL 0)
+    message(FATAL_ERROR "Pinned TinyUSB MSC transport source check/patch failed")
+endif()
+get_target_property(tusb_sources ${tusb_lib} SOURCES)
+set(tusb_replaced 0)
+set(tusb_new_sources "")
+foreach(source IN LISTS tusb_sources)
+    if(source STREQUAL "src/class/msc/msc_device.c" OR source STREQUAL "${tusb_original}")
+        list(APPEND tusb_new_sources "${tusb_patched}")
+        math(EXPR tusb_replaced "${tusb_replaced} + 1")
+    else()
+        list(APPEND tusb_new_sources "${source}")
+    endif()
+endforeach()
+if(NOT tusb_replaced EQUAL 1)
+    message(FATAL_ERROR "Expected exactly one pinned TinyUSB transport compilation unit")
+endif()
+set_property(TARGET ${tusb_lib} PROPERTY SOURCES "${tusb_new_sources}")
+# Build-local source loses its original relative header search directory.
+target_include_directories(${tusb_lib} PRIVATE "${tusb_dir}/src/class/msc")
+
+# N1: Patch pinned ESP-IDF v5.5.3 SDMMC completion error propagation in a
+# build-local copy. Never alter IDF_PATH or the original managed IDF source.
+idf_component_get_property(sdmmc_dir sdmmc COMPONENT_DIR)
+idf_component_get_property(sdmmc_lib sdmmc COMPONENT_LIB)
+set(sdmmc_original "${sdmmc_dir}/sdmmc_cmd.c")
+set(sdmmc_patched "${CMAKE_BINARY_DIR}/chaon_sdmmc_cmd_n1.c")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${sdmmc_original}" "${CMAKE_CURRENT_LIST_DIR}/patch_idf_sdmmc_n1.py")
+execute_process(COMMAND "${PYTHON}" "${CMAKE_CURRENT_LIST_DIR}/patch_idf_sdmmc_n1.py"
+    "${sdmmc_original}" "${sdmmc_patched}" RESULT_VARIABLE sdmmc_patch_result)
+if(NOT sdmmc_patch_result EQUAL 0)
+    message(FATAL_ERROR "Pinned ESP-IDF SDMMC N1 source check/patch failed")
+endif()
+get_target_property(sdmmc_sources ${sdmmc_lib} SOURCES)
+set(sdmmc_replaced 0)
+set(sdmmc_new_sources "")
+foreach(source IN LISTS sdmmc_sources)
+    if(source STREQUAL "sdmmc_cmd.c" OR source STREQUAL "${sdmmc_original}")
+        list(APPEND sdmmc_new_sources "${sdmmc_patched}")
+        math(EXPR sdmmc_replaced "${sdmmc_replaced} + 1")
+    else()
+        list(APPEND sdmmc_new_sources "${source}")
+    endif()
+endforeach()
+if(NOT sdmmc_replaced EQUAL 1)
+    message(FATAL_ERROR "Expected exactly one pinned SDMMC compilation unit")
+endif()
+set_property(TARGET ${sdmmc_lib} PROPERTY SOURCES "${sdmmc_new_sources}")
