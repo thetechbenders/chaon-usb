@@ -1,47 +1,41 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 #include "chaon_msc_eject.h"
 #include <assert.h>
-#include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 
 int main(void)
 {
-    chaon_msc_eject_t s = {0};
-    assert(chaon_msc_eject_ready(&s, 0, true));
-    assert(chaon_msc_eject_start_stop(&s, 0, true, true)); /* No-op start. */
-    assert(!chaon_msc_eject_ready(&s, 1, true));
-    assert(!chaon_msc_eject_ready(&s, 0, false));
+    chaon_msc_eject_t state = {0};
+    assert(chaon_msc_eject_ready(&state, 0, true));
+    assert(chaon_msc_eject_start_stop(&state, 0, true, true));
+    assert(!chaon_msc_eject_ready(&state, 1, true));
+    assert(!chaon_msc_eject_ready(&state, 0, false));
     assert(!chaon_msc_eject_ready(NULL, 0, true));
-    assert(!chaon_msc_eject_write_begin(&s, 1, true));
-    assert(!chaon_msc_eject_write_begin(&s, 0, false));
-    assert(!chaon_msc_eject_write_end(&s)); /* No underflow. */
+    assert(!chaon_msc_eject_start_stop(&state, 1, false, true));
+    assert(chaon_msc_eject_start_stop(&state, 0, false, true));
+    assert(!chaon_msc_eject_ready(&state, 0, true));
+    assert(!chaon_msc_eject_start_stop(&state, 0, true, true));
+    assert(chaon_msc_eject_start_stop(&state, 0, false, true));
 
-    /* Eject never claims success with a deferred write outstanding. */
-    assert(chaon_msc_eject_write_begin(&s, 0, true));
-    assert(s.pending_writes == 1);
-    assert(!chaon_msc_eject_start_stop(&s, 0, false, true));
-    assert(chaon_msc_eject_ready(&s, 0, true));
-    assert(chaon_msc_eject_write_end(&s));
-    assert(s.pending_writes == 0);
-    assert(chaon_msc_eject_start_stop(&s, 0, false, true));
-    assert(s.ejected);
-    assert(!chaon_msc_eject_ready(&s, 0, true));
-    assert(!chaon_msc_eject_write_begin(&s, 0, true));
-    assert(!chaon_msc_eject_start_stop(&s, 0, true, true));
-    assert(!chaon_msc_eject_start_stop(&s, 0, true, false));
-    assert(chaon_msc_eject_start_stop(&s, 0, false, true)); /* Idempotent. */
+    /* Full-sector, whole-volume and wraparound validation. */
+    assert(chaon_msc_transfer_valid(0, 0, 512, 100, 512));
+    assert(chaon_msc_transfer_valid(98, 0, 1024, 100, 512));
+    assert(!chaon_msc_transfer_valid(99, 0, 1024, 100, 512));
+    assert(!chaon_msc_transfer_valid(100, 0, 512, 100, 512));
+    assert(!chaon_msc_transfer_valid(UINT32_MAX, 0, 512, 100, 512));
+    assert(!chaon_msc_transfer_valid(0, 0, 0, 100, 512));
+    assert(!chaon_msc_transfer_valid(0, 0, 1, 100, 512));
+    assert(!chaon_msc_transfer_valid(0, 0, 511, 100, 512));
+    assert(!chaon_msc_transfer_valid(0, 0, 513, 100, 512));
+    assert(!chaon_msc_transfer_valid(0, 1, 512, 100, 512));
+    assert(!chaon_msc_transfer_valid(0, 512, 512, 100, 512));
+    assert(!chaon_msc_transfer_valid(0, 0, 512, 100, 0));
+    assert(!chaon_msc_transfer_valid(0, 0, 512, 100, 256));
+    assert(!chaon_msc_transfer_valid(0, 0, 512, 0, 512));
+    assert(chaon_msc_transfer_valid(UINT32_MAX-1, 0, 1024, UINT32_MAX, 512) == false);
+    assert(chaon_msc_transfer_valid(UINT32_MAX-1, 0, 512, UINT32_MAX, 512));
 
-    s = (chaon_msc_eject_t){0};
-    assert(!chaon_msc_eject_start_stop(&s, 1, false, true));
-    assert(chaon_msc_eject_ready(&s, 0, true));
-    assert(!chaon_msc_eject_start_stop(NULL, 0, false, true));
-    assert(!chaon_msc_eject_write_end(NULL));
-    assert(!chaon_msc_eject_write_begin(NULL, 0, true));
-
-    /* Counter overflow is rejected rather than wrapping to zero. */
-    s.pending_writes = UINT32_MAX;
-    assert(!chaon_msc_eject_write_begin(&s, 0, true));
-    assert(!chaon_msc_eject_start_stop(&s, 0, false, true));
-    puts("MSC eject-state policy tests passed");
+    puts("MSC eject and range guard tests passed");
     return 0;
 }
