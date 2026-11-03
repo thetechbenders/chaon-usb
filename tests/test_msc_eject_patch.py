@@ -98,6 +98,7 @@ class PatchTests(unittest.TestCase):
         self.assertEqual(result.count("chaon_msc_write_failure();"), 2)
         self.assertIn("SCSI_SENSE_NOT_READY", result)
         self.assertIn("|| chaon_msc_write_failed()", result)
+        self.assertIn("return bytes <= MSC_STORAGE_BUFFER_SIZE &&", result)
         self.assertIn("if (lun != 0)", result)
         self.assertEqual(result.count("if (!chaon_msc_request_valid(lun, lba, offset, bufsize))"), 2)
         self.assertIn("_Static_assert(CONFIG_TINYUSB_MSC_BUFSIZE >= 512", result)
