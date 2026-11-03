@@ -51,3 +51,19 @@ Independent review identified a potential ESP-IDF v5.5.3 `sdmmc_write_sectors_dm
 Without altering managed ESP-IDF files, the product's generated MSC WRITE10 now *also* reads the written bytes back via the SDMMC driver and compares the entire callback buffer before sending SCSI GOOD. Any read failure or data mismatch latches the existing sticky red fault and fails the host command. The generated callback harness injects both mismatch and read failure.
 
 **Scope of assurance:** readback checks observable data at that moment, not card power-loss durability, internal FTL persistence, or transient driver errors that happen to be hidden by subsequent successful reads. It roughly doubles storage traffic per write chunk and may increase USB task blocking time; measure both. The ESP-IDF upstream propagation bug is **not repaired** and remains a release-review concern. Investigate an upstream fix and regress it with fault injection before release. Retain independent-reader SHA verification and sacrificial media as hard hardware gates.
+
+
+## Malformed USB CBW geometry guard (2026-11-03)
+
+The pinned TinyUSB 0.21.0~2 core uses `cbw->total_bytes / block_count` as the effective block size without comparing that to SD media geometry. An adversarial WRITE10 can therefore supply contradictory host byte length and SCSI block count; a per-512-byte callback guard alone does not reject all of these combinations. A multi-block request extending past media capacity could also modify its in-range prefix before a later callback rejects the remainder.
+
+The build-local transport patch `tools/patch_msc_transport.py` checks exact pinned original source SHA-256 and injects *pre-dispatch* validation into `rdwr10_validate_cmd`. Before issuing any READ10 or WRITE10 transfer it queries the existing media capacity callback (which already handles eject and fault states), then checks:
+
+- Exactly 512-byte media sectors and nonzero media capacity
+- For nonzero block count, `lba < capacity` and `block_count <= capacity - lba` without addition overflow
+- Exact CBW byte length of `block_count * 512` (maximum product 33,553,920 fits uint32)
+- The zero-block/zero-byte no-op is permitted; zero/nonzero mismatches receive PHASE_ERROR
+
+The transport code remains pinned to the original MIT-licensed TinyUSB source, and only a build-local copy is compiled. `tools/test_generated_msc_transport.py` extracts the *actual generated* validator and byte-order helpers, compiles them with a fake media capacity callback and UBSan, and exercises well-formed and contradictory commands, boundary LBAs, capacity overruns, and unsupported LUNs.
+
+**This is still not a full transport-stack simulation**. Real BOT reset, stall/recovery, packet timing, OS behavior and physical SD durability require hardware evidence. Do not flash based solely on green CI. The N1 write-status propagation defect remains a distinct upstream ESP-IDF issue; the product-side readback is only an additional consistency check.
