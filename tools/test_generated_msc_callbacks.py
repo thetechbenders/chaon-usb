@@ -102,7 +102,7 @@ TEST = r'''
 static void test_invalid(void)
 {
     uint8_t buffer[1024] = {0};
-    static const uint32_t invalid_sizes[] = {0, 1, 511, 513};
+    static const uint32_t invalid_sizes[] = {0, 1, 511, 513, 1024};
     for (unsigned int i=0; i < sizeof(invalid_sizes)/sizeof(invalid_sizes[0]); ++i) {
         uint32_t n = invalid_sizes[i];
         assert(tud_msc_write10_cb(0, 0, 0, buffer, n) == -1);
