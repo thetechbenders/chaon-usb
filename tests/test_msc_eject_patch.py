@@ -15,6 +15,7 @@ spec.loader.exec_module(patch)
 
 def fixture():
     return r'''/* upstream source prefix */
+#define MSC_STORAGE_BUFFER_SIZE CONFIG_TINYUSB_MSC_BUFSIZE
 static inline esp_err_t msc_storage_get_by_lun(uint8_t lun, msc_storage_obj_t **storage)
 {
     ESP_RETURN_ON_FALSE(p_msc_driver->dynamic.storage[lun]->medium != NULL, ESP_ERR_NOT_FOUND, TAG, "missing");
@@ -98,6 +99,9 @@ class PatchTests(unittest.TestCase):
         self.assertIn("SCSI_SENSE_NOT_READY", result)
         self.assertIn("|| chaon_msc_write_failed()", result)
         self.assertIn("if (lun != 0)", result)
+        self.assertEqual(result.count("if (!chaon_msc_request_valid(lun, lba, offset, bufsize))"), 2)
+        self.assertIn("_Static_assert(CONFIG_TINYUSB_MSC_BUFSIZE >= 512", result)
+        self.assertIn("storage->sector_count, storage->sector_size", result)
 
     def test_missing_or_duplicate_anchor_is_rejected(self):
         original = fixture()
