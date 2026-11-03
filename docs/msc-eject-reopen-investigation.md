@@ -18,9 +18,9 @@ Two strict source transformations run after the existing original-SHA-256 activi
 - A missing LUN storage pointer is explicitly checked before dereferencing. GET_MAX_LUN still reports one configured LUN to TinyUSB, which subtracts one for the USB wire reply. Further adversarial transport validation remains necessary.
 - `auto_mount_off=1`, `do_not_format=true`, USB-only storage ownership, and marker-to-HID behavior are unchanged.
 
-The portable eject policy tests include malformed LUNs, readiness, pending-write rejection (as a model constraint), pre-eject START, latched eject, post-eject refusal, no silent reload, and counter limits. A synthetic transformation test checks callback and synchronous-write injection, plus missing/duplicate source anchors. Both are invoked by `make test`, including under UBSan.
+The portable C tests exercise eject readiness and the same 512-byte sector-range validation called from the patched production callbacks, including empty, partial, offset, overflow and out-of-bounds transfers. The patch fixture checks the generated guards. ESP-IDF CI additionally inspects the actual generated callback source and the resolved 512-byte target setting. Native tests and source inspection do not replace a compiled USB callback harness or hardware USB/SCSI tests.
 
-**Important distinction:** the production write path is synchronous and never creates a pending-write model reservation; the pending counter is retained as a pure-state test for future async policy. Do not claim it measures hardware queue depth.
+**Important distinction:** production writes are synchronous inside the TinyUSB task and the unused pending-write counter/model have been removed. The SD card adapter ignores transfer offsets and uses whole sectors, so both callbacks now reject zero, partial, misaligned and out-of-range requests before accessing SDMMC.
 
 ## Risk and review gates
 
@@ -33,3 +33,12 @@ The portable eject policy tests include malformed LUNs, readiness, pending-write
 - Hardware authorization requires exact ESP-IDF v5.5.3 original T-Dongle-S3 build, new exact-commit artifact hashes, independent review, and explicit supervised flash decision. Re-run B03 integrity, B05/B06 HID one-shot, B08 missing-card failure, B09 ROM recovery, B10 macOS eject and unmount. Capture SCSI/USB traces when possible.
 
 **No hardware flash, merge, release, eFuse, rollback modification, or automated formatting is authorized.**
+
+
+## Independent Claude adversarial review, remediation checkpoint (2026-11-03)
+
+Review commit `69166599` received CONDITIONAL GO for supervised tests, NO-GO for release. M1 found that the SDMMC adapter ignores nonzero offset and truncates partial sector byte counts, risking GOOD for unwritten data; M2 found that tests only examined a state model and synthetic fixture. This branch now introduces the product-local, native-tested sector guard and wires it into both real generated callbacks. The source patch checks additional anchors, and CI inspects the real generated file after the IDF build.
+
+**Remaining limitation:** the actual generated TinyUSB C callbacks have not yet been executed in a host-compiled test harness. A source verifier is stronger than synthetic-only tests but does not close M2 completely. The upstream TinyUSB core still handles certain LUN 1 built-ins outside our auxiliary SCSI guard. The exact dependency lock is generated and included in CI artifacts, not yet committed or hash-pinned for reproducible local builds. These remain release-review items, not silently closed.
+
+**Do not flash based on the remediation branch before exact-head CI and independent diff review.** The frozen `bfea174` firmware and known rollback remain unchanged.
