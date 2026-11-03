@@ -94,6 +94,22 @@ static bool chaon_msc_host_ready(uint8_t lun)
 }
 
 """
+    # Read-after-write mitigates the pinned SDMMC driver's non-timeout
+    # status-poll error propagation gap. It is not a durability guarantee.
+    helper += """/* Single TinyUSB task owns this scratch buffer. No concurrent MSC I/O. */
+static uint8_t chaon_msc_verify_buffer[MSC_STORAGE_BUFFER_SIZE] __attribute__((aligned(4)));
+
+static bool chaon_msc_write_verified(uint8_t lun, uint32_t lba,
+                                    uint32_t offset, const uint8_t *data,
+                                    uint32_t bytes)
+{
+    if (bytes > sizeof(chaon_msc_verify_buffer)) return false;
+    if (msc_storage_read_sector(lun, lba, offset, bytes,
+                                chaon_msc_verify_buffer) != ESP_OK) return false;
+    return memcmp(chaon_msc_verify_buffer, data, bytes) == 0;
+}
+
+"""
     text = once(text, insert_before, helper + insert_before)
     start = "bool tud_msc_test_unit_ready_cb(uint8_t lun)\n{"
     end = "// Invoked when received SCSI_CMD_READ_CAPACITY_10"
@@ -143,6 +159,15 @@ static bool chaon_msc_host_ready(uint8_t lun)
         'ESP_LOGE(TAG, "WRITE(10) command failed, %s", esp_err_to_name(err));\n'
         '        extern void chaon_msc_write_failure(void);\n'
         '        chaon_msc_write_failure();\n        goto error;')
+    # Even if the driver reports ESP_OK, require independent SD readback.
+    text = once(text, "    // Return the number of bytes accepted\n    return bufsize;",
+        "    if (!chaon_msc_write_verified(lun, lba, offset, buffer, bufsize)) {\n"
+        "        ESP_LOGE(TAG, \"WRITE(10) readback verification failed\");\n"
+        "        extern void chaon_msc_write_failure(void);\n"
+        "        chaon_msc_write_failure();\n"
+        "        goto error;\n"
+        "    }\n"
+        "    // Return the number of bytes accepted\n    return bufsize;")
     # The existing callback's size rejection also latches a sticky failure.
     text = once(text,
         'ESP_LOGE(TAG, "Buffer size %"PRIu32" exceeds maximum allowed size %d", bufsize, MSC_STORAGE_BUFFER_SIZE);\n        goto error;',
