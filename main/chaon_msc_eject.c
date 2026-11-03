@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
 #include "chaon_msc_eject.h"
 #include <limits.h>
+#include <stddef.h>
 
 bool chaon_msc_eject_ready(const chaon_msc_eject_t *s,
                             uint8_t lun, bool usb_owned)
