@@ -86,7 +86,8 @@ static bool chaon_msc_host_ready(uint8_t lun)
                                     uint32_t offset, uint32_t bytes)
 {
     msc_storage_obj_t *storage = NULL;
-    return chaon_msc_host_ready(lun) &&
+    return bytes <= MSC_STORAGE_BUFFER_SIZE &&
+        chaon_msc_host_ready(lun) &&
         msc_storage_get_by_lun(lun, &storage) == ESP_OK &&
         chaon_msc_transfer_valid(lba, offset, bytes,
                                  storage->sector_count, storage->sector_size);
