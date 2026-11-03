@@ -8,6 +8,7 @@ int main(void)
 {
     chaon_msc_eject_t s = {0};
     assert(chaon_msc_eject_ready(&s, 0, true));
+    assert(chaon_msc_eject_start_stop(&s, 0, true, true)); /* No-op start. */
     assert(!chaon_msc_eject_ready(&s, 1, true));
     assert(!chaon_msc_eject_ready(&s, 0, false));
     assert(!chaon_msc_eject_ready(NULL, 0, true));
