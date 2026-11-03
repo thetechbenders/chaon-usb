@@ -75,6 +75,11 @@ int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t *
 error:
     return -1;
 }
+int32_t tud_msc_scsi_cb(uint8_t lun, uint8_t const scsi_cmd[16], void *buffer, uint16_t bufsize)
+{
+    int32_t ret;
+    return 0;
+}
 '''
 
 
@@ -91,6 +96,7 @@ class PatchTests(unittest.TestCase):
         self.assertIn("chaon_msc_write_failure();", result)
         self.assertEqual(result.count("chaon_msc_write_failure();"), 2)
         self.assertIn("SCSI_SENSE_NOT_READY", result)
+        self.assertIn("if (lun != 0)", result)
 
     def test_missing_or_duplicate_anchor_is_rejected(self):
         original = fixture()
