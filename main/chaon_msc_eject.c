@@ -34,3 +34,17 @@ bool chaon_msc_eject_start_stop(chaon_msc_eject_t *s,
     s->ejected = true;
     return true;
 }
+
+/* The patched pinned MSC callbacks execute these operations in the TinyUSB
+ * task. No ISR or other task is permitted to mutate this state. */
+static chaon_msc_eject_t device_state;
+
+bool chaon_msc_device_ready(uint8_t lun, bool usb_owned)
+{
+    return chaon_msc_eject_ready(&device_state, lun, usb_owned);
+}
+
+bool chaon_msc_device_start_stop(uint8_t lun, bool start, bool load_eject)
+{
+    return chaon_msc_eject_start_stop(&device_state, lun, start, load_eject);
+}
