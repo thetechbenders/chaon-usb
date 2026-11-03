@@ -14,6 +14,7 @@ import tempfile
 FUNCTIONS = (
     "static bool chaon_msc_host_ready(",
     "static bool chaon_msc_request_valid(",
+    "static bool chaon_msc_write_verified(",
     "bool tud_msc_test_unit_ready_cb(",
     "bool tud_msc_start_stop_cb(",
     "int32_t tud_msc_read10_cb(",
@@ -64,7 +65,8 @@ typedef struct {
 } msc_storage_obj_t;
 static msc_storage_obj_t fake_card = {100, 512, TINYUSB_MSC_STORAGE_MOUNT_USB};
 static int read_count, write_count, sense_count;
-static bool write_fault, write_backend_fail;
+static bool write_fault, write_backend_fail, readback_corrupt, readback_fail;
+static uint8_t written_sector[512];
 static uint8_t last_sense;
 static int msc_storage_get_by_lun(uint8_t lun, msc_storage_obj_t **s)
 {
@@ -75,16 +77,23 @@ static int msc_storage_get_by_lun(uint8_t lun, msc_storage_obj_t **s)
 static esp_err_t msc_storage_read_sector(uint8_t lun, uint32_t lba,
     uint32_t offset, size_t size, void *dst)
 {
-    (void)lun; (void)lba; (void)offset; (void)size; (void)dst;
+    (void)lun; (void)lba; (void)offset;
     ++read_count;
+    if (readback_fail) return -1;
+    assert(size <= sizeof(written_sector));
+    memcpy(dst, written_sector, size);
+    if (readback_corrupt) ((uint8_t *)dst)[0] ^= 0x01;
     return ESP_OK;
 }
 static esp_err_t msc_storage_write_sector(uint8_t lun, uint32_t lba,
     uint32_t offset, size_t size, const void *src)
 {
-    (void)lun; (void)lba; (void)offset; (void)size; (void)src;
+    (void)lun; (void)lba; (void)offset;
     ++write_count;
-    return write_backend_fail ? -1 : ESP_OK;
+    if (write_backend_fail) return -1;
+    assert(size <= sizeof(written_sector));
+    memcpy(written_sector, src, size);
+    return ESP_OK;
 }
 static bool tud_msc_set_sense(uint8_t lun, uint8_t key, uint8_t asc, uint8_t ascq)
 {
@@ -128,21 +137,29 @@ int main(int argc, char **argv)
     test_invalid();
     assert(tud_msc_write10_cb(0, 99, 0, buffer, 512) == 512);
     assert(tud_msc_read10_cb(0, 99, 0, buffer, 512) == 512);
-    assert(read_count == 1 && write_count == 1);
-    if (strcmp(argv[1], "fault") == 0) {
+    assert(read_count == 2 && write_count == 1);
+    if (strcmp(argv[1], "mismatch") == 0 ||
+        strcmp(argv[1], "read-error") == 0) {
+        readback_corrupt = strcmp(argv[1], "mismatch") == 0;
+        readback_fail = strcmp(argv[1], "read-error") == 0;
+        assert(tud_msc_write10_cb(0, 0, 0, buffer, 512) == -1);
+        assert(write_fault);
+        assert(!tud_msc_test_unit_ready_cb(0));
+        assert(write_count == 2 && read_count == 3);
+    } else if (strcmp(argv[1], "fault") == 0) {
         write_backend_fail = true;
         assert(tud_msc_write10_cb(0, 0, 0, buffer, 512) == -1);
         assert(write_fault);
         assert(!tud_msc_test_unit_ready_cb(0));
         assert(tud_msc_write10_cb(0, 0, 0, buffer, 512) == -1);
         assert(tud_msc_read10_cb(0, 0, 0, buffer, 512) == -1);
-        assert(write_count == 2 && read_count == 1);
+        assert(write_count == 2 && read_count == 2);
     } else {
         assert(tud_msc_start_stop_cb(0, 0, false, true));
         assert(!tud_msc_test_unit_ready_cb(0));
         assert(tud_msc_write10_cb(0, 0, 0, buffer, 512) == -1);
         assert(tud_msc_read10_cb(0, 0, 0, buffer, 512) == -1);
-        assert(write_count == 1 && read_count == 1);
+        assert(write_count == 1 && read_count == 2);
         assert(!tud_msc_start_stop_cb(0, 0, true, true));
     }
     puts("Generated MSC callback harness PASS");
@@ -166,7 +183,7 @@ def main() -> None:
                         "-I", str(root / "main"),
                         str(path), str(root / "main/chaon_msc_eject.c"),
                         "-o", str(binary)], check=True)
-        for mode in ("eject", "fault"):
+        for mode in ("eject", "fault", "mismatch", "read-error"):
             subprocess.run([str(binary), mode], check=True)
 
 
