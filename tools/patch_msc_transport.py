@@ -11,7 +11,7 @@ import hashlib
 import sys
 
 # Filled after independent source digest verification.
-SOURCE_SHA256 = "PENDING_SOURCE_SHA256"
+SOURCE_SHA256 = "9bba988f5c1e83db1d565e55e934a8e9dd7f5e5085820b6c555ffa1484473ac5"
 
 
 def replace_once(source: str, before: str, after: str) -> str:
