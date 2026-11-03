@@ -67,3 +67,14 @@ The build-local transport patch `tools/patch_msc_transport.py` checks exact pinn
 The transport code remains pinned to the original MIT-licensed TinyUSB source, and only a build-local copy is compiled. `tools/test_generated_msc_transport.py` extracts the *actual generated* validator and byte-order helpers, compiles them with a fake media capacity callback and UBSan, and exercises well-formed and contradictory commands, boundary LBAs, capacity overruns, and unsupported LUNs.
 
 **This is still not a full transport-stack simulation**. Real BOT reset, stall/recovery, packet timing, OS behavior and physical SD durability require hardware evidence. Do not flash based solely on green CI. The N1 write-status propagation defect remains a distinct upstream ESP-IDF issue; the product-side readback is only an additional consistency check.
+
+
+## N1 direct ESP-IDF correction (2026-11-03)
+
+The v5.5.3 `sdmmc_write_sectors_dma()` branch was confirmed to return an earlier `err == ESP_OK` when `sdmmc_wait_for_idle()` failed with an error other than `ESP_ERR_TIMEOUT`. That error can originate from a failed CMD13/status poll following a successful write command.
+
+This branch now adds `tools/patch_idf_sdmmc_n1.py`, which verifies the **exact original Git content blob** of the pinned ESP-IDF 5.5.3 `components/sdmmc/sdmmc_cmd.c` and patches a **build-local** copy only. The corrected branch stores the `sdmmc_wait_for_idle()` result and propagates **any** non-ESP_OK value. `tools/msc_activity_hook.cmake` replaces exactly one SDMMC source unit in the component's compilation target, failing CMake configuration if the pin, patch or source substitution differs.
+
+Regression tests check the original source pin, missing/duplicate anchors, generated code, and host-compiled injection of successful, timeout, CRC, invalid-response and unexpected errors. The CI RC provenance now records the patched SDMMC source digest.
+
+The product's existing WRITE10 readback remains defense in depth, not the primary repair. **This correction addresses the specific N1 error-propagation defect**, but does not guarantee flash wear-level persistence or verify SD card R1 error bit semantics and transport reset behavior. Hardware fault injection and readback still required before release. Do not overwrite or flash the frozen `bfea174` qualification baseline based on CI alone.
