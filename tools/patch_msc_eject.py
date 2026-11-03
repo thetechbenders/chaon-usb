@@ -25,7 +25,7 @@ def replace_block(text, start, end, replacement):
     if i >= j:
         raise ValueError("MSC callback end precedes start")
     block = text[i:j]
-    if block.count("\\n}") != 1:
+    if block.count("\n}") != 1:
         raise ValueError("MSC callback body layout changed")
     return text[:i] + replacement + text[j:]
 
