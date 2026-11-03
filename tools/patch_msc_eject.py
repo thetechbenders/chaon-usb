@@ -113,12 +113,12 @@ static bool chaon_msc_host_ready(uint8_t lun)
     # Accepting PREVENT/ALLOW on a non-existent LUN is misleading. The
     # core's built-in commands use the guarded LUN getter/readiness path.
     text = once(text,
-        "int32_t tud_msc_scsi_cb(uint8_t lun, uint8_t const scsi_cmd[16], void *buffer, uint16_t bufsize)\\n{\\n    int32_t ret;",
-        "int32_t tud_msc_scsi_cb(uint8_t lun, uint8_t const scsi_cmd[16], void *buffer, uint16_t bufsize)\\n{\\n"
-        "    if (lun != 0) {\\n"
-        "        tud_msc_set_sense(lun, SCSI_SENSE_ILLEGAL_REQUEST, SCSI_CODE_ASC_INVALID_COMMAND_OPERATION_CODE, SCSI_CODE_ASCQ);\\n"
-        "        return -1;\\n"
-        "    }\\n    int32_t ret;")
+        "int32_t tud_msc_scsi_cb(uint8_t lun, uint8_t const scsi_cmd[16], void *buffer, uint16_t bufsize)\n{\n    int32_t ret;",
+        "int32_t tud_msc_scsi_cb(uint8_t lun, uint8_t const scsi_cmd[16], void *buffer, uint16_t bufsize)\n{\n"
+        "    if (lun != 0) {\n"
+        "        tud_msc_set_sense(lun, SCSI_SENSE_ILLEGAL_REQUEST, SCSI_CODE_ASC_INVALID_COMMAND_OPERATION_CODE, SCSI_CODE_ASCQ);\n"
+        "        return -1;\n"
+        "    }\n    int32_t ret;")
 
     # These would silently re-introduce false success if upstream changes.
     if "msc_storage_write_sector_deferred" in text or "usbd_defer_func(" in text:
