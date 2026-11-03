@@ -60,6 +60,28 @@ static bool chaon_msc_host_ready(uint8_t lun)
         lun, storage->mount_point == TINYUSB_MSC_STORAGE_MOUNT_USB);
 }
 """)
+    # Compile-time check: this SDMMC adapter requires whole 512-byte sectors.
+    text = once(text, "#define MSC_STORAGE_BUFFER_SIZE CONFIG_TINYUSB_MSC_BUFSIZE",
+        "#define MSC_STORAGE_BUFFER_SIZE CONFIG_TINYUSB_MSC_BUFSIZE\n"
+        "_Static_assert(CONFIG_TINYUSB_MSC_BUFSIZE >= 512 && "
+        "CONFIG_TINYUSB_MSC_BUFSIZE % 512 == 0, \"MSC FIFO must fit complete sectors\");")
+    text = once(text, "extern bool chaon_msc_write_failed(void);",
+        "extern bool chaon_msc_write_failed(void);\n"
+        "extern bool chaon_msc_transfer_valid(uint32_t lba, uint32_t offset, "
+        "uint32_t bytes, uint32_t sector_count, uint32_t sector_size);")
+    insert_before = "bool tud_msc_test_unit_ready_cb(uint8_t lun)\n{"
+    helper = """static bool chaon_msc_request_valid(uint8_t lun, uint32_t lba,
+                                    uint32_t offset, uint32_t bytes)
+{
+    msc_storage_obj_t *storage = NULL;
+    return chaon_msc_host_ready(lun) &&
+        msc_storage_get_by_lun(lun, &storage) == ESP_OK &&
+        chaon_msc_transfer_valid(lba, offset, bytes,
+                                 storage->sector_count, storage->sector_size);
+}
+
+"""
+    text = once(text, insert_before, helper + insert_before)
     start = "bool tud_msc_test_unit_ready_cb(uint8_t lun)\n{"
     end = "// Invoked when received SCSI_CMD_READ_CAPACITY_10"
     i, j = text.index(start), text.index(end)
@@ -95,6 +117,12 @@ static bool chaon_msc_host_ready(uint8_t lun)
     }
 """)
         text = once(text, anchor, anchor + check)
+        text = once(text, anchor + check,
+            anchor + check + """    if (!chaon_msc_request_valid(lun, lba, offset, bufsize)) {
+        tud_msc_set_sense(lun, SCSI_SENSE_ILLEGAL_REQUEST, 0x21, 0x00);
+        return -1;
+    }
+""")
 
     text = once(text,
         "msc_storage_write_sector_deferred(lun, lba, offset, bufsize, buffer)",
