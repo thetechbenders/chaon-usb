@@ -53,6 +53,7 @@ test: tests/chaon_msc_activity_tests $(USB_MODE_BIN) $(USB_MARKER_BIN) $(MSC_EJE
 	./$(MSC_EJECT_BIN)
 	python3 -m unittest discover -s tests -p test_msc_eject_patch.py
 	python3 -m unittest discover -s tests -p test_msc_transport_patch.py
+	python3 -m unittest discover -s tests -p test_idf_sdmmc_n1.py
 	./$(NATIVE_BIN)
 	./$(VISUAL_BIN)
 	./$(CONTROL_BIN)
