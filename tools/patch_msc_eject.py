@@ -18,6 +18,18 @@ def once(text, old, new):
     return text.replace(old, new, 1)
 
 
+def replace_block(text, start, end, replacement):
+    if text.count(start) != 1 or text.count(end) != 1:
+        raise ValueError("MSC callback anchors missing or duplicated")
+    i, j = text.index(start), text.index(end)
+    if i >= j:
+        raise ValueError("MSC callback end precedes start")
+    block = text[i:j]
+    if block.count("\\n}") != 1:
+        raise ValueError("MSC callback body layout changed")
+    return text[:i] + replacement + text[j:]
+
+
 def patch_source(text):
     # This source already passed tools/patch_msc_activity.py's pinned SHA gate.
     # Remove deferred worker/queue and its one-buffer operation: WRITE10 now
@@ -84,22 +96,20 @@ static bool chaon_msc_host_ready(uint8_t lun)
     text = once(text, insert_before, helper + insert_before)
     start = "bool tud_msc_test_unit_ready_cb(uint8_t lun)\n{"
     end = "// Invoked when received SCSI_CMD_READ_CAPACITY_10"
-    i, j = text.index(start), text.index(end)
-    text = text[:i] + """bool tud_msc_test_unit_ready_cb(uint8_t lun)
+    text = replace_block(text, start, end, """bool tud_msc_test_unit_ready_cb(uint8_t lun)
 {
     if (chaon_msc_host_ready(lun)) return true;
     """ + sense + """
     return false;
 }
 
-""" + text[j:]
+""")
     text = once(text,
         "if (msc_storage_get_by_lun(lun, &storage) == ESP_OK) {\n        tinyusb_msc_get_storage_capacity",
         "if (chaon_msc_host_ready(lun) && msc_storage_get_by_lun(lun, &storage) == ESP_OK) {\n        tinyusb_msc_get_storage_capacity")
     start = "bool tud_msc_start_stop_cb(uint8_t lun, uint8_t power_condition, bool start, bool load_eject)\n{"
     end = "// Invoked when received SCSI READ10 command"
-    i, j = text.index(start), text.index(end)
-    text = text[:i] + """bool tud_msc_start_stop_cb(uint8_t lun, uint8_t power_condition, bool start, bool load_eject)
+    text = replace_block(text, start, end, """bool tud_msc_start_stop_cb(uint8_t lun, uint8_t power_condition, bool start, bool load_eject)
 {
     (void)power_condition;
     if (chaon_msc_device_start_stop(lun, start, load_eject)) return true;
@@ -107,7 +117,7 @@ static bool chaon_msc_host_ready(uint8_t lun)
     return false;
 }
 
-""" + text[j:]
+""")
     for direction, buffer in (("read", "void *buffer"), ("write", "uint8_t *buffer")):
         anchor = (f"int32_t tud_msc_{direction}10_cb(uint8_t lun, uint32_t lba, "
                   f"uint32_t offset, {buffer}, uint32_t bufsize)\n{{\n")
