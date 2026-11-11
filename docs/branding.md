@@ -13,7 +13,7 @@ ChaoN is short for **Chaotic Neutral**, a recognizable tabletop RPG alignment re
 
 The updated hand-created [horizontal SVG logo](../assets/chaon-logo.svg) and [compact d20 SVG](../assets/chaon-d20.svg) are geometric vector branding marks, distinct from the approved original raster d20. See the [asset inventory and rights status](branding/README.md) for the three new PNGs.
 
-**Public/open-source status:** the repository is public and its original code, documentation and existing vector assets remain under [AGPL-3.0-only](../LICENSE), subject to the rights actually held by contributors. The three newly added PNG illustrations are **excluded from that blanket artwork statement** pending separate rights/license confirmation; no effective CC BY-NC grant has been adopted. The descriptive label **OPEN SOURCE** describes the software and does not imply rights in every artwork asset. Copyright licensing does not grant trademark rights to use Techbenders or ChaoN names as endorsements.
+**Public/open-source status:** the repository is public and its original code, documentation and existing vector assets remain under [AGPL-3.0-only](../LICENSE), subject to the rights actually held by contributors. The three specifically identified PNG illustrations are **separately licensed under [CC BY-NC 4.0](branding/LICENSE-ARTWORK.md)**, limited to rights their contributor may license; they are outside the repository's blanket AGPL artwork statement. The descriptive label **OPEN SOURCE** describes the software and does not imply rights in every artwork asset. Copyright licensing does not grant trademark rights to use Techbenders or ChaoN names as endorsements.
 
 ## Presentation
 
