@@ -44,7 +44,7 @@ If the candidate misbehaves, recover using BOOT-held ROM mode and a verified ear
 
 ## Legal, dependencies, and distribution
 
-ChaoN's original code, documentation and existing vector artwork are provided under **AGPL-3.0-only** in [LICENSE](../LICENSE), to the extent contributors hold those rights. The three new PNG images listed in the [branding inventory](branding/README.md#asset-inventory) are **not included in that artwork licensing statement**; their rights review and proposed separate license remain pending. Third-party dependencies retain their own license terms; an RC promotion requires verifying and including the actual notices and distribution obligations for ESP-IDF, `esp_tinyusb`, TinyUSB and all redistributed components. This page does not pretend that the dependency audit is complete.
+ChaoN's original code, documentation and existing vector artwork are provided under **AGPL-3.0-only** in [LICENSE](../LICENSE), to the extent contributors hold those rights. The three new PNG images listed in the [branding inventory](branding/README.md#asset-inventory) are **not included in that artwork licensing statement**; they are subject to the separately adopted [CC BY-NC 4.0 artwork notice](branding/LICENSE-ARTWORK.md), to the extent their contributor holds licensable rights. Third-party dependencies retain their own license terms; an RC promotion requires verifying and including the actual notices and distribution obligations for ESP-IDF, `esp_tinyusb`, TinyUSB and all redistributed components. This page does not pretend that the dependency audit is complete.
 
 ## RC promotion checklist
 
