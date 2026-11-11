@@ -72,6 +72,10 @@ The tested source is `ae70e489ccd7ca22e2dcbe466bc5f544940a55f7`; artifact `12573
 
 Older phase-specific records document the state at their historical test dates. They must not be interpreted as current functionality.
 
+## Branding
+
+The [emerald d20 logo](assets/chaon-d20.svg) is the compact project mark. The [branding guide](docs/branding/README.md) records the approved rogue-bard Sara artwork, social-preview asset location, and pending artwork policy. The original PNG assets are **not yet imported into this draft PR**; the visual package is incomplete until they are committed and verified.
+
 ## License
 
 ChaoN-USB's original source, documentation and project artwork are licensed under the **GNU Affero General Public License v3.0 only** ([AGPL-3.0-only](LICENSE)). Copyright © 2026 Techbenders contributors. Third-party dependencies retain their respective licenses.
