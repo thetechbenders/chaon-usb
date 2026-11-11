@@ -19,7 +19,7 @@
   <path d="M263 202 175 90 132 207Z" fill="#056e51" stroke="#d8ae59" stroke-width="3"/>
   <path d="M1 202 132 207 132 284Z" fill="#085540" stroke="#d8ae59" stroke-width="3"/>
   <path d="M263 202 132 207 132 284Z" fill="#0a4338" stroke="#d8ae59" stroke-width="3"/>
-  <text x="132" y="158" text-anchor="middle" font-family="Georgia,serif" font-size="55" font-weight="bold" fill="#ffe6a3">20</text>
+  <path d="M111 108h3v3h-3Z M114 108h3v3h-3Z M117 108h3v3h-3Z M120 108h3v3h-3Z M123 108h3v3h-3Z M132 108h3v3h-3Z M135 108h3v3h-3Z M138 108h3v3h-3Z M141 108h3v3h-3Z M144 108h3v3h-3Z M123 111h3v3h-3Z M132 111h3v3h-3Z M144 111h3v3h-3Z M123 114h3v3h-3Z M132 114h3v3h-3Z M144 114h3v3h-3Z M111 117h3v3h-3Z M114 117h3v3h-3Z M117 117h3v3h-3Z M120 117h3v3h-3Z M123 117h3v3h-3Z M132 117h3v3h-3Z M144 117h3v3h-3Z M111 120h3v3h-3Z M132 120h3v3h-3Z M144 120h3v3h-3Z M111 123h3v3h-3Z M132 123h3v3h-3Z M144 123h3v3h-3Z M111 126h3v3h-3Z M114 126h3v3h-3Z M117 126h3v3h-3Z M120 126h3v3h-3Z M123 126h3v3h-3Z M132 126h3v3h-3Z M135 126h3v3h-3Z M138 126h3v3h-3Z M141 126h3v3h-3Z M144 126h3v3h-3Z" fill="#ffe6a3" aria-label="20"/>
   <path d="M131 44 136 58 150 63 136 68 131 82 126 68 112 63 126 58Z" fill="#e9fff2" opacity=".8"/>
   <path d="M68 215q65 35 128 0" stroke="#f2c86c" stroke-width="2" fill="none" opacity=".65"/>
 </g>
