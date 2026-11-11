@@ -1,1 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc"><title id="title">ChaoN emerald natural-20 d20</title><desc id="desc">Emerald-green twenty-sided die, gold faceted edges and a large 20 on its triangular central face.</desc><defs><linearGradient id="e" x2="1" y2="1"><stop stop-color="#0c493b"/><stop offset="1" stop-color="#10b981"/></linearGradient></defs><g transform="translate(11 4)" stroke-linejoin="round"><path d="M117 4 218 65 230 175 117 246 4 175 16 65Z" fill="url(#e)" stroke="#f5d879" stroke-width="7"/><path d="M117 4 81 80 153 80Z" fill="#105a47" stroke="#d8ae59" stroke-width="3"/><path d="M16 65 81 80 4 175Z" fill="#0a5644" stroke="#d8ae59" stroke-width="3"/><path d="M117 4 16 65 81 80Z" fill="#08795b" stroke="#d8ae59" stroke-width="3"/><path d="M117 4 153 80 218 65Z" fill="#096b51" stroke="#d8ae59" stroke-width="3"/><path d="M218 65 153 80 230 175Z" fill="#09513e" stroke="#d8ae59" stroke-width="3"/><path d="M81 80 153 80 117 184Z" fill="#064333" stroke="#ffdb87" stroke-width="5"/><path d="M4 175 81 80 117 184Z" fill="#077257" stroke="#d8ae59" stroke-width="3"/><path d="M230 175 153 80 117 184Z" fill="#085a46" stroke="#d8ae59" stroke-width="3"/><path d="M4 175 117 184 117 246Z" fill="#08664d" stroke="#d8ae59" stroke-width="3"/><path d="M230 175 117 184 117 246Z" fill="#0a493b" stroke="#d8ae59" stroke-width="3"/><path d="M96 94h3v3h-3Z M99 94h3v3h-3Z M102 94h3v3h-3Z M105 94h3v3h-3Z M108 94h3v3h-3Z M117 94h3v3h-3Z M120 94h3v3h-3Z M123 94h3v3h-3Z M126 94h3v3h-3Z M129 94h3v3h-3Z M108 97h3v3h-3Z M117 97h3v3h-3Z M129 97h3v3h-3Z M108 100h3v3h-3Z M117 100h3v3h-3Z M129 100h3v3h-3Z M96 103h3v3h-3Z M99 103h3v3h-3Z M102 103h3v3h-3Z M105 103h3v3h-3Z M108 103h3v3h-3Z M117 103h3v3h-3Z M129 103h3v3h-3Z M96 106h3v3h-3Z M117 106h3v3h-3Z M129 106h3v3h-3Z M96 109h3v3h-3Z M117 109h3v3h-3Z M129 109h3v3h-3Z M96 112h3v3h-3Z M99 112h3v3h-3Z M102 112h3v3h-3Z M105 112h3v3h-3Z M108 112h3v3h-3Z M117 112h3v3h-3Z M120 112h3v3h-3Z M123 112h3v3h-3Z M126 112h3v3h-3Z M129 112h3v3h-3Z" fill="#ffe6a3" aria-label="20"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 1254 1254" role="img" aria-labelledby="title desc"><title id="title">ChaoN emerald-and-gold d20</title><desc id="desc">Gemstone-green twenty-sided die with gilded facet borders, a prominent natural twenty in its upper triangular face, and two gold stars.</desc><defs>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8c5310"/><stop offset=".18" stop-color="#f6c852"/><stop offset=".35" stop-color="#ffe9a0"/><stop offset=".56" stop-color="#d99c26"/><stop offset=".77" stop-color="#ffdb65"/><stop offset="1" stop-color="#925b12"/></linearGradient>
+<linearGradient id="rimGold" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#fff0a8"/><stop offset=".42" stop-color="#dba324"/><stop offset=".82" stop-color="#ffdb77"/><stop offset="1" stop-color="#99631d"/></linearGradient>
+<linearGradient id="numberGold" x1="0" y1="0" x2=".4" y2="1"><stop stop-color="#fff7bd"/><stop offset=".32" stop-color="#ffe17c"/><stop offset=".65" stop-color="#e7b847"/><stop offset="1" stop-color="#d38d1e"/></linearGradient>
+<linearGradient id="faceMain" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#005f38"/><stop offset=".48" stop-color="#014f2c"/><stop offset="1" stop-color="#00381f"/></linearGradient>
+<linearGradient id="faceLeft" x1="0" y1="1" x2=".8" y2="0"><stop stop-color="#00351f"/><stop offset=".65" stop-color="#079955"/><stop offset="1" stop-color="#034528"/></linearGradient>
+<linearGradient id="faceRight" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#038b4c"/><stop offset=".7" stop-color="#00623b"/><stop offset="1" stop-color="#003d25"/></linearGradient>
+<linearGradient id="bottomLeft" x1="0" y1="1" x2=".9" y2="0"><stop stop-color="#01462c"/><stop offset=".55" stop-color="#00683d"/><stop offset="1" stop-color="#002b1c"/></linearGradient>
+<linearGradient id="bottomRight" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#005c39"/><stop offset="1" stop-color="#002817"/></linearGradient>
+</defs><g id="die">
+<path d="M624 56 L1125 374 L1121 929 L621 1191 L123 930 L122 374Z" fill="#003b25"/>
+<path d="M624 67 L122 372 L278 620Z" fill="url(#faceLeft)"/>
+<path d="M624 67 L1124 374 L970 619Z" fill="url(#faceRight)"/>
+<path d="M122 374 L279 621 L123 933Z" fill="#01532f"/>
+<path d="M1125 374 L970 622 L1121 933Z" fill="#00472a"/>
+<path d="M624 67 L279 621 L970 621Z" fill="url(#faceMain)"/>
+<path d="M279 624 L620 1178 L123 932Z" fill="url(#bottomLeft)"/>
+<path d="M970 624 L1121 931 L620 1178Z" fill="url(#bottomRight)"/>
+<path d="M279 624 L970 624 L624 1148Z" fill="#005b36"/>
+<path d="M279 624 L624 633 L624 897Z" fill="#087443" opacity=".55"/>
+<path d="M970 624 L624 633 L624 897Z" fill="#01482d" opacity=".4"/>
+<path d="M624 897 L279 624 L624 1148Z" fill="#005532" opacity=".32"/>
+<path d="M624 897 L970 624 L624 1148Z" fill="#002a1d" opacity=".3"/>
+<path d="M155 370 L608 93 L304 586Z" fill="#19c36c" opacity=".12"/>
+<path d="M646 98 L1091 368 L945 574Z" fill="#16c77c" opacity=".10"/>
+<path d="M157 926 L278 670 L598 1140Z" fill="#018956" opacity=".14"/>
+<g fill="none" stroke-linejoin="round" stroke-linecap="round">
+<path d="M624 55 L1125 374 L1121 931 L620 1190 L122 932 L122 372Z" stroke="#4b300c" stroke-width="40"/>
+<path d="M624 55 L1125 374 L1121 931 L620 1190 L122 932 L122 372Z" stroke="url(#gold)" stroke-width="29"/>
+<path d="M624 55 L1125 374 L1121 931 L620 1190 L122 932 L122 372Z" stroke="#fff2ad" stroke-opacity=".6" stroke-width="4"/>
+<path d="M624 55 L281 627 L965 627Z" stroke="#593209" stroke-width="43"/>
+<path d="M624 55 L281 627 L965 627Z" stroke="url(#gold)" stroke-width="31"/>
+<path d="M624 55 L281 627 L965 627Z" stroke="#ffe9a3" stroke-opacity=".75" stroke-width="4"/>
+<path d="M122 372 L281 627 L122 931 M1125 374 L965 627 L1121 931 M281 627 L620 1190 L965 627" stroke="#58330c" stroke-width="34"/>
+<path d="M122 372 L281 627 L122 931 M1125 374 L965 627 L1121 931 M281 627 L620 1190 L965 627" stroke="url(#rimGold)" stroke-width="24"/>
+<path d="M122 372 L281 627 L122 931 M1125 374 L965 627 L1121 931 M281 627 L620 1190 L965 627" stroke="#fff0a7" stroke-width="3.8" stroke-opacity=".68"/>
+</g>
+<g transform="translate(467.11 532.19) scale(0.280654 -0.280654)" fill="url(#numberGold)" stroke="#9c6516" stroke-width="12" paint-order="stroke fill" aria-label="20"><path d="M35 0V103L183 254Q245 317 278 365Q311 413 324 457Q337 501 337 553Q337 610 316 636.5Q295 663 259 663Q208 663 187.5 619.5Q167 576 167 490Q110 490 74.5 512.5Q39 535 39 589Q39 625 63.5 656Q88 687 137 705.5Q186 724 259 724Q371 724 429.5 679.5Q488 635 488 558Q488 523 475.5 490Q463 457 434 418Q405 379 355 327.5Q305 276 230 205L130 110H363Q427 110 446 179L454 210H513L508 0Z"/><path transform="translate(559 0)" d="M280 -10Q189 -10 135 36Q81 82 57.5 165Q34 248 34 359Q34 470 57.5 552Q81 634 135 679Q189 724 281 724Q368 724 421.5 679Q475 634 500 551.5Q525 469 525 358Q525 247 500 164.5Q475 82 421 36Q367 -10 280 -10ZM280 55Q336 55 353 135Q370 215 370 358Q370 501 353 580Q336 659 281 659Q225 659 207 580Q189 501 189 358Q189 215 207 135Q225 55 280 55Z"/></g>
+<path d="M624 197 Q633 239 659 248 Q633 255 624 292 Q616 257 591 248 Q616 240 624 197Z" fill="url(#numberGold)" stroke="#a86f19" stroke-width="3"/>
+<path d="M624 553 Q633 589 654 598 Q632 607 624 643 Q617 607 594 598 Q616 590 624 553Z" fill="url(#numberGold)" stroke="#a86f19" stroke-width="3"/>
+</g></svg>
