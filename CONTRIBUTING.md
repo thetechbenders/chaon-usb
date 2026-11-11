@@ -1,6 +1,6 @@
 # Contributing
 
-ChaoN is a **public, pre-release** engineering project licensed under the [GNU Affero General Public License v3.0 only](LICENSE) (SPDX: `AGPL-3.0-only`). Before submitting changes, coordinate scope and applicable permissions with the repository owners. Contributors must have the rights necessary to submit their changes and ensure that contributions accepted into ChaoN can be distributed under AGPL-3.0-only. Do not copy third-party code or assets into the repository without reviewing attribution and license compatibility.
+ChaoN is a **public, pre-release** engineering project licensed under the [GNU Affero General Public License v3.0 only](LICENSE) (SPDX: `AGPL-3.0-only`). Before submitting changes, coordinate scope and applicable permissions with the repository owners. Contributors must have the rights necessary to submit their changes. **Source-code and documentation contributions** intended for inclusion must be distributable under AGPL-3.0-only. **New artwork contributions require explicit separate rights/licensing approval** before any license grant is asserted; the three PNG assets identified in [the branding inventory](docs/branding/README.md#asset-inventory) are not being offered under AGPL or CC BY-NC by this statement while rights review remains pending. Do not copy third-party code or assets into the repository without reviewing attribution and license compatibility.
 
 ## Working agreements
 
