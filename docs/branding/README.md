@@ -21,7 +21,7 @@ The mascot source filename retains **ferret** for reproducibility, but the estab
 - [`assets/chaon-logo.svg`](../../assets/chaon-logo.svg): restrained horizontal README header/wordmark with triangular d20 face and outlined number.
 - [`assets/chaon-d20.svg`](../../assets/chaon-d20.svg): simplified stand-alone d20 supporting icon for larger sizes. At 16 px, use an appropriately validated simplified mark rather than assuming the numeral remains readable.
 
-Both SVGs are project-authored vector graphics, **not** pixel-for-pixel conversions of the original ornate d20 PNG.
+Both SVGs are project-authored vector interpretations of the **later approved emerald/gold logo master**, not pixel-for-pixel vectorizations of that image or of the earlier ornate d20 PNG. The later master is archived privately as \`chaon-emerald-d20-approved-master-2026-11-11.jpg\` (1254 × 1254, SHA-256 \`a571081e967f1901564efc94cd817ca101f8c7197e98d24917bb2d3fa587f389\`). Keep the original PNG binaries and their hashes above unchanged. The private master is not an in-repository asset or public CDN.
 
 ### GitHub social-preview deployment
 
