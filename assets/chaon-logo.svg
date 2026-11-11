@@ -1,27 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
-<title id="title">ChaoN, the Chaotic Neutral USB</title>
-<desc id="desc">Neon-lime faceted twenty-sided die with triangular center face, white ChaoN wordmark and gray subtitle on charcoal.</desc>
-<rect width="1200" height="320" rx="18" fill="#11131B"/>
-<g stroke="#B4F66B" stroke-width="4" stroke-linejoin="round" fill="none" transform="translate(36 18)">
-  <path d="M130 4 L246 68 L262 200 L130 278 L0 200 L14 68 Z" stroke-width="7"/>
-  <!-- Icosahedron-style triangulated projection; central face is a triangle -->
-  <path d="M130 4 L90 83 L174 83 Z"/>
-  <path d="M14 68 L90 83 L0 200 Z"/>
-  <path d="M130 4 L14 68 L90 83 Z"/>
-  <path d="M130 4 L174 83 L246 68 Z"/>
-  <path d="M246 68 L174 83 L262 200 Z"/>
-  <path d="M90 83 L174 83 L130 198 Z" fill="#1D2830" stroke-width="6"/>
-  <path d="M0 200 L90 83 L130 198 Z"/>
-  <path d="M262 200 L174 83 L130 198 Z"/>
-  <path d="M0 200 L130 198 L130 278 Z"/>
-  <path d="M262 200 L130 198 L130 278 Z"/>
-  <text x="130" y="151" font-family="Arial, sans-serif" font-size="45" font-weight="800" fill="#B4F66B" stroke="none" text-anchor="middle">20</text>
+<title id="title">ChaoN - Chaotic Neutral USB</title>
+<desc id="desc">Ornate emerald and gold twenty-sided die showing a natural 20, with ChaoN wordmark and Chaotic Neutral USB subtitle.</desc>
+<defs>
+  <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#10131c"/><stop offset="1" stop-color="#21182b"/></linearGradient>
+  <linearGradient id="emerald" x2=".75" y2="1"><stop stop-color="#0a342c"/><stop offset=".48" stop-color="#087c5b"/><stop offset="1" stop-color="#10b981"/></linearGradient>
+  <linearGradient id="gold" x2=".7" y2="1"><stop stop-color="#fff0a4"/><stop offset=".5" stop-color="#c99336"/><stop offset="1" stop-color="#f9d975"/></linearGradient>
+</defs>
+<rect width="1200" height="320" rx="18" fill="url(#bg)"/>
+<g transform="translate(36 15)" stroke-linejoin="round">
+  <path d="M132 6 250 76 263 202 132 284 1 202 14 76Z" fill="url(#emerald)" stroke="url(#gold)" stroke-width="7"/>
+  <path d="M132 6 89 90 175 90Z" fill="#144d3f" stroke="#d8ae59" stroke-width="3"/>
+  <path d="M14 76 89 90 1 202Z" fill="#0b4034" stroke="#d8ae59" stroke-width="3"/>
+  <path d="M132 6 14 76 89 90Z" fill="#0b7155" stroke="#d8ae59" stroke-width="3"/>
+  <path d="M132 6 175 90 250 76Z" fill="#075c47" stroke="#d8ae59" stroke-width="3"/>
+  <path d="M250 76 175 90 263 202Z" fill="#09523f" stroke="#d8ae59" stroke-width="3"/>
+  <path d="M89 90 175 90 132 207Z" fill="#054630" stroke="#ffe29a" stroke-width="5"/>
+  <path d="M1 202 89 90 132 207Z" fill="#07765b" stroke="#d8ae59" stroke-width="3"/>
+  <path d="M263 202 175 90 132 207Z" fill="#056e51" stroke="#d8ae59" stroke-width="3"/>
+  <path d="M1 202 132 207 132 284Z" fill="#085540" stroke="#d8ae59" stroke-width="3"/>
+  <path d="M263 202 132 207 132 284Z" fill="#0a4338" stroke="#d8ae59" stroke-width="3"/>
+  <text x="132" y="158" text-anchor="middle" font-family="Georgia,serif" font-size="55" font-weight="bold" fill="#ffe6a3">20</text>
+  <path d="M131 44 136 58 150 63 136 68 131 82 126 68 112 63 126 58Z" fill="#e9fff2" opacity=".8"/>
+  <path d="M68 215q65 35 128 0" stroke="#f2c86c" stroke-width="2" fill="none" opacity=".65"/>
 </g>
-<g font-family="Arial, Helvetica, sans-serif">
-  <text x="338" y="153" font-size="136" letter-spacing="-6" font-weight="800" fill="#F4F6F8">Chao<tspan fill="#B4F66B">N</tspan></text>
-  <text x="346" y="201" font-size="27" letter-spacing="6" fill="#F2F4F7">CHAOTIC NEUTRAL USB</text>
-  <line x1="345" y1="220" x2="1156" y2="220" stroke="#B4F66B" stroke-width="3"/>
-  <text x="346" y="261" font-size="20" letter-spacing="3" fill="#9AA6B2">TECHBENDERS  ·  ESP32-S3</text>
+<g font-family="Arial,Helvetica,sans-serif">
+  <text x="340" y="155" font-size="135" font-weight="800" letter-spacing="-6" fill="#f5f5f7">Chao<tspan fill="#36d69d">N</tspan></text>
+  <text x="347" y="200" font-size="27" letter-spacing="6" fill="#f3e3c0">CHAOTIC NEUTRAL USB</text>
+  <path d="M345 222H1155" stroke="#c9a357" stroke-width="3"/>
+  <text x="348" y="262" font-size="20" letter-spacing="3" fill="#aeb4bd">TECHBENDERS  ·  ESP32-S3</text>
 </g>
 </svg>
-
