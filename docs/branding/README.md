@@ -31,11 +31,11 @@ The 1200 × 630 PNG is available in the repo, but **committing the image does no
 
 ## Artwork rights and license status
 
-The repository's `LICENSE` remains **AGPL-3.0-only** for code, documentation, and previously included vector artwork to the extent the contributors hold licensable rights. The **three new PNGs in the table above are expressly excluded from the repository's blanket AGPL artwork statements pending rights confirmation**. Their presence in a public repository is **not** an affirmative open-content or commercial-use license grant.
+**The three specifically inventoried PNGs above are licensed under [CC BY-NC 4.0](LICENSE-ARTWORK.md) for the rights Dan (Daniel Brown) holds and is authorized to license.** This file-specific notice was adopted on 2026-11-11 and is separate from the repository's AGPL-3.0-only software license.
 
-**CC BY-NC 4.0 is a proposed future license, not currently effective.** The intended direction, analogous to ScanLab's still-pending artwork policy, is to welcome attributed noncommercial fan adaptations of rights-cleared original images while requiring separately granted commercial permissions. Do not represent this intention as adopted, enforceable in all jurisdictions, or sufficient to restrict uses of AI-generated elements that may not qualify for copyright protection. Before adopting a separate license, verify applicable OpenAI output terms, provenance, human creative contributions, authority to license, co-maintainer approval and the exact covered files. The legal effect of any rights carve-out and existing repository history also deserves maintainer/legal review.
+Noncommercial copying, sharing and adaptations are permitted under the full CC license terms, including attribution and indicating changes. Commercial permissions may be arranged separately with the authorized rightsholder(s). This does not license official branding or endorsements, does not establish copyright in otherwise unprotected AI-generated elements, and does not bind any independently owned third-party rights. The repository's previously included code, documentation and vector SVGs remain subject to their existing AGPL license and any applicable rights.
 
-Names, marks, affiliation and endorsement rights are separate from copyright licensing. The two SVGs are part of the existing AGPL-covered project vector assets unless an authorized later decision explicitly changes their treatment.
+The **later approved emerald/gold JPG master stored privately**, future imagery, and the two project SVGs are **not** within the three-PNG CC grant. See [the precise covered files and attribution requirements](LICENSE-ARTWORK.md).
 
 ## Presentation rules
 
