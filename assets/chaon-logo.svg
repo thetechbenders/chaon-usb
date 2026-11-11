@@ -1,32 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
-<title id="title">ChaoN - Chaotic Neutral USB</title>
-<desc id="desc">Ornate emerald and gold twenty-sided die showing a natural 20, with ChaoN wordmark and Chaotic Neutral USB subtitle.</desc>
-<defs>
-  <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#10131c"/><stop offset="1" stop-color="#21182b"/></linearGradient>
-  <linearGradient id="emerald" x2=".75" y2="1"><stop stop-color="#0a342c"/><stop offset=".48" stop-color="#087c5b"/><stop offset="1" stop-color="#10b981"/></linearGradient>
-  <linearGradient id="gold" x2=".7" y2="1"><stop stop-color="#fff0a4"/><stop offset=".5" stop-color="#c99336"/><stop offset="1" stop-color="#f9d975"/></linearGradient>
-</defs>
-<rect width="1200" height="320" rx="18" fill="url(#bg)"/>
-<g transform="translate(36 15)" stroke-linejoin="round">
-  <path d="M132 6 250 76 263 202 132 284 1 202 14 76Z" fill="url(#emerald)" stroke="url(#gold)" stroke-width="7"/>
-  <path d="M132 6 89 90 175 90Z" fill="#144d3f" stroke="#d8ae59" stroke-width="3"/>
-  <path d="M14 76 89 90 1 202Z" fill="#0b4034" stroke="#d8ae59" stroke-width="3"/>
-  <path d="M132 6 14 76 89 90Z" fill="#0b7155" stroke="#d8ae59" stroke-width="3"/>
-  <path d="M132 6 175 90 250 76Z" fill="#075c47" stroke="#d8ae59" stroke-width="3"/>
-  <path d="M250 76 175 90 263 202Z" fill="#09523f" stroke="#d8ae59" stroke-width="3"/>
-  <path d="M89 90 175 90 132 207Z" fill="#054630" stroke="#ffe29a" stroke-width="5"/>
-  <path d="M1 202 89 90 132 207Z" fill="#07765b" stroke="#d8ae59" stroke-width="3"/>
-  <path d="M263 202 175 90 132 207Z" fill="#056e51" stroke="#d8ae59" stroke-width="3"/>
-  <path d="M1 202 132 207 132 284Z" fill="#085540" stroke="#d8ae59" stroke-width="3"/>
-  <path d="M263 202 132 207 132 284Z" fill="#0a4338" stroke="#d8ae59" stroke-width="3"/>
-  <path d="M111 108h3v3h-3Z M114 108h3v3h-3Z M117 108h3v3h-3Z M120 108h3v3h-3Z M123 108h3v3h-3Z M132 108h3v3h-3Z M135 108h3v3h-3Z M138 108h3v3h-3Z M141 108h3v3h-3Z M144 108h3v3h-3Z M123 111h3v3h-3Z M132 111h3v3h-3Z M144 111h3v3h-3Z M123 114h3v3h-3Z M132 114h3v3h-3Z M144 114h3v3h-3Z M111 117h3v3h-3Z M114 117h3v3h-3Z M117 117h3v3h-3Z M120 117h3v3h-3Z M123 117h3v3h-3Z M132 117h3v3h-3Z M144 117h3v3h-3Z M111 120h3v3h-3Z M132 120h3v3h-3Z M144 120h3v3h-3Z M111 123h3v3h-3Z M132 123h3v3h-3Z M144 123h3v3h-3Z M111 126h3v3h-3Z M114 126h3v3h-3Z M117 126h3v3h-3Z M120 126h3v3h-3Z M123 126h3v3h-3Z M132 126h3v3h-3Z M135 126h3v3h-3Z M138 126h3v3h-3Z M141 126h3v3h-3Z M144 126h3v3h-3Z" fill="#ffe6a3" aria-label="20"/>
-  <path d="M131 44 136 58 150 63 136 68 131 82 126 68 112 63 126 58Z" fill="#e9fff2" opacity=".8"/>
-  <path d="M68 215q65 35 128 0" stroke="#f2c86c" stroke-width="2" fill="none" opacity=".65"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc"><title id="title">ChaoN - Chaotic Neutral USB</title><desc id="desc">Premium emerald-and-gold d20 displaying a natural 20, beside the ChaoN wordmark and Chaotic Neutral USB subtitle.</desc><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0c1216"/><stop offset="1" stop-color="#201929"/></linearGradient></defs><rect width="1200" height="320" rx="18" fill="url(#bg)"/><g transform="translate(18 10) scale(.24)"><defs>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8c5310"/><stop offset=".18" stop-color="#f6c852"/><stop offset=".35" stop-color="#ffe9a0"/><stop offset=".56" stop-color="#d99c26"/><stop offset=".77" stop-color="#ffdb65"/><stop offset="1" stop-color="#925b12"/></linearGradient>
+<linearGradient id="rimGold" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#fff0a8"/><stop offset=".42" stop-color="#dba324"/><stop offset=".82" stop-color="#ffdb77"/><stop offset="1" stop-color="#99631d"/></linearGradient>
+<linearGradient id="numberGold" x1="0" y1="0" x2=".4" y2="1"><stop stop-color="#fff7bd"/><stop offset=".32" stop-color="#ffe17c"/><stop offset=".65" stop-color="#e7b847"/><stop offset="1" stop-color="#d38d1e"/></linearGradient>
+<linearGradient id="faceMain" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#005f38"/><stop offset=".48" stop-color="#014f2c"/><stop offset="1" stop-color="#00381f"/></linearGradient>
+<linearGradient id="faceLeft" x1="0" y1="1" x2=".8" y2="0"><stop stop-color="#00351f"/><stop offset=".65" stop-color="#079955"/><stop offset="1" stop-color="#034528"/></linearGradient>
+<linearGradient id="faceRight" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#038b4c"/><stop offset=".7" stop-color="#00623b"/><stop offset="1" stop-color="#003d25"/></linearGradient>
+<linearGradient id="bottomLeft" x1="0" y1="1" x2=".9" y2="0"><stop stop-color="#01462c"/><stop offset=".55" stop-color="#00683d"/><stop offset="1" stop-color="#002b1c"/></linearGradient>
+<linearGradient id="bottomRight" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#005c39"/><stop offset="1" stop-color="#002817"/></linearGradient>
+</defs><g id="die">
+<path d="M624 56 L1125 374 L1121 929 L621 1191 L123 930 L122 374Z" fill="#003b25"/>
+<path d="M624 67 L122 372 L278 620Z" fill="url(#faceLeft)"/>
+<path d="M624 67 L1124 374 L970 619Z" fill="url(#faceRight)"/>
+<path d="M122 374 L279 621 L123 933Z" fill="#01532f"/>
+<path d="M1125 374 L970 622 L1121 933Z" fill="#00472a"/>
+<path d="M624 67 L279 621 L970 621Z" fill="url(#faceMain)"/>
+<path d="M279 624 L620 1178 L123 932Z" fill="url(#bottomLeft)"/>
+<path d="M970 624 L1121 931 L620 1178Z" fill="url(#bottomRight)"/>
+<path d="M279 624 L970 624 L624 1148Z" fill="#005b36"/>
+<path d="M279 624 L624 633 L624 897Z" fill="#087443" opacity=".55"/>
+<path d="M970 624 L624 633 L624 897Z" fill="#01482d" opacity=".4"/>
+<path d="M624 897 L279 624 L624 1148Z" fill="#005532" opacity=".32"/>
+<path d="M624 897 L970 624 L624 1148Z" fill="#002a1d" opacity=".3"/>
+<path d="M155 370 L608 93 L304 586Z" fill="#19c36c" opacity=".12"/>
+<path d="M646 98 L1091 368 L945 574Z" fill="#16c77c" opacity=".10"/>
+<path d="M157 926 L278 670 L598 1140Z" fill="#018956" opacity=".14"/>
+<g fill="none" stroke-linejoin="round" stroke-linecap="round">
+<path d="M624 55 L1125 374 L1121 931 L620 1190 L122 932 L122 372Z" stroke="#4b300c" stroke-width="40"/>
+<path d="M624 55 L1125 374 L1121 931 L620 1190 L122 932 L122 372Z" stroke="url(#gold)" stroke-width="29"/>
+<path d="M624 55 L1125 374 L1121 931 L620 1190 L122 932 L122 372Z" stroke="#fff2ad" stroke-opacity=".6" stroke-width="4"/>
+<path d="M624 55 L281 627 L965 627Z" stroke="#593209" stroke-width="43"/>
+<path d="M624 55 L281 627 L965 627Z" stroke="url(#gold)" stroke-width="31"/>
+<path d="M624 55 L281 627 L965 627Z" stroke="#ffe9a3" stroke-opacity=".75" stroke-width="4"/>
+<path d="M122 372 L281 627 L122 931 M1125 374 L965 627 L1121 931 M281 627 L620 1190 L965 627" stroke="#58330c" stroke-width="34"/>
+<path d="M122 372 L281 627 L122 931 M1125 374 L965 627 L1121 931 M281 627 L620 1190 L965 627" stroke="url(#rimGold)" stroke-width="24"/>
+<path d="M122 372 L281 627 L122 931 M1125 374 L965 627 L1121 931 M281 627 L620 1190 L965 627" stroke="#fff0a7" stroke-width="3.8" stroke-opacity=".68"/>
 </g>
-<g font-family="Arial,Helvetica,sans-serif">
-  <text x="340" y="155" font-size="135" font-weight="800" letter-spacing="-6" fill="#f5f5f7">Chao<tspan fill="#36d69d">N</tspan></text>
-  <text x="347" y="200" font-size="27" letter-spacing="6" fill="#f3e3c0">CHAOTIC NEUTRAL USB</text>
-  <path d="M345 222H1155" stroke="#c9a357" stroke-width="3"/>
-  <text x="348" y="262" font-size="20" letter-spacing="3" fill="#aeb4bd">TECHBENDERS  ·  ESP32-S3</text>
-</g>
-</svg>
+<g transform="translate(467.11 532.19) scale(0.280654 -0.280654)" fill="url(#numberGold)" stroke="#9c6516" stroke-width="12" paint-order="stroke fill" aria-label="20"><path d="M35 0V103L183 254Q245 317 278 365Q311 413 324 457Q337 501 337 553Q337 610 316 636.5Q295 663 259 663Q208 663 187.5 619.5Q167 576 167 490Q110 490 74.5 512.5Q39 535 39 589Q39 625 63.5 656Q88 687 137 705.5Q186 724 259 724Q371 724 429.5 679.5Q488 635 488 558Q488 523 475.5 490Q463 457 434 418Q405 379 355 327.5Q305 276 230 205L130 110H363Q427 110 446 179L454 210H513L508 0Z"/><path transform="translate(559 0)" d="M280 -10Q189 -10 135 36Q81 82 57.5 165Q34 248 34 359Q34 470 57.5 552Q81 634 135 679Q189 724 281 724Q368 724 421.5 679Q475 634 500 551.5Q525 469 525 358Q525 247 500 164.5Q475 82 421 36Q367 -10 280 -10ZM280 55Q336 55 353 135Q370 215 370 358Q370 501 353 580Q336 659 281 659Q225 659 207 580Q189 501 189 358Q189 215 207 135Q225 55 280 55Z"/></g>
+<path d="M624 197 Q633 239 659 248 Q633 255 624 292 Q616 257 591 248 Q616 240 624 197Z" fill="url(#numberGold)" stroke="#a86f19" stroke-width="3"/>
+<path d="M624 553 Q633 589 654 598 Q632 607 624 643 Q617 607 594 598 Q616 590 624 553Z" fill="url(#numberGold)" stroke="#a86f19" stroke-width="3"/>
+</g></g><g font-family="Arial,Helvetica,sans-serif"><text x="343" y="155" font-size="135" font-weight="800" letter-spacing="-6" fill="#f6f5f3">Chao<tspan fill="#23bf86">N</tspan></text><text x="349" y="202" font-size="27" letter-spacing="5.4" fill="#f5dfac">CHAOTIC NEUTRAL USB</text><path d="M345 222H1158" stroke="#d5aa45" stroke-width="3"/><text x="349" y="264" font-size="20" letter-spacing="3" fill="#adb5b8">TECHBENDERS  ·  ESP32-S3</text></g></svg>
