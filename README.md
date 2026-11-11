@@ -74,8 +74,8 @@ Older phase-specific records document the state at their historical test dates. 
 
 ## Branding
 
-The [emerald d20 logo](assets/chaon-d20.svg) is the compact project mark. The [branding guide](docs/branding/README.md) records the approved rogue-bard Sara artwork, social-preview asset location, and pending artwork policy. The [original PNG artwork](docs/branding/README.md#asset-inventory) is included in the repository; the social-preview image is not automatically applied to GitHub settings.
+The [emerald d20 logo](assets/chaon-d20.svg) is the compact project mark. The [branding guide](docs/branding/README.md) records the approved rogue-bard Sara artwork, social-preview asset location, and artwork licensing. The [original PNG artwork](docs/branding/README.md#asset-inventory) is included in the repository; the social-preview image is not automatically applied to GitHub settings.
 
 ## License
 
-ChaoN-USB's original source, documentation, and existing project vector artwork are licensed under **GNU Affero General Public License v3.0 only** ([AGPL-3.0-only](LICENSE)). Copyright © 2026 Techbenders contributors for material to which they hold rights. **The three new PNG images under [`docs/branding/`](docs/branding/README.md#asset-inventory) are excluded from this project's AGPL artwork statement pending rights and separate-license review; no CC BY-NC license has been granted for them.** See the [branding rights status](docs/branding/README.md#artwork-rights-and-license-status). Third-party dependencies retain their respective licenses.
+ChaoN-USB's original source, documentation, and existing project vector artwork are licensed under **GNU Affero General Public License v3.0 only** ([AGPL-3.0-only](LICENSE)). Copyright © 2026 Techbenders contributors for material to which they hold rights. **The three named PNG images in [`docs/branding/`](docs/branding/README.md#asset-inventory) are separately licensed under [CC BY-NC 4.0](docs/branding/LICENSE-ARTWORK.md), only for rights their contributor is authorized to license.** This does not grant trademark or official endorsement rights. Third-party dependencies retain their respective licenses.
