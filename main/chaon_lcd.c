@@ -16,13 +16,14 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "chaon_board.h"
 #define LCD_SPI SPI2_HOST
-#define LCD_MOSI GPIO_NUM_3
-#define LCD_CLK GPIO_NUM_5
-#define LCD_CS GPIO_NUM_4
-#define LCD_DC GPIO_NUM_2
-#define LCD_RST GPIO_NUM_1
-#define LCD_BL GPIO_NUM_38
+#define LCD_MOSI CHAON_PIN_LCD_MOSI
+#define LCD_CLK CHAON_PIN_LCD_CLK
+#define LCD_CS CHAON_PIN_LCD_CS
+#define LCD_DC CHAON_PIN_LCD_DC
+#define LCD_RST CHAON_PIN_LCD_RST
+#define LCD_BL CHAON_PIN_LCD_BL
 
 static const char *TAG = "chaon_lcd";
 static spi_device_handle_t display;

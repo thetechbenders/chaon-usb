@@ -102,3 +102,22 @@ jobs:
             dependencies.lock
             ${{ runner.temp }}/chaon-experimental-candidate.zip
             ${{ runner.temp }}/rc-provenance.json
+
+  esp32s3-plus-inert:
+    name: ESP-IDF v5.5.3 / Plus inert board-profile compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build Plus inert diagnostic (not a deployable HID image)
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.5.3
+          target: esp32s3
+          path: .
+          command: idf.py -DCHAON_BOARD=tdongle_s3_plus build
+      - name: Assert Plus build selected and diagnostic-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '^CHAON_BOARD:STRING=tdongle_s3_plus$' build/CMakeCache.txt
+          grep -q 'CHAON_BOARD_INERT_BRINGUP 1' main/chaon_board.h

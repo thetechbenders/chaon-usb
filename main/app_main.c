@@ -19,6 +19,7 @@
 #include "tinyusb_default_config.h"
 #include "class/hid/hid_device.h"
 
+#include "chaon_board.h"
 #include "chaon_script.h"
 #include "chaon_vm.h"
 #include "chaon_status.h"
@@ -29,9 +30,9 @@
 #include "chaon_selection.h"
 #include "chaon_app_decision.h"
 
-#define BUTTON_PIN GPIO_NUM_0
-#define APA102_DATA GPIO_NUM_40
-#define APA102_CLOCK GPIO_NUM_39
+#define BUTTON_PIN CHAON_PIN_BOOT
+#define APA102_DATA CHAON_PIN_APA102_DATA
+#define APA102_CLOCK CHAON_PIN_APA102_CLOCK
 #define USB_DESCRIPTOR_LEN (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN)
 
 static const char *TAG = "chaon";
@@ -281,6 +282,20 @@ void app_main(void)
         return;
     }
     init_gpio();
+
+#if CHAON_BOARD_INERT_BRINGUP
+    /* Deliberate Plus safety gate: no USB HID driver, no VM, no keystrokes.
+     * Bring up read-only SD and advisory LCD, then stay inert. This firmware
+     * is a developer diagnostic, not a Plus ChaoN product image.
+     */
+    ESP_LOGW(TAG, "%s inert bring-up only: HID/ARM/RUN disabled", CHAON_BOARD_NAME);
+    const bool plus_lcd_ok = chaon_lcd_open();
+    ESP_LOGI(TAG, "Plus LCD init: %s", plus_lcd_ok ? "OK" : "FAILED");
+    chaon_sd_probe_start();
+    for (;;) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+#endif
 
     tinyusb_config_t usb = TINYUSB_DEFAULT_CONFIG();
     usb.descriptor.device = NULL;

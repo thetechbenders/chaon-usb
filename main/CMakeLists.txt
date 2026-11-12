@@ -9,3 +9,11 @@ idf_component_register(
     INCLUDE_DIRS "."
     PRIV_REQUIRES esp_driver_gpio esp_driver_spi esp_driver_sdmmc sdmmc esp_timer
 )
+
+# Plus deliberately compiles as an inert peripheral smoke-test image. The
+# original target preserves its existing full USB/HID behavior.
+if(CHAON_BOARD STREQUAL "tdongle_s3_plus")
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE CHAON_BOARD_TDONGLE_S3_PLUS=1)
+else()
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE CHAON_BOARD_TDONGLE_S3=1)
+endif()
