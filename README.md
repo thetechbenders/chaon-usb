@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/chaon-logo.svg" alt="ChaoN: d20 and charcoal/neon-green wordmark" width="100%" />
+  <img src="assets/chaon-logo.svg" alt="ChaoN: emerald-and-gold natural-20 d20 and wordmark" width="100%" />
 </div>
 
 # ChaoN-USB
@@ -72,6 +72,10 @@ The tested source is `ae70e489ccd7ca22e2dcbe466bc5f544940a55f7`; artifact `12573
 
 Older phase-specific records document the state at their historical test dates. They must not be interpreted as current functionality.
 
+## Branding
+
+The [emerald d20 logo](assets/chaon-d20.svg) is the compact project mark. The [branding guide](docs/branding/README.md) records the approved rogue-bard Sara artwork, social-preview asset location, and artwork licensing. The [original PNG artwork](docs/branding/README.md#asset-inventory) is included in the repository; the social-preview image is not automatically applied to GitHub settings.
+
 ## License
 
-ChaoN-USB's original source, documentation and project artwork are licensed under the **GNU Affero General Public License v3.0 only** ([AGPL-3.0-only](LICENSE)). Copyright © 2026 Techbenders contributors. Third-party dependencies retain their respective licenses.
+ChaoN-USB's original source, documentation, and existing project vector artwork are licensed under **GNU Affero General Public License v3.0 only** ([AGPL-3.0-only](LICENSE)). Copyright © 2026 Techbenders contributors for material to which they hold rights. **The three named PNG images in [`docs/branding/`](docs/branding/README.md#asset-inventory) are separately licensed under [CC BY-NC 4.0](docs/branding/LICENSE-ARTWORK.md), only for rights their contributor is authorized to license.** This does not grant trademark or official endorsement rights. Third-party dependencies retain their respective licenses.

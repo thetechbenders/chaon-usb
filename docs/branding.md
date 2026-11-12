@@ -5,15 +5,15 @@ ChaoN is short for **Chaotic Neutral**, a recognizable tabletop RPG alignment re
 ## Visual direction
 
 - Dark charcoal / near-black background (e.g. `#11131B`)
-- Acid-neon/lime green accent (e.g. `#B4F66B`)
-- White/slate-gray modern wordmark, with the final **N** lime
+- Emerald green and gold accent (e.g. `#10B981` and `#F9D975`); the earlier lime `#B4F66B` is historical, not the current brand direction
+- White/slate-gray modern wordmark, with the final **N** emerald green
 - An actual **icosahedral d20**: visible triangular facets and the number 20 inside a triangular face. Avoid an elongated d10 silhouette.
 - Product subtitle: **CHAOTIC NEUTRAL USB**
 - Attributed product/project identity: **TECHBENDERS · ESP32-S3**
 
-The initial hand-created vector [logo](../assets/chaon-logo.svg) is an editable, approximate vector interpretation of the approved visual mood, **not** a photorealistic d20 or final trademark logo. The previously generated visual is reference art, not automatically the canonical SVG.
+The updated hand-created [horizontal SVG logo](../assets/chaon-logo.svg) and [compact d20 SVG](../assets/chaon-d20.svg) are geometric vector branding marks, distinct from the approved original raster d20. See the [asset inventory and rights status](branding/README.md) for the three new PNGs.
 
-**Public/open-source status:** the repository is public and its original code, documentation, and project artwork are licensed under [AGPL-3.0-only](../LICENSE). The descriptive label **OPEN SOURCE** is now accurate. Copyright licensing does not, by itself, grant trademark rights to use Techbenders or ChaoN names as product endorsements.
+**Public/open-source status:** the repository is public and its original code, documentation and existing vector assets remain under [AGPL-3.0-only](../LICENSE), subject to the rights actually held by contributors. The three specifically identified PNG illustrations are **separately licensed under [CC BY-NC 4.0](branding/LICENSE-ARTWORK.md)**, limited to rights their contributor may license; they are outside the repository's blanket AGPL artwork statement. The descriptive label **OPEN SOURCE** describes the software and does not imply rights in every artwork asset. Copyright licensing does not grant trademark rights to use Techbenders or ChaoN names as endorsements.
 
 ## Presentation
 
