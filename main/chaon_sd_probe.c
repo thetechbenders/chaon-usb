@@ -5,6 +5,7 @@
  * The task never changes the USB/BOOT controller or executes card data.
  */
 #include "chaon_sd_probe.h"
+#include "chaon_board.h"
 #include "chaon_sd_sector.h"
 #include "chaon_fat_ro.h"
 #include "chaon_inspect_mailbox.h"
@@ -434,9 +435,9 @@ static void probe_task(void *ctx)
         host.max_freq_khz = 10000; /* conservative 10 MHz, 1-bit bus */
         sdmmc_slot_config_t slot = SDMMC_SLOT_CONFIG_DEFAULT();
         slot.width = 1;
-        slot.clk = GPIO_NUM_12;
-        slot.cmd = GPIO_NUM_16;
-        slot.d0 = GPIO_NUM_14;
+        slot.clk = CHAON_PIN_SD_CLK;
+        slot.cmd = CHAON_PIN_SD_CMD;
+        slot.d0 = CHAON_PIN_SD_D0;
         slot.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
 
         esp_err_t err = sdmmc_host_init();
