@@ -5,12 +5,11 @@
 #define CHAON_BOARD_NAME "T-Dongle-S3-Plus"
 #define CHAON_BOARD_PLUS 1
 #define CHAON_BOARD_INERT_BRINGUP 1
-#elif defined(CHAON_BOARD_TDONGLE_S3)
+#else
+/* Native host tests don't use CMake; default to the original board. */
 #define CHAON_BOARD_NAME "T-Dongle-S3"
 #define CHAON_BOARD_PLUS 0
 #define CHAON_BOARD_INERT_BRINGUP 0
-#else
-#error "Select a ChaoN hardware profile via CMake"
 #endif
 /* Common pins from LILYGO published board pinout. */
 #define CHAON_PIN_BOOT GPIO_NUM_0
