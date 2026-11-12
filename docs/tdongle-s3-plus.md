@@ -4,11 +4,13 @@
 
 ## Rationale and sources
 
-The S3 Plus uses ESP32-S3, 16 MB QSPI flash and 8 MB OPI PSRAM. The published Plus pin table lists BOOT=GPIO0, APA102 data/clock=40/39 and SDMMC CLK/CMD/D0=12/16/14. LILYGO lists a 160×80 ST7735 SPI LCD. The Plus LCD signals are tentatively mapped to the original vendor LCD example (MOSI 3, CLK 5, CS 4, DC 2, RST 1, BL 38); **confirm with the actual Plus schematic and physical board revision before treating these assignments as accepted**.
+The S3 Plus uses ESP32-S3, 16 MB QSPI flash and 8 MB OPI PSRAM. The published Plus pin table lists BOOT=GPIO0, APA102 data/clock=40/39 and SDMMC CLK/CMD/D0=12/16/14. LILYGO lists a 160×80 ST7735 SPI LCD. The **Plus-capable official factory-screen example** explicitly defines LCD MOSI=3, CLK=5, CS=4, DC=2, RST=1, BL=38 with backlight **active low**. It is explicitly intended for both the original S3 and S3 Plus, so the current ChaoN LCD GPIO mapping is **vendor-software-confirmed for both targets**, not a speculative extrapolation. Board-revision-specific physical behavior remains untested.
 
 - https://wiki.lilygo.cc/products/t-dongle-series/t-dongle-s3-plus/
 - https://wiki.lilygo.cc/products/t-dongle-series/t-dongle-s3-plus/quick-start.html
 - https://github.com/Xinyuan-LilyGO/T-Dongle-S3/blob/main/schematic/T-Dongle-S3-Plus.pdf
+- https://github.com/Xinyuan-LilyGO/T-Dongle-S3/blob/main/examples/factory_screen/factory_screen.ino (shared LCD pin assignments; active-low backlight; Plus-specific features conditional on board definition)
+- https://github.com/Xinyuan-LilyGO/T-Dongle-S3/blob/main/docs/en/t-dongle-s3-plus/REAMDE.MD (Plus pin table)
 - Original LCD example: https://github.com/Xinyuan-LilyGO/T-Dongle-S3/blob/main/examples/lcd/lcd.ino
 
 Plus-only PDM microphone (GPIO8/9), IR emitter (GPIO7) and optional I2C ATECC508A (GPIO10/11) are **not initialized or used**. Do not configure or lock the security chip. PSRAM remains unused, despite its presence: all original static/DMA constraints stay intact until measured otherwise.
@@ -31,7 +33,7 @@ The Plus image sets `CHAON_BOARD_INERT_BRINGUP=1`, initializes the GPIO/APA102, 
 
 ## Before any separately authorized physical test
 
-1. Inspect actual hardware variant, Plus revision, schematic, power, native USB/ROM path, flash size and PSRAM identity. Confirm the LCD GPIOs and backlight polarity from vendor electrical evidence.
+1. Inspect actual hardware variant, Plus revision, power, native USB/ROM path, flash size and PSRAM identity. Verify actual LCD behavior and active-low backlight on that unit using the **documented vendor pins**, rather than treating those pins as unknown.
 2. Secure a *Plus-specific* recovery/readback backup and stable ROM recovery procedure. Do not assume the original S3 recovery artifact is compatible.
 3. Verify the exact source SHA and Plus build output, flash configuration and no-HID diagnostic gate.
 4. With separate explicit permission, run supervised display, LED, BOOT and read-only SD tests. Confirm no USB keyboard enumeration or unsolicited typing.
