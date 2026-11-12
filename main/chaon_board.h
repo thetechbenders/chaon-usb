@@ -18,7 +18,8 @@
 #define CHAON_PIN_SD_CLK GPIO_NUM_12
 #define CHAON_PIN_SD_CMD GPIO_NUM_16
 #define CHAON_PIN_SD_D0 GPIO_NUM_14
-/* LCD pins from vendor LCD example. Confirm on Plus board revision. */
+/* LCD pins shared by both models in LilyGO's factory_screen example.
+ * Plus-specific operation remains physically unverified. */
 #define CHAON_PIN_LCD_MOSI GPIO_NUM_3
 #define CHAON_PIN_LCD_CLK GPIO_NUM_5
 #define CHAON_PIN_LCD_CS GPIO_NUM_4
